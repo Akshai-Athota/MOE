@@ -17,6 +17,7 @@ CASES = [  # (question, user, expected: answer|abstain|conflict)
 ]
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 total = 0
+answered: list[tuple[str, str, list[str]]] = []  # answers to abstain/any questions
 details: list[tuple[str, str, str]] = []  # per abstain: what the failing step saw
 
 
@@ -40,6 +41,9 @@ for q, uid, want in CASES:
         a = ask(q, user_from_persona(uid))
         outcome = "abstain" if a.abstained else "conflict" if a.conflict else "answer"
         got[outcome] += 1
+        if want in ("any", "abstain") and not a.abstained:
+            # an answer where none (or either) is expected: show what was said and from where
+            answered.append((q, a.answer, [c.source_id for c in a.citations]))
         if a.abstained:
             reasons[(q, a.abstain_reason)] += 1
             details.append((q, a.abstain_reason, _detail(a)))
@@ -57,3 +61,9 @@ if details:
     for q, r, d in details:
         if d:
             print(f"  [{r}] {q}\n      {d}")
+
+if answered:
+    print("\nanswers where an abstain was expected or allowed (check they are correct):")
+    for q, text, cited in dict.fromkeys((q, t, tuple(c)) for q, t, c in answered):
+        n = sum(1 for x in answered if x[0] == q and x[1] == text)
+        print(f"  {n}x {q}\n      {text}\n      cited: {', '.join(cited)}")
