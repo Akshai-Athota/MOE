@@ -19,7 +19,7 @@ from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, ConfigDict, Field
 
 from hilde import chitchat as smalltalk
-from hilde import language, open_questions
+from hilde import language, open_questions, profile
 from hilde.llm import get_llm
 from hilde.loaders import load_company, load_personas
 from hilde.prompts import (
@@ -105,6 +105,8 @@ class State(TypedDict, total=False):
 
 def chitchat(state: State) -> State:
     lang = language.detect(state["question"])
+    if profile.is_identity_question(state["question"]):  # "Wer bin ich?" -> own directory entry
+        return {"lang": lang, "result": profile.identity_answer(state["question"], state["user"], lang)}
     kind = smalltalk.classify(state["question"])
     if kind == "none":
         return {"lang": lang}
