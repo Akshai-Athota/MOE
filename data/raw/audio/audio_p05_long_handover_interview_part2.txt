@@ -1,47 +1,47 @@
-Hilde: Hallo Wolfgang, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Hilde, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+Q: Hallo Wolfgang, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Q, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
 
-Reinecke: Gern, Hilde. Dann erzähle ich mal.
+Reinecke: Gern, Q. Dann erzähle ich mal.
 
-Hilde: Hey Wolfgang, ich hab mich gefragt, ob du was dazu sagen könntest, wie wichtig es ist, dass wir die Unterlagen für den Umbau bis zum 31.01.2027 bei der Vergabestelle des LStN rüberbringen?
+Q: Hey Wolfgang, ich hab mich gefragt, ob du was dazu sagen könntest, wie wichtig es ist, dass wir die Unterlagen für den Umbau bis zum 31.01.2027 bei der Vergabestelle des LStN rüberbringen?
 
-Reinecke: Also, Hilde, es ist wirklich wichtig, dass wir den Termin halten. Wenn wir die Unterlagen nicht rechtzeitig vorliegen lassen, kann der Baubeginn im Mai im Gefecht landen. Wir müssen den Formalitäten Genossenschaft leisten, das ist klar.
+Reinecke: Also, Q, es ist wirklich wichtig, dass wir den Termin halten. Wenn wir die Unterlagen nicht rechtzeitig vorliegen lassen, kann der Baubeginn im Mai im Gefecht landen. Wir müssen den Formalitäten Genossenschaft leisten, das ist klar.
 
-Hilde: Wolfgang, wann beginnt die Vorbereitung des Jahresabschlusses, und was bedeutet das für unsere Bestellungen?
+Q: Wolfgang, wann beginnt die Vorbereitung des Jahresabschlusses, und was bedeutet das für unsere Bestellungen?
 
 Reinecke: Also, ab dem 1. Dezember stoppen wir die Auslösung neuer Bestellungen, weil wir dann mit dem Jahresabschluss beginnen. Also, wer etwas braucht, muss bis zum 15. November seine Anfragen einreichen. So bleibt uns genug Zeit für den Abschluss.
 
-Hilde: Hey Wolfgang, wie sieht es denn bei euch in der Geschäftsstelle aus? Welche Bereiche sind besonders wichtig für die Entwicklung der Organisation?
+Q: Hey Wolfgang, wie sieht es denn bei euch in der Geschäftsstelle aus? Welche Bereiche sind besonders wichtig für die Entwicklung der Organisation?
 
 Reinecke: Also, bei uns im Landesamt für Steuern Niedersachsen hat es eine ziemlich klare Aufteilung. Fach- und Dienstaufsicht liegt beim Landesamt selbst, und wir haben uns ganz schön mit den drei Referaten beschäftigt. Organisation ist unser Hauptreferat, also da arbeiten wir mit der E-Akte und so weiter. Digitalisierung ist auch wichtig, da wir KI-Pilotprojekte und Modernisierungsfonds nutzen. Und dann gibt es noch das Personalreferat, das sicher auch nicht zu unterschätzen ist.
 
-Hilde: Hey Wolfgang, hast du mal wieder ein paar Anekdoten für uns? Ich meine, du bist ja bekanntlich ein echter Geschichtenerzähler. Und was ist mit den neuesten Verbindlichkeiten? Die Hausverfügungen, die Dienstvereinbarung und die Zielvereinbarung, die wir ja immer wieder durchstöbern müssen, stimmen das? Oder gibt es da was Neues, das wir noch nicht wissen? 
+Q: Hey Wolfgang, hast du mal wieder ein paar Anekdoten für uns? Ich meine, du bist ja bekanntlich ein echter Geschichtenerzähler. Und was ist mit den neuesten Verbindlichkeiten? Die Hausverfügungen, die Dienstvereinbarung und die Zielvereinbarung, die wir ja immer wieder durchstöbern müssen, stimmen das? Oder gibt es da was Neues, das wir noch nicht wissen? 
 
 Reinecke: Die Hausverfügungen im Intranet, die Dienstvereinbarung Gleitzeit und mobiles Arbeiten (DV-2024-01) und die Zielvereinbarung 2026 mit dem LStN sind verbindlich.
 
-Hilde: Hey Wolfgang, wie funktioniert das genau mit den Landtagsanfragen? Was passiert, wenn sie hereinkommen?
+Q: Hey Wolfgang, wie funktioniert das genau mit den Landtagsanfragen? Was passiert, wenn sie hereinkommen?
 
-Reinecke: Also, Hilde, die Landtagsanfragen kommen über das LStN, und wir haben intern fünf Arbeitstage, um sie zu bearbeiten. Ich hab da echt keine Panik, weil die Federführung bei uns in der Geschäftsstelle liegt. Also, wir kümmern uns ums Organisieren und die Zuarbeit, damit alles ordentlich abläuft.
+Reinecke: Also, Q, die Landtagsanfragen kommen über das LStN, und wir haben intern fünf Arbeitstage, um sie zu bearbeiten. Ich hab da echt keine Panik, weil die Federführung bei uns in der Geschäftsstelle liegt. Also, wir kümmern uns ums Organisieren und die Zuarbeit, damit alles ordentlich abläuft.
 
-Hilde: Wolfgang, wie ging es mit den Rückstau-Einsprüchen in 2023 und was hat sich geändert, wenn es um die E-Mail-Sicherheit geht?
+Q: Wolfgang, wie ging es mit den Rückstau-Einsprüchen in 2023 und was hat sich geändert, wenn es um die E-Mail-Sicherheit geht?
 
 Reinecke: Also, 2023 hab ich echt den ganzen Tag damit verbracht, Einsprüche zu bearbeiten. Das war echt ein Stau. Also, 2024 dann kam diese E-Mail, und da hab ich echt Angst bekommen, dass es wieder so was gibt. Also, jetzt müssen wir in Outlook immer zwei Klicks machen, um eine E-Mail an einen externen Empfänger zu senden. Das war eine Notwendigkeit, um sicherzustellen, dass solche Sachen nicht mehr passieren.
 
-Hilde: Wolfgang, du sagtest, dass man vor jedem Bericht ans LStN kurz Frau Schulte anrufen sollte. Warum ist das so wichtig?
+Q: Wolfgang, du sagtest, dass man vor jedem Bericht ans LStN kurz Frau Schulte anrufen sollte. Warum ist das so wichtig?
 
-Reinecke: Also, Hilde, das ist eine alte Tradition, die ich von meinen Vorgängern übernommen habe. Du weißt ja, damals beim Umzug 1998, da mussten wir uns erst mal einrichten. Frau Schulte kennt alle Leute im Referat und kann uns immer gut beraten. Also, ich meine, wenn du ihr nur kurz anrufst, siehst du, ob sie gerade beschäftigt ist, und kannst dich dann gut planen. Und du solltest auch nicht vergessen, dass die Kaffeekasse 3 € im Monat kostet und bei Frau Krüger liegt. Also, das ist wirklich wichtig, damit du nicht überrascht wirst, wenn du dort vorbeikommst.
+Reinecke: Also, Q, das ist eine alte Tradition, die ich von meinen Vorgängern übernommen habe. Du weißt ja, damals beim Umzug 1998, da mussten wir uns erst mal einrichten. Frau Schulte kennt alle Leute im Referat und kann uns immer gut beraten. Also, ich meine, wenn du ihr nur kurz anrufst, siehst du, ob sie gerade beschäftigt ist, und kannst dich dann gut planen. Und du solltest auch nicht vergessen, dass die Kaffeekasse 3 € im Monat kostet und bei Frau Krüger liegt. Also, das ist wirklich wichtig, damit du nicht überrascht wirst, wenn du dort vorbeikommst.
 
-Hilde: Wolfgang, wie sieht es aus, dass wir im Amt intern duzen, aber bei den Bürgerinnen und Bürgern und dem LStN siezen?
+Q: Wolfgang, wie sieht es aus, dass wir im Amt intern duzen, aber bei den Bürgerinnen und Bürgern und dem LStN siezen?
 
 Reinecke: Also, seit 2024 haben wir das System eingeführt, dass wir intern duzen. Das macht die Atmosphäre im Team haltbarer und freundlicher. Gegenüber den Bürgern und dem LStN bleiben wir aber höflich und formell, damit alles ordentlich läuft. So lassen wir sowohl die innenpolitischen Verhältnisse als auch die äußeren Einstellungen klar.
 
-Hilde: Wolfgang, wie hat sich die Arbeitszeit der Kantine in Hildesheim nach dem Pächterwechsel im August 2026 geändert?
+Q: Wolfgang, wie hat sich die Arbeitszeit der Kantine in Hildesheim nach dem Pächterwechsel im August 2026 geändert?
 
 Reinecke: Also, seit dem Pächterwechsel ist die Kantine nur noch von Montag bis Donnerstag von 11:30 bis 13:30 Uhr geöffnet. Freitags ist sie leider geschlossen. Äh, das hat die Pächter so organisiert, um ihre Ressourcen besser zu nutzen.
 
-Hilde: Wolfgang, wie läuft das Urlaubbeantragen bei euch? Hast du schon mal Schwierigkeiten bei der Genehmigung erlebt?
+Q: Wolfgang, wie läuft das Urlaubbeantragen bei euch? Hast du schon mal Schwierigkeiten bei der Genehmigung erlebt?
 
-Reinecke: Na ja, Hilde, bei uns wird Urlaub im PersonalPortal NI beantragt und von der Sachgebietsleitung genehmigt. Wenn jemand mehr als drei Tage Urlaub nimmt, muss er mindestens zwei Wochen vorher anfragen und den Vertretungsplan aktualisieren. Ansonsten läuft alles ziemlich glatt.
+Reinecke: Na ja, Q, bei uns wird Urlaub im PersonalPortal NI beantragt und von der Sachgebietsleitung genehmigt. Wenn jemand mehr als drei Tage Urlaub nimmt, muss er mindestens zwei Wochen vorher anfragen und den Vertretungsplan aktualisieren. Ansonsten läuft alles ziemlich glatt.
 
-Hilde: Danke, Wolfgang! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+Q: Danke, Wolfgang! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
 
 Reinecke: Prima, so machen wir das.

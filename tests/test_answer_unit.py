@@ -52,3 +52,17 @@ def test_key_term_grounding_for_german_compounds():
     assert key_term_grounded("Wie funktioniert das Mitzeichnungsverfahren?",
                              ["Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen."])
     assert key_term_grounded("Wo kann ich parken?", ["irrelevant"])  # no long word -> no check
+
+
+def test_key_term_ignores_verbs():
+    from hilde.answer import key_term_grounded
+
+    # "aufgeteilt" is a verb; the source says "Aufteilung" -> no noun to check -> passes
+    assert key_term_grounded("Wie ist das Budget aufgeteilt?", ["Aufteilung 2026: Fortbildung ..."])
+
+
+def test_key_term_stem_long_enough_for_similar_compounds():
+    from hilde.answer import key_term_grounded
+
+    assert not key_term_grounded("Wie läuft die Haushaltsanmeldung?",
+                                 ["Kontrolle und Überwachung der Haushaltsangelegenheiten."])

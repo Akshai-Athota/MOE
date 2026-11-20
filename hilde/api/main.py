@@ -1,4 +1,4 @@
-"""FastAPI entry point for Hilde's pipeline.
+"""FastAPI entry point for Q's pipeline.
 
 Run locally:  uv run uvicorn hilde.api.main:app --reload
 Docs:         http://localhost:8000/docs
@@ -8,18 +8,28 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from hilde import open_questions
 from hilde.answer import ask
 from hilde.config import REPO_ROOT, get_settings
 from hilde.ingest import ingest_file
+from hilde.learn import learn
 from hilde.llm import ollama_status
 from hilde.loaders import load_personas, user_from_persona
-from hilde.schemas import Access, Answer, CaptureMeta, Hit, User
+from hilde.schemas import Access, Answer, CaptureMeta, Hit, LearnRequest, User
 from hilde.vectorstore import qdrant_status, search
 
-app = FastAPI(title="Hilde API", version="0.4.0")
+app = FastAPI(title="Q API", version="0.5.0")
+
+# the web app (Vite dev server on :5173) calls the API from the browser
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
@@ -75,7 +85,7 @@ def ask_endpoint(req: AskRequest) -> Answer:
 
 @app.get("/open-questions")
 def open_questions_endpoint(assigned_to: str | None = None) -> list[dict]:
-    """Questions Hilde could not answer; the interviewer (B6) uses these."""
+    """Questions Q could not answer; the interviewer (B6) uses these."""
     return open_questions.list_open(assigned_to)
 
 
@@ -104,3 +114,24 @@ def ingest_endpoint(
         return ingest_file(path, meta)
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(400, str(exc)) from None
+
+
+@app.post("/learn")
+def learn_endpoint(req: LearnRequest) -> dict:
+    """Store knowledge captured in the app (interview/quiz answer, uploaded order). Searchable at once;
+    a future valid_from is stored as scheduled and only becomes the answer on that day."""
+    user = _user(req.user_id)
+    if req.access == "restricted" and user.role != "manager":
+        raise HTTPException(403, "only managers may store restricted knowledge")
+    return learn(req)
+
+
+@app.post("/reset-learned")
+def reset_learned_endpoint() -> dict:
+    """Demo reset: forget knowledge learned live in the app (interviews, quiz, uploads) and open
+    questions. Superseded markers from live updates stay; rebuild with `python -m hilde.index`."""
+    from hilde.vectorstore import delete_learned
+
+    removed = delete_learned()
+    open_questions.PATH.unlink(missing_ok=True)
+    return {"removed": removed}

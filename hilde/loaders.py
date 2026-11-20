@@ -1,6 +1,6 @@
 """Turn Person A's YAML world (facts, rules, personas) into LangChain Documents.
 
-This seeds Hilde's memory before any audio/doc is ingested. Later steps add chunks
+This seeds Q's memory before any audio/doc is ingested. Later steps add chunks
 from real sources (source_type "segment" / "handbook") with the same metadata keys.
 """
 

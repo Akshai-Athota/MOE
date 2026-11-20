@@ -65,6 +65,10 @@ class Citation(BaseModel):
     valid_from: str | None = None
     anchor: dict = Field(default_factory=dict, description="e.g. {t_start: 252.1} -> play audio from 04:12")
     source_file: str | None = None
+    owner: str | None = Field(default=None, description="persona id of the knowledge holder")
+    modality: str | None = Field(default=None, description="audio | video | doc | email | text | fact | rule")
+    title: str | None = None
+    fact_ids: list[str] = Field(default_factory=list, description="ground-truth facts behind the source")
 
 
 class Contact(BaseModel):
@@ -95,7 +99,25 @@ class Answer(BaseModel):
     changes: list[Change] = []
     who_to_ask: Contact | None = None
     open_question_id: str | None = None
+    blocked: bool = Field(default=False, description="the answer exists but is not released for this role")
+    restricted_owner: Contact | None = Field(
+        default=None, description="whom to ask for content this role may not see")
     seconds: float = 0.0
+
+
+class LearnRequest(BaseModel):
+    """Knowledge captured in the UI (interview answer, quiz answer, uploaded order)."""
+
+    text: str = Field(min_length=3)
+    user_id: str = Field(description="knowledge holder (persona id)")
+    label: str = Field(description="citation label, e.g. 'Interview W. Reinecke · live'")
+    via: Literal["interview", "quiz", "upload"] = "interview"
+    topic: str | None = None
+    category: str = "general"
+    access: Access = "internal"
+    valid_from: str | None = Field(default=None, description="ISO date; in the future = scheduled")
+    supersedes: str | None = Field(default=None, description="fact/source id this replaces")
+    question: str | None = Field(default=None, description="the open question this answers")
 
 
 class Hit(BaseModel):

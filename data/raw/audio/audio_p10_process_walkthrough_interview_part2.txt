@@ -1,31 +1,31 @@
-Hilde: Hallo Petra, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Hilde, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+Q: Hallo Petra, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Q, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
 
-Schulte: Gern, Hilde. Dann erzähle ich mal.
+Schulte: Gern, Q. Dann erzähle ich mal.
 
-Hilde: Petra, wie funktioniert die Verwaltung der E-Akte im Arbeitnehmerbereich und welche Rolle spielt das Kanban-Board im Microsoft Planner dabei?
+Q: Petra, wie funktioniert die Verwaltung der E-Akte im Arbeitnehmerbereich und welche Rolle spielt das Kanban-Board im Microsoft Planner dabei?
 
 Schulte: Also, bei uns im Arbeitnehmerbereich wird die E-Akte mit einem Kanban-Board im Microsoft Planner organisiert. Jede Aufgabe ist eine Karte, auf der die verantwortliche Person stehen hat. Und dann haben wir ein Stand-up-Meeting jeden Mittwoch um 14:00 Uhr, nur 15 Minuten, aber da klären wir schnell die aktuellen Rückstände und die Bearbeitungsdauer. So bleiben wir immer auf dem Laufenden und können schnell handeln, wenn was dringend ist.
 
-Hilde: Hilde, bei welchen Situationen musst du unbedingt sofort die Vorsteherin informieren?
+Q: Q, bei welchen Situationen musst du unbedingt sofort die Vorsteherin informieren?
 
 Schulte: Also, bei Presseanfragen, Datenpannen, Beschwerden über Beschäftigte und Erstattungen über 50.000 €. Bei allem, was eine Frist gefährdet, melde ich mich natürlich bei der Vorsteherin. Äh, das ist wichtig, damit wir immer im Klaren sind.
 
-Hilde: Petra, wir haben uns schon oft darüber unterhalten, dass wir bei den E-Mails immer sehr vorsichtig mit der Aktennotation sein müssen. Kannst du mir erzählen, wie wir das am besten machen?
+Q: Petra, wir haben uns schon oft darüber unterhalten, dass wir bei den E-Mails immer sehr vorsichtig mit der Aktennotation sein müssen. Kannst du mir erzählen, wie wir das am besten machen?
 
-Schulte: Also, Hilde, das ist eine gute Frage. Wir müssen sicherstellen, dass wir nur die aktenrelevante Information in die E-Mails aufnehmen. Alles, was nicht direkt zum Steuerfall oder zur Verwaltung der Steuerdaten passt, lassen wir lieber im Teams-Chat. Ich denke, das hilft uns dabei, den Akteninhalt klar und relevant zu halten.
+Schulte: Also, Q, das ist eine gute Frage. Wir müssen sicherstellen, dass wir nur die aktenrelevante Information in die E-Mails aufnehmen. Alles, was nicht direkt zum Steuerfall oder zur Verwaltung der Steuerdaten passt, lassen wir lieber im Teams-Chat. Ich denke, das hilft uns dabei, den Akteninhalt klar und relevant zu halten.
 
-Hilde: Petra, wie läuft die erste Phase der Einweisung in deinem Team?
+Q: Petra, wie läuft die erste Phase der Einweisung in deinem Team?
 
 Schulte: Also, in den ersten Wochen ist es ziemlich intensiv. Am ersten Tag gibt es die Datenschutzbelehrung und die Verpflichtung zum Steuergeheimnis. Dann folgt die KONSENS-Schulung in den nächsten beiden Wochen. Ab der zweiten Woche zeichne ich bei den eigenen Fällen mit, und mein Mentor hilft mir dabei. In der dritten Woche komme ich dann bei Julia Nowak mit in die E-Akte. Bis zum Ende der ersten Monatsphase kenne ich dann die Rückstandsliste auch gut.
 
-Hilde: Hey Petra, wie hilfst du informell deinem Team bei den verschiedenen Herausforderungen, die sie im Alltag haben?
+Q: Hey Petra, wie hilfst du informell deinem Team bei den verschiedenen Herausforderungen, die sie im Alltag haben?
 
-Schulte: Also, Hilde, bei den unterschiedlichen Herausforderungen hilfe ich informell sehr flexibel. Wenn es um Steuerfragen geht, rufe ich einfach mal Hans-Jürgen an, der hat echt eine Menge Fachwissen. Julia hilft mit, wenn es um die E-Akten geht, und Leyla, die mit den Einsprüchen hat, kann ich immer gut beraten. Und dann gibt es ja noch Wolfgang, der von Januar 2027 an bei allen Hausinterne Sachen dabei sein wird. So, wie du siehst, ist es ein Teameffort!
+Schulte: Also, Q, bei den unterschiedlichen Herausforderungen hilfe ich informell sehr flexibel. Wenn es um Steuerfragen geht, rufe ich einfach mal Hans-Jürgen an, der hat echt eine Menge Fachwissen. Julia hilft mit, wenn es um die E-Akten geht, und Leyla, die mit den Einsprüchen hat, kann ich immer gut beraten. Und dann gibt es ja noch Wolfgang, der von Januar 2027 an bei allen Hausinterne Sachen dabei sein wird. So, wie du siehst, ist es ein Teameffort!
 
-Hilde: Petra, wie läuft es mit dem mobilen Arbeiten? Hast du schon mal eine Anfrage dazu bekommen?
+Q: Petra, wie läuft es mit dem mobilen Arbeiten? Hast du schon mal eine Anfrage dazu bekommen?
 
 Schulte: Also, ja, wir haben schon ein paar Anfragen dazu bekommen. Die Leute sind ziemlich begeistert, aber natürlich muss ich mich erst mal mit den Kollegen abstimmen. Immerhin ist das ja erst in den ersten drei Monaten nicht erlaubt, oder? Also, ich denke, wir werden es bald sehen, wie es läuft.
 
-Hilde: Danke, Petra! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+Q: Danke, Petra! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
 
 Schulte: Prima, so machen wir das.

@@ -35,7 +35,8 @@ def build_filter(user: User, include_history: bool = False) -> models.Filter:
             )
         )
 
-    must_not: list[models.Condition] = []
+    # "scheduled" = decided but not yet valid (e.g. a new order from 01.01.2027): never an answer today
+    must_not: list[models.Condition] = [_match("status", ["scheduled"])]
     if not include_history:
         must_not.append(_match("status", ["superseded"]))
 

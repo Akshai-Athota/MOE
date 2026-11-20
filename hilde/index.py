@@ -1,4 +1,4 @@
-"""Build Hilde's memory.
+"""Build Q's memory.
 
     uv run python -m hilde.index --recreate              # facts + rules + staff directory (seed)
     uv run python -m hilde.index --recreate --raw        # staff directory + real sources only

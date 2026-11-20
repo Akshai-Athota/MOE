@@ -1,6 +1,6 @@
 """Tiny, dependency-free German/English detector for the question language.
 
-Hilde answers in the language of the question. German is the house language and the
+Q answers in the language of the question. German is the house language and the
 default when a message is ambiguous (e.g. "Elster?", "ok").
 """
 

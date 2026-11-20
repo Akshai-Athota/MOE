@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DATA, DEMO_USERS, TODAY, personaById } from "./data";
+import { askBackend, checkBackend, learnBackend, resetBackend, type BackendMode } from "./api";
 import { ask as engineAsk, guessCategory, redactedString, type EngineState } from "./engine";
-import type { ChatMessage, Fact, KnowledgeEvent, OpenQuestion, Role } from "./types";
+import type { Answer, ChatMessage, Fact, KnowledgeEvent, OpenQuestion, Role } from "./types";
 
 export type View = "ask" | "onboarding" | "interview" | "celebration" | "memory" | "coverage";
 
@@ -65,7 +66,12 @@ function seed(): Persisted {
 function load(): Persisted {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...seed(), ...JSON.parse(raw) };
+    if (raw) {
+      const saved = { ...seed(), ...JSON.parse(raw) } as Persisted;
+      // answers still pending when the page was closed will never arrive
+      for (const k of Object.keys(saved.chats)) saved.chats[k] = saved.chats[k].filter((m) => !m.pending);
+      return saved;
+    }
   } catch {
     /* storage unavailable: run in memory */
   }
@@ -91,6 +97,8 @@ interface Store extends Persisted {
   draft: string;
   toasts: Toast[];
   engineState: EngineState;
+  /** live = answers come from the RAG backend; offline = in-browser demo engine */
+  backend: BackendMode;
   setUserIdx: (i: number) => void;
   setView: (v: View) => void;
   setDraft: (d: string) => void;
@@ -110,7 +118,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [view, setView] = useState<View>("onboarding");
   const [draft, setDraft] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [backend, setBackend] = useState<BackendMode>("checking");
   const user = DEMO_USERS[userIdx];
+
+  // use the RAG backend when it is reachable; re-check every 30 s (it may start after the UI)
+  useEffect(() => {
+    let alive = true;
+    const check = () => checkBackend().then((ok) => alive && setBackend(ok ? "live" : "offline"));
+    check();
+    const t = setInterval(check, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -137,21 +158,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const askQ = (text: string) => {
-    const answer = engineAsk(text, user.role, user.personaId, engineState);
+    const { personaId, role } = user;
+    const qId = crypto.randomUUID();
     const msgs: ChatMessage[] = [
       { id: crypto.randomUUID(), from: "user", text },
-      { id: crypto.randomUUID(), from: "q", text: answer.text, answer },
+      { id: qId, from: "q", text: "", pending: true },
     ];
-    setP((s) => {
-      let openQuestions = s.openQuestions;
-      if (answer.kind === "gap" && answer.askPerson && !s.openQuestions.some((q) => !q.resolved && ((answer.gapId && q.gapId === answer.gapId) || q.text === text))) {
-        openQuestions = [
-          { id: crypto.randomUUID(), text, askedBy: user.personaId, askedAt: TODAY, routedTo: answer.askPerson.id, gapId: answer.gapId },
-          ...s.openQuestions,
-        ];
-      }
-      return { ...s, openQuestions, chats: { ...s.chats, [user.personaId]: [...(s.chats[user.personaId] ?? []), ...msgs] } };
-    });
+    setP((s) => ({ ...s, chats: { ...s.chats, [personaId]: [...(s.chats[personaId] ?? []), ...msgs] } }));
+
+    const finish = (answer: Answer, source: "live" | "demo") =>
+      setP((s) => {
+        let openQuestions = s.openQuestions;
+        if (answer.kind === "gap" && answer.askPerson && !s.openQuestions.some((q) => !q.resolved && ((answer.gapId && q.gapId === answer.gapId) || q.text === text))) {
+          openQuestions = [
+            { id: crypto.randomUUID(), text, askedBy: personaId, askedAt: TODAY, routedTo: answer.askPerson.id, gapId: answer.gapId },
+            ...s.openQuestions,
+          ];
+        }
+        const chat = (s.chats[personaId] ?? []).map((m) => (m.id === qId ? { id: qId, from: "q" as const, text: answer.text, answer, source } : m));
+        return { ...s, openQuestions, chats: { ...s.chats, [personaId]: chat } };
+      });
+
+    if (backend !== "live") {
+      finish(engineAsk(text, role, personaId, engineState), "demo");
+      return;
+    }
+    askBackend(text, role, personaId, engineState)
+      .then((a) => finish(a, "live"))
+      .catch(() => {
+        setBackend("offline");
+        toast({ title: "Backend nicht erreichbar", body: "Q antwortet im Demo-Modus.", tone: "amber" });
+        finish(engineAsk(text, role, personaId, engineState), "demo");
+      });
   };
 
   const learn = (i: LearnInput): Fact => {
@@ -174,6 +212,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       sources_planned: [i.via === "upload" ? "doc" : "interview"],
       learned: { label: i.label, at: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }), via: i.via },
     };
+    if (backend === "live") {
+      // index in the RAG backend too, so the next question (from anyone) can use it
+      const question = p.openQuestions.find((q) => i.gapId && q.gapId === i.gapId && !q.resolved)?.text;
+      learnBackend({
+        text: clean,
+        user_id: i.owner,
+        label: i.label,
+        via: i.via,
+        topic: i.topic,
+        category: fact.category,
+        valid_from: i.validFrom,
+        supersedes: i.supersedes,
+        question,
+      }).catch(() => toast({ title: "Wissen nur lokal gespeichert", body: "Das Backend war nicht erreichbar.", tone: "amber" }));
+    }
     setP((s) => ({
       ...s,
       learned: [...s.learned, fact],
@@ -207,12 +260,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const reset = () => {
     setP(seed());
+    if (backend === "live") resetBackend().catch(() => toast({ title: "Backend-Reset fehlgeschlagen", tone: "amber" }));
     toast({ title: "Demo zurückgesetzt", tone: "brand" });
   };
 
   return (
     <Ctx.Provider
-      value={{ ...p, userIdx, user, view, draft, toasts, engineState, setUserIdx, setView, setDraft, askQ, learn, resolveConflict, toggleCheck, toast, reset }}
+      value={{ ...p, userIdx, user, view, draft, toasts, engineState, backend, setUserIdx, setView, setDraft, askQ, learn, resolveConflict, toggleCheck, toast, reset }}
     >
       {children}
     </Ctx.Provider>

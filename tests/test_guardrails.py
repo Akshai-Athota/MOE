@@ -17,8 +17,8 @@ def test_manager_sees_restricted_others_not():
 
 def test_superseded_hidden_unless_history():
     u = User(id="p13", role="new_hire", department="VA")
-    assert build_filter(u).must_not[0].match.any == ["superseded"]
-    assert build_filter(u, include_history=True).must_not == []
+    assert [c.match.any for c in build_filter(u).must_not] == [["scheduled"], ["superseded"]]
+    assert [c.match.any for c in build_filter(u, include_history=True).must_not] == [["scheduled"]]
 
 
 def test_employee_limited_to_general_or_own_department():

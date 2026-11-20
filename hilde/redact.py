@@ -1,6 +1,6 @@
 """Redaction before storage (Steuergeheimnis, § 30 AO).
 
-Interviews may mention real taxpayers. Hilde keeps the know-how and forgets taxpayer data:
+Interviews may mention real taxpayers. Q keeps the know-how and forgets taxpayer data:
 everything here runs BEFORE text is embedded or stored.
 
 This module covers structured identifiers with patterns. Part C4 adds Presidio (German NER)

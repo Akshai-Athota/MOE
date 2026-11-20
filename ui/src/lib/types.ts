@@ -149,6 +149,10 @@ export interface ChatMessage {
   from: "user" | "q";
   text: string;
   answer?: Answer;
+  /** waiting for the backend */
+  pending?: boolean;
+  /** live = RAG backend, demo = in-browser engine */
+  source?: "live" | "demo";
 }
 
 export interface OpenQuestion {

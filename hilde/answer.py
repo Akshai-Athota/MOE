@@ -16,7 +16,7 @@ from typing import TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from hilde import chitchat as smalltalk
 from hilde import language, open_questions
@@ -32,7 +32,7 @@ from hilde.prompts import (
     WHO_TO_ASK_USER,
 )
 from hilde.schemas import Answer, Change, Citation, Contact, Hit, User
-from hilde.vectorstore import get_by_source_id, search
+from hilde.vectorstore import get_by_source_id, restricted_probe, search
 
 TOP_K = 8
 
@@ -42,7 +42,15 @@ class Sentence(BaseModel):
     sources: list[int] = Field(description="Nummern der QUELLEN, die diesen Satz belegen")
 
 
+def _all_required(schema: dict) -> None:
+    """qwen3 omits optional JSON fields (e.g. returns no "sentences" at all). Fields keep their
+    Python defaults, but the schema sent to the model lists every property as required."""
+    schema["required"] = list(schema.get("properties", {}))
+
+
 class Generated(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_all_required)
+
     answerable: bool = Field(description="true nur, wenn die QUELLEN die Frage beantworten")
     sentences: list[Sentence] = Field(
         default_factory=list, description="1-5 Sätze; leer, wenn answerable=false"
@@ -60,6 +68,8 @@ class Generated(BaseModel):
 
 
 class Verdict(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_all_required)
+
     # field order matters: the model writes the topics first, then judges ("think, then decide")
     question_meaning: str = Field(
         description="Was bedeutet der Fachbegriff der FRAGE genau? Ein Satz (was, wie oft, wofür)."
@@ -86,6 +96,7 @@ class State(TypedDict, total=False):
     generated: Generated
     verified: bool
     contradiction: bool
+    restricted_owner: str | None  # owner of a better-matching source this role may not see
     result: Answer
     started: float
 
@@ -116,12 +127,15 @@ def retrieve(state: State) -> State:
         old_id = h.metadata.get("supersedes")
         if old_id and (old := get_by_source_id(old_id, user)):
             history[n] = old
-    return {"hits": hits, "history": history}
+    hidden = restricted_probe(question, user)
+    return {"hits": hits, "history": history,
+            "restricted_owner": hidden.metadata.get("owner") if hidden else None}
 
 
 # Windows paths (S:\Amt\...) break the model's JSON output ("\A" is an invalid escape) and get
 # cut off. The model sees a look-alike character instead; cite() turns it back into "\".
-BS, BS_SAFE = "\\", "29f5"
+BS = chr(0x5C)  # backslash
+BS_SAFE = chr(0x29F5)  # "⧵" reverse solidus operator: looks the same, no JSON escaping
 
 
 def _format_sources(hits: list[Hit], history: dict[int, Hit]) -> str:
@@ -170,34 +184,39 @@ def generate(state: State) -> State:
     return {"generated": out}
 
 
+_ADDRESSES_Q = re.compile(r"\b(du|dich|dir|dein\w*|you|your\w*)\b")
+
+
 def route_generated(state: State) -> str:
     g = state["generated"]
     # an answer without at least one sentence backed by a real source is not allowed
     sentences = g.valid_sentences(len(state["hits"]))
     if not g.answerable or not sentences:
         return "abstain"
-    # "Mein Büro ist in Raum 2.04" = the asker's data told as if it were Hilde's
-    if smalltalk.speaks_about_itself([t for t, _ in sentences]):
+    # "Mein Büro ist in Raum 2.04" = the asker's data told as if it were Q's.
+    # Only for questions addressed to Q: learned interview answers are legitimately first person.
+    if _ADDRESSES_Q.search(state.get("question", "").lower()) and smalltalk.speaks_about_itself(
+            [t for t, _ in sentences]):
         return "self"
     return "verify"
 
 
-WORD = re.compile(r"[A-Za-zÄÖÜäöüß]{10,}")
+WORD = re.compile(r"(?<![\wÄÖÜäöüß])[A-ZÄÖÜ][a-zäöüß]{9,}")  # capitalised = noun; verbs vary too much
 
 
 def key_term_grounded(question: str, sources: list[str]) -> bool:
-    """German compounds carry the topic ("Haushaltsanmeldung", "Mitzeichnungsverfahren").
-    The longest such word of the question must appear (first 7 letters) in a cited source.
+    """German compound nouns carry the topic ("Haushaltsanmeldung", "Mitzeichnungsverfahren").
+    The longest such noun of the question must appear (first 12 letters) in a cited source.
     Cheap guard against fluent answers about a similar-sounding topic."""
     words = WORD.findall(question)
     if not words:
         return True
-    stem = max(words, key=len)[:11].lower()  # 11: "haushaltsan" must not match "Haushaltsüberw..."
+    stem = max(words, key=len)[:12].lower()  # 12: "haushaltsanm" must not match "Haushaltsangelegenheiten"
     return any(stem in s.lower() for s in sources)
 
 
 def about_self(state: State) -> State:
-    """Fixed reply when the model answered a question about Hilde with someone else's data."""
+    """Fixed reply when the model answered a question about Q with someone else's data."""
     return {"result": Answer(question=state["question"], abstained=False,
                              answer=smalltalk.reply("where_are_you", state.get("lang", "de")))}
 
@@ -260,6 +279,11 @@ def cite(state: State) -> State:
             valid_from=hits[old - 1].metadata.get("valid_from"),
             anchor=hits[old - 1].metadata.get("anchor") or {},
             source_file=hits[old - 1].metadata.get("source_file"),
+            owner=hits[old - 1].metadata.get("owner"),
+            modality=hits[old - 1].metadata.get("modality") or hits[old - 1].source_type,
+            title=hits[old - 1].metadata.get("title"),
+            fact_ids=hits[old - 1].metadata.get("fact_ids")
+            or ([hits[old - 1].source_id] if hits[old - 1].source_type == "fact" else []),
         )
         for old, new in renumber.items()
     ]
@@ -269,7 +293,16 @@ def cite(state: State) -> State:
         or any(c.status == "conflict" for c in citations),
         citations=citations,
         changes=_changes(renumber, hits, state["history"]),
+        restricted_owner=_contact(state.get("restricted_owner")),
     )}
+
+
+def _contact(pid: str | None) -> Contact | None:
+    p = load_personas().get(pid or "")
+    if not p:
+        return None
+    return Contact(id=p["id"], name=p["name"], role_de=p["role_de"], room=p["room"],
+                   phone_ext=p["phone_ext"], email=p["email"])
 
 
 def _changes(renumber: dict[int, int], hits: list[Hit], history: dict[int, Hit]) -> list[Change]:
@@ -316,6 +349,8 @@ _ABSTAIN = {
         "ask": " Frag am besten {name} ({role}, Raum {room}, Tel. {ext}).",
         "leaving": " Ich habe die Frage für das nächste Übergabe-Interview mit {name} vorgemerkt.",
         "noted": " Ich habe die Frage vorgemerkt, damit wir die Wissenslücke schließen.",
+        "blocked": ("Dazu gibt es Informationen, die für deine Rolle nicht freigegeben sind. "
+                    "Wende dich bitte direkt an {name} (Raum {room})."),
     },
     "en": {
         "off_topic": ("I don't have any information on that. I can help you with questions about "
@@ -324,6 +359,8 @@ _ABSTAIN = {
         "ask": " Your best bet is to ask {name} ({role}, room {room}, ext. {ext}).",
         "leaving": " I've noted the question for the next handover interview with {name}.",
         "noted": " I've noted the question so we can close this knowledge gap.",
+        "blocked": ("There is information on this that is not released for your role. "
+                    "Please ask {name} (room {room}) directly."),
     },
 }
 
@@ -331,6 +368,11 @@ _ABSTAIN = {
 def abstain(state: State) -> State:
     user, question = state["user"], state["question"]
     t = _ABSTAIN[state.get("lang", "de")]
+    if owner := _contact(state.get("restricted_owner")):
+        # the answer exists but only for other roles: say so, name the owner, queue nothing
+        return {"result": Answer(question=question, abstained=True, blocked=True,
+                                 restricted_owner=owner, who_to_ask=owner,
+                                 answer=t["blocked"].format(name=owner.name, room=owner.room))}
     pid = _pick_person(question, user.id)
     if not pid:  # off-topic: nobody to route to, nothing to learn
         return {"result": Answer(question=question, abstained=True, answer=t["off_topic"])}
@@ -358,7 +400,9 @@ def build_graph():
     g.add_node("self", about_self)
     g.set_entry_point("chitchat")
     g.add_conditional_edges("chitchat", route_chitchat, {"done": END, "retrieve": "retrieve"})
-    g.add_edge("retrieve", "generate")
+    # best match is restricted for this role -> "not released for you", no partial answer
+    g.add_conditional_edges("retrieve", lambda s: "abstain" if s.get("restricted_owner") else "generate",
+                            {"abstain": "abstain", "generate": "generate"})
     g.add_conditional_edges("generate", route_generated, {"verify": "verify", "abstain": "abstain", "self": "self"})
     g.add_conditional_edges("verify", route_verified, {"cite": "cite", "abstain": "abstain"})
     g.add_edge("cite", END)

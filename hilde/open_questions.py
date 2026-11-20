@@ -1,4 +1,4 @@
-"""Questions Hilde could not answer. The interviewer (step B6) asks the right person about them,
+"""Questions Q could not answer. The interviewer (step B6) asks the right person about them,
 so knowledge gaps are closed from real demand ("improvement A").
 
 Stored as JSON lines in var/open_questions.jsonl (runtime data, git-ignored).
@@ -36,3 +36,16 @@ def list_open(assigned_to: str | None = None) -> list[dict]:
         i for i in items
         if i["status"] == "open" and (assigned_to is None or i["assigned_to"] == assigned_to)
     ]
+
+
+def resolve(question: str) -> int:
+    """Mark open questions with this exact text as answered. Returns how many were closed."""
+    if not PATH.exists():
+        return 0
+    items = [json.loads(line) for line in PATH.read_text(encoding="utf-8").splitlines() if line]
+    n = 0
+    for i in items:
+        if i["status"] == "open" and i["question"].strip().lower() == question.strip().lower():
+            i["status"], n = "answered", n + 1
+    PATH.write_text("".join(json.dumps(i, ensure_ascii=False) + "\n" for i in items), encoding="utf-8")
+    return n

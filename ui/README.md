@@ -27,8 +27,27 @@ npm run build      # production build into ui/dist
 
 Use "Demo zurücksetzen" in the sidebar to restart from scratch. State is kept in localStorage.
 
-## Backend integration (Person B)
-`src/lib/engine.ts` is an in-browser mock that runs on the real synthetic dataset.
-Replace `ask()` with a call to the RAG API that returns the same `Answer` shape (`src/lib/types.ts`):
-`kind` (answer | gap | blocked | conflict), `text`, `facts`, `citations[{factId,label,kind,anchor}]`, `changedFrom`, `upcoming`, `askPerson`, `gapId`.
-The role filter must stay **before** retrieval on the server, exactly like `canSee()` here.
+## Backend (RAG) connection
+The chat uses Q's RAG backend when it is reachable (badge **"Live · RAG-Backend"** in Frag Q), otherwise the
+in-browser demo engine (`src/lib/engine.ts`, badge **"Demo-Modus"**). The status is re-checked every 30 s.
+
+```bash
+# from the repo root: Qdrant + index + API
+docker compose up -d qdrant
+uv run python -m hilde.index --recreate --raw     # once
+uv run uvicorn hilde.api.main:app --reload --port 8000
+# then the UI
+cd ui && npm install && npm run dev               # http://localhost:5173
+```
+
+- `vite.config.ts` proxies `/api/*` to `http://localhost:8000` (override with `Q_API_URL`); `VITE_API_BASE` changes the path.
+- `src/lib/api.ts` maps the backend answer to the UI `Answer` shape: citations → source chips (timestamp,
+  paragraph or section), `changes` → "Geändert am …", `blocked` → role block, abstain + `who_to_ask` → knowledge gap.
+  Planted demo gaps keep their `gapId` (from the local engine) so the interview loop can close them.
+- `learn()` (interview, quiz, document upload) also calls `POST /learn`: the backend redacts and indexes it at once;
+  a future `valid_from` is stored as *scheduled* and is not an answer before that day.
+- "Demo zurücksetzen" also calls `POST /reset-learned` (forgets knowledge learned in the app).
+- Answers from the local LLM take ~10–30 s on a laptop GPU; the chat shows "Q durchsucht die Quellen …".
+- The role filter runs on the server **before** retrieval. The backend only reveals *that* restricted content
+  exists and who owns it, never the content.
+- `npm run dev` builds the dataset with `scripts/run_python.mjs`, which finds `uv`, `python3`, `python` or `py` (Windows-safe).

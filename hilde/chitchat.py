@@ -29,7 +29,7 @@ REPLIES_EN: dict[str, str] = {
     "goodbye": "Bye, see you soon!",
     "where_are_you": ("I'm an AI, so I don't have a room or a desk – I'm right here in the chat, "
                       "any time. " + _HELP_EN),
-    "about_hilde": ("I'm Hilde, the AI colleague at the Finanzamt Hildesheim. I answer questions "
+    "about_hilde": ("I'm Q, the AI colleague at the Finanzamt Hildesheim. I answer questions "
                     "about work here and always tell you my sources. " + _HELP_EN),
 }
 
@@ -40,7 +40,7 @@ REPLIES: dict[str, str] = {
     "goodbye": "Tschüss, bis bald!",
     "where_are_you": ("Ich bin eine KI und habe kein Büro und keinen Schreibtisch – du findest mich "
                       "jederzeit hier im Chat. " + _HELP),
-    "about_hilde": ("Ich bin Hilde, die KI-Kollegin des Finanzamts Hildesheim. Ich beantworte "
+    "about_hilde": ("Ich bin Q, die KI-Kollegin des Finanzamts Hildesheim. Ich beantworte "
                     "Fragen rund um die Arbeit hier und nenne dir immer meine Quellen. " + _HELP),
 }
 
@@ -49,23 +49,23 @@ REPLIES: dict[str, str] = {
 _PATTERNS: list[tuple[str, re.Pattern]] = [
     ("how_are_you", re.compile(
         r"^(hallo |hi |hey |moin )?(wie geht('?s| es) (dir|ihnen)?|wie läuft('?s| es)|alles (gut|klar)|"
-        r"how are you|how('?s| is) it going)( heute)?( hilde)?$")),
+        r"how are you|how('?s| is) it going)( heute)?( q)?$")),
     ("greeting", re.compile(
-        r"^(hallo|hi|hey|moin( moin)?|servus|guten (morgen|tag|abend)|grüß gott|hello|good morning)( hilde)?$")),
+        r"^(hallo|hi|hey|moin( moin)?|servus|guten (morgen|tag|abend)|grüß gott|hello|good morning)( q)?$")),
     ("thanks", re.compile(
-        r"^(danke|vielen dank|danke schön|dankeschön|super danke|thanks|thank you|thx)( dir)?( hilde)?$")),
+        r"^(danke|vielen dank|danke schön|dankeschön|super danke|thanks|thank you|thx)( dir)?( q)?$")),
     ("goodbye", re.compile(
-        r"^(tschüss|tschüs|bye|ciao|auf wiedersehen|bis (bald|später|morgen|dann)|schönen feierabend)( hilde)?$")),
+        r"^(tschüss|tschüs|bye|ciao|auf wiedersehen|bis (bald|später|morgen|dann)|schönen feierabend)( q)?$")),
     ("where_are_you", re.compile(
-        r"^(hilde )?(wo bist du|wo (sitzt|wohnst|steckst) du|wo finde ich dich|where are you|"
-        r"where do you (sit|live|work)|where can i find you)( hilde| gerade| right now)?$")),
+        r"^(q )?(wo bist du|wo (sitzt|wohnst|steckst) du|wo finde ich dich|where are you|"
+        r"where do you (sit|live|work)|where can i find you)( q| gerade| right now)?$")),
     ("about_hilde", re.compile(
         r"^(wer bist du|was bist du|was kannst du|wie heißt du|bist du (ein mensch|eine ki|ein bot)|"
         r"who are you|what are you|what can you do|what('?s| is) your name|"
-        r"are you (a human|an ai|a bot|real))( hilde)?$")),
+        r"are you (a human|an ai|a bot|real))( q)?$")),
 ]
 
-# Questions about Hilde's own whereabouts/contact details, tolerant of grammar and typos
+# Questions about Q's own whereabouts/contact details, tolerant of grammar and typos
 # ("wo bist deine büro?", "what's your phone number"). Searched anywhere in the message, but only
 # used when the message has no first-person word, so "Wo ist mein Büro?" stays a real question.
 _SELF_LOCATION = re.compile(
@@ -92,8 +92,8 @@ _NOT_A_NAME = {"zusammen", "alle", "leute", "team", "du", "dir", "there", "all",
                "everybody", "guys", "folks", "you", "again", "nochmal", "wieder"}
 
 _WRONG_NAME = {
-    "de": " Ich bin übrigens Hilde, nicht {name}.",
-    "en": " By the way, I'm Hilde, not {name}.",
+    "de": " Ich bin übrigens Q, nicht {name}.",
+    "en": " By the way, I'm Q, not {name}.",
 }
 
 
@@ -105,9 +105,9 @@ def _match(norm: str) -> str | None:
 
 
 def addressed_as(question: str) -> str | None:
-    """Name the small talk addresses Hilde by, if it is not 'Hilde' ("hello julia" -> "Julia")."""
+    """Name the small talk addresses Q by, if it is not 'Q' ("hello julia" -> "Julia")."""
     words = _normalize(question).split()
-    if len(words) < 2 or words[-1] in _NOT_A_NAME or words[-1] == "hilde":
+    if len(words) < 2 or words[-1] in _NOT_A_NAME or words[-1] == "q":
         return None
     if _match(" ".join(words)) is None and _match(" ".join(words[:-1])) is not None:
         return words[-1].capitalize()
@@ -137,20 +137,20 @@ def classify(question: str, use_llm: bool = True) -> Kind:
 
 
 def speaks_about_itself(sentences: list[str]) -> bool:
-    """True if an answer talks about Hilde in the first person ("Mein Büro ist ...").
+    """True if an answer talks about Q in the first person ("Mein Büro ist ...").
 
-    Sources never describe Hilde, so such a sentence is the asker's own data (source [1])
-    misattributed to Hilde. Used as a deterministic backstop after generation.
+    Sources never describe Q, so such a sentence is the asker's own data (source [1])
+    misattributed to Q. Used as a deterministic backstop after generation.
     """
     return any(_FIRST_PERSON.search(_normalize(s)) for s in sentences)
 
 
 def reply(kind: str, lang: str = "de", wrong_name: str | None = None) -> str:
-    """Fixed reply. Never uses the asker's name; corrects Hilde being called by another name."""
+    """Fixed reply. Never uses the asker's name; corrects Q being called by another name."""
     text = (REPLIES_EN if lang == "en" else REPLIES)[kind]
     if wrong_name:
         first, _, rest = text.partition("! ")
-        if rest:  # "Hi!" + " By the way, I'm Hilde, not Julia." + " Nice to see you ..."
+        if rest:  # "Hi!" + " By the way, I'm Q, not Julia." + " Nice to see you ..."
             return f"{first}!{_WRONG_NAME[lang].format(name=wrong_name)} {rest}"
         return text + _WRONG_NAME[lang].format(name=wrong_name)
     return text

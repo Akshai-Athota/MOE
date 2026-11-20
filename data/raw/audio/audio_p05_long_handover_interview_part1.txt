@@ -1,59 +1,59 @@
-Hilde: Hallo Wolfgang, danke, dass du dir Zeit nimmst. Das ist Teil 1 von 2 unserer Interviewreihe. Ich bin Hilde, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+Q: Hallo Wolfgang, danke, dass du dir Zeit nimmst. Das ist Teil 1 von 2 unserer Interviewreihe. Ich bin Q, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
 
-Reinecke: Gern, Hilde. Dann erzähle ich mal.
+Reinecke: Gern, Q. Dann erzähle ich mal.
 
-Hilde: Was sollte man zum Thema Amtsleitung und Vertretung wissen?
+Q: Was sollte man zum Thema Amtsleitung und Vertretung wissen?
 
 Reinecke: Also: Das Finanzamt wird von der Vorsteherin Dr. Katrin Wöhler geleitet. Ihre ständige Vertreterin ist Petra Schulte, Sachgebietsleiterin Arbeitnehmerbereich.
 
-Hilde: Wolfgang, wie läuft es denn mit den Beschaffungen? Haben wir schon neue Artikel für die nächste Runde?
+Q: Wolfgang, wie läuft es denn mit den Beschaffungen? Haben wir schon neue Artikel für die nächste Runde?
 
-Reinecke: Also, Hilde, bisher haben wir noch keine neuen Artikel für die nächste Runde. Die Entscheidung für Beschaffungen bis 25.000 € liegt bei uns, aber wir haben noch keine dringenden Anliegen. Ich denke, wir sollten uns mal umsehen, ob es neue Angebote gibt, aber das muss noch abgewartet werden. äh, also, falls es was Neues gibt, mache ich sicherlich mit dir zusammen das Gespräch.
+Reinecke: Also, Q, bisher haben wir noch keine neuen Artikel für die nächste Runde. Die Entscheidung für Beschaffungen bis 25.000 € liegt bei uns, aber wir haben noch keine dringenden Anliegen. Ich denke, wir sollten uns mal umsehen, ob es neue Angebote gibt, aber das muss noch abgewartet werden. äh, also, falls es was Neues gibt, mache ich sicherlich mit dir zusammen das Gespräch.
 
-Hilde: Wie entwickeln Sie sich Ihre Geschäftsstelle weiter, Wolfgang?
+Q: Wie entwickeln Sie sich Ihre Geschäftsstelle weiter, Wolfgang?
 
 Reinecke: Na, das ist eine gute Frage. Damals beim Umzug 1998, da haben wir uns wirklich die Köpfe zermartert, um alles ordentlich zu organisieren. Und dann kam noch der Dieter Konopka, der hat uns damals echt in die Pfanne gehauen mit seinem Steuerfall, das war echt ein LStN-Extrakt, das ist ja jetzt schon in der Presse gelandet, aber das muss man einfach beachten. Die OFD hat ja immer noch ihre eigenen Wege.
 
-Hilde: Hey Wolfgang, wie funktioniert der Vertretungsplan genau? Welche Vorschriften gibt es dazu?
+Q: Hey Wolfgang, wie funktioniert der Vertretungsplan genau? Welche Vorschriften gibt es dazu?
 
 Reinecke: Also, der Vertretungsplan liegt unter S:\Amt\Organisation\Vertretungsplan.xlsx. Wir pflegen ihn in der Geschäftsstelle. Urlaube über drei Tage müssen extra dort eingetragen werden.
 
-Hilde: Wolfgang, du kennst dich hier gut aus, stimmt's? Kannst du uns mal ein bisschen erzählen, wie du dich bei all den verschiedenen Aufgaben orientierst?
+Q: Wolfgang, du kennst dich hier gut aus, stimmt's? Kannst du uns mal ein bisschen erzählen, wie du dich bei all den verschiedenen Aufgaben orientierst?
 
-Reinecke: Na klar, Hilde, das ist ja meine Welt hier! Also, bei den Personalräten, da musst du immer super vorsichtig sein. Ich meine, die sind ja die Stimme der Angestellten, also muss ich echt aufpassen, dass ich keinen Fehler mache, sonst sind wir gleich bei einem Streit. Und dann ist da noch die Einstellung neuer Leute, das ist echt aufregend, aber auch nervig, weil man immer Angst hat, dass was falsch sein könnte. Und jetzt kommt die Technik rein, da muss ich auch aufpassen, dass ich die neuesten Tools richtig einsetze. Aber das ist ja auch was Spannendes. Und dann kommt da noch der Datenschutz rein, das ist echt wichtig, aber manchmal so kompliziert. Und dann das Rechtsbehelfsamt, da muss ich echt aufpassen, dass ich mich nicht in den Dingen verrenne, wo man eigentlich die richtigen Entscheidungen treffen muss. Und dann gibt es noch die Geschäftsstelle, da ist es immer so, dass man sich immer wieder mal fragt, ob man das richtig macht. Also, das ist ja echt ein Durcheinander, aber ich schaffe das! äh, also, das ist ja mein Tag!
+Reinecke: Na klar, Q, das ist ja meine Welt hier! Also, bei den Personalräten, da musst du immer super vorsichtig sein. Ich meine, die sind ja die Stimme der Angestellten, also muss ich echt aufpassen, dass ich keinen Fehler mache, sonst sind wir gleich bei einem Streit. Und dann ist da noch die Einstellung neuer Leute, das ist echt aufregend, aber auch nervig, weil man immer Angst hat, dass was falsch sein könnte. Und jetzt kommt die Technik rein, da muss ich auch aufpassen, dass ich die neuesten Tools richtig einsetze. Aber das ist ja auch was Spannendes. Und dann kommt da noch der Datenschutz rein, das ist echt wichtig, aber manchmal so kompliziert. Und dann das Rechtsbehelfsamt, da muss ich echt aufpassen, dass ich mich nicht in den Dingen verrenne, wo man eigentlich die richtigen Entscheidungen treffen muss. Und dann gibt es noch die Geschäftsstelle, da ist es immer so, dass man sich immer wieder mal fragt, ob man das richtig macht. Also, das ist ja echt ein Durcheinander, aber ich schaffe das! äh, also, das ist ja mein Tag!
 
-Hilde: Wie war es, als Sie zum Leiter der Geschäftsstelle ernannt wurden?
+Q: Wie war es, als Sie zum Leiter der Geschäftsstelle ernannt wurden?
 
 Reinecke: Na ja, das war ein ganz besonderer Moment. Ich erinnere mich noch genau daran. Damals beim Umzug 1998, da hatten wir schon ein paar schwierige Fälle, aber es war so aufregend, und ich musste mich mit der OFD, also damals noch LStN, noch ein bisschen vertraut machen. Und dann kam natürlich auch der Fall mit der Erstattung auf falsches Konto, da mussten wir extra scharf aufpassen, damit das nicht noch mal passiert. DE89 3704 0044 0532 0130 00 - so was mussten wir damals oft mit den Mitarbeitern besprechen. Aber das ist natürlich ein anderes Thema.
 
-Hilde: Wieso gehen Sie eigentlich immer zu deiner Sachgebietsleitung Wolfgang, bevor Sie etwas per E-Mail loslassen?
+Q: Wieso gehen Sie eigentlich immer zu deiner Sachgebietsleitung Wolfgang, bevor Sie etwas per E-Mail loslassen?
 
-Reinecke: Also, Hilde, das ist einfach so abgestimmt. Ich gehe immer erst mal mit meinem Chef durch, was ich vorhabe. So können wir sicherstellen, dass alles im Reinen ist. Und dann schicken wir den Entwurf erst als E-Mail, bevor wir ihn mit der Mitzeichnung abstimmen. Niemand geht direkt zur Vorsteherin, also ich nicht zumindest. Das macht ja auch Sinn, oder? Ich meine, so bleiben wir ordentlich organisiert und nichts wird übersehen.
+Reinecke: Also, Q, das ist einfach so abgestimmt. Ich gehe immer erst mal mit meinem Chef durch, was ich vorhabe. So können wir sicherstellen, dass alles im Reinen ist. Und dann schicken wir den Entwurf erst als E-Mail, bevor wir ihn mit der Mitzeichnung abstimmen. Niemand geht direkt zur Vorsteherin, also ich nicht zumindest. Das macht ja auch Sinn, oder? Ich meine, so bleiben wir ordentlich organisiert und nichts wird übersehen.
 
-Hilde: Wolfgang, wie funktioniert die Mitzeichnung im Finanzamt und wie lange ist die Frist dafür?
+Q: Wolfgang, wie funktioniert die Mitzeichnung im Finanzamt und wie lange ist die Frist dafür?
 
 Reinecke: Also, Wolfgang hier. Bei der Mitzeichnung geht es darum, dass wir den Unterlagen eine zusätzliche Bestätigung hinzufügen. Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen. Schweigen gilt nicht als Zustimmung, also, also müssen wir nachhaken, wenn jemand nicht antwortet.
 
-Hilde: Wolfgang, wie gestaltet sich die Praxis, wenn ihr direkt bei 1.000 € netto beschafft? Und was passiert, wenn ihr über 25.000 € ausgibt?
+Q: Wolfgang, wie gestaltet sich die Praxis, wenn ihr direkt bei 1.000 € netto beschafft? Und was passiert, wenn ihr über 25.000 € ausgibt?
 
 Reinecke: Also, wenn es direkt 1.000 € sind, beschaffen wir das selbst. Ab 25.000 € müssen wir dann ein formelles Vergabeverfahren über die zentrale Vergabestelle durchlaufen. So ist das halt.
 
-Hilde: Was sollte man zum Thema Wo Prozesse dokumentiert sind wissen?
+Q: Was sollte man zum Thema Wo Prozesse dokumentiert sind wissen?
 
 Reinecke: Also: Alle Hausverfügungen stehen im Intranet FA-Info unter 'Hausverfügungen'. Prozessbeschreibungen des Arbeitnehmerbereichs liegen unter T:\Team\VA\Prozesse. Viele Abläufe der Geschäftsstelle sind nicht schriftlich dokumentiert, sondern nur Herrn Reinecke bekannt.
 
-Hilde: Wolfgang, wie läuft der Barrierefreie Umbau der Servicestelle voran?
+Q: Wolfgang, wie läuft der Barrierefreie Umbau der Servicestelle voran?
 
-Reinecke: Also, Hilde, der Barrierefreie Umbau der Servicestelle ist auf dem Weg. Das Budget beträgt 120.000 Euro, und der Baubeginn ist für Mai 2027 geplant. Die Ausschreibung ist noch offen.
+Reinecke: Also, Q, der Barrierefreie Umbau der Servicestelle ist auf dem Weg. Das Budget beträgt 120.000 Euro, und der Baubeginn ist für Mai 2027 geplant. Die Ausschreibung ist noch offen.
 
-Hilde: Wolfgang, wie läuft denn jetzt eigentlich die Umstellung bei der Servicestelle und was hat das mit der E-Akte und Raum 0.04 zu tun?
+Q: Wolfgang, wie läuft denn jetzt eigentlich die Umstellung bei der Servicestelle und was hat das mit der E-Akte und Raum 0.04 zu tun?
 
-Reinecke: Also, Hilde, das ist ja eine lange Geschichte. Damals beim Umzug 1998, da haben wir uns das Ganze mit der E-Akte noch mal richtig angesehen. Ich meine, damals haben wir doch noch die OFD genannt, nicht wahr? Na ja, jetzt braucht der KI-Pilot die E-Akte, damit wir nur digitale Einsprüche vorsortieren können. Das ist ja so ein kleiner, aber wichtiger Schritt. Und dann kommt noch das Umbau-Projekt der Servicestelle, das darf erst beginnen, wenn die Infothek in Raum 0.04 umgezogen ist. Das ist ja eine echte Herausforderung, wenn man bedenkt, wie wir das alles in den Griff bekommen. äh, also, wir müssen uns wirklich gut organisieren, damit alles reibungslos läuft.
+Reinecke: Also, Q, das ist ja eine lange Geschichte. Damals beim Umzug 1998, da haben wir uns das Ganze mit der E-Akte noch mal richtig angesehen. Ich meine, damals haben wir doch noch die OFD genannt, nicht wahr? Na ja, jetzt braucht der KI-Pilot die E-Akte, damit wir nur digitale Einsprüche vorsortieren können. Das ist ja so ein kleiner, aber wichtiger Schritt. Und dann kommt noch das Umbau-Projekt der Servicestelle, das darf erst beginnen, wenn die Infothek in Raum 0.04 umgezogen ist. Das ist ja eine echte Herausforderung, wenn man bedenkt, wie wir das alles in den Griff bekommen. äh, also, wir müssen uns wirklich gut organisieren, damit alles reibungslos läuft.
 
-Hilde: Wieso hast du die Bewirtschaftung an dich delegiert, wenn die Vorsteherin für den Haushalt beauftragt ist?
+Q: Wieso hast du die Bewirtschaftung an dich delegiert, wenn die Vorsteherin für den Haushalt beauftragt ist?
 
-Reinecke: Also, Hilde, das hat sich so entwickelt. Eigentlich sollte die Vorsteherin für den Haushalt zuständig sein, aber ich habe die Bewirtschaftung an mich delegiert, weil ich den Überblick besser behalten kann. Frau Krüger überwacht die Haushaltsüberwachungsliste, aber die eigentliche Bewirtschaftung liegt bei mir. So kann ich sicherstellen, dass alles ordnungsgemäß läuft. Äh, du weißt schon, man kann nie vorsichtig genug sein, wenn es um die Haushaltszusammenarbeit geht.
+Reinecke: Also, Q, das hat sich so entwickelt. Eigentlich sollte die Vorsteherin für den Haushalt zuständig sein, aber ich habe die Bewirtschaftung an mich delegiert, weil ich den Überblick besser behalten kann. Frau Krüger überwacht die Haushaltsüberwachungsliste, aber die eigentliche Bewirtschaftung liegt bei mir. So kann ich sicherstellen, dass alles ordnungsgemäß läuft. Äh, du weißt schon, man kann nie vorsichtig genug sein, wenn es um die Haushaltszusammenarbeit geht.
 
-Hilde: Danke, Wolfgang! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+Q: Danke, Wolfgang! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
 
 Reinecke: Prima, so machen wir das.

@@ -95,6 +95,17 @@ function AnswerBody({ a, onCite }: { a: Answer; onCite: (f: Fact, c: Citation) =
   );
 }
 
+function Typing({ slow }: { slow?: boolean }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-line bg-white px-4 py-3.5 shadow-soft">
+      {[0, 1, 2].map((i) => (
+        <motion.span key={i} className="h-2 w-2 rounded-full bg-brand-400" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }} />
+      ))}
+      {slow && <span className="ml-2 text-[12px] text-muted">Q durchsucht die Quellen …</span>}
+    </div>
+  );
+}
+
 function QMessage({ m, onCite, fresh }: { m: ChatMessage; onCite: (f: Fact, c: Citation) => void; fresh: boolean }) {
   const [shown, setShown] = useState(!fresh);
   useEffect(() => {
@@ -102,7 +113,14 @@ function QMessage({ m, onCite, fresh }: { m: ChatMessage; onCite: (f: Fact, c: C
     const t = setTimeout(() => setShown(true), 750);
     return () => clearTimeout(t);
   }, [shown]);
-  const a = m.answer!;
+  if (m.pending || !m.answer)
+    return (
+      <div className="flex gap-3">
+        <QLogo size={34} />
+        <Typing slow />
+      </div>
+    );
+  const a = m.answer;
   const head =
     a.kind === "conflict" ? (
       <Badge tone="amber" icon={<AlertTriangle size={11} />}>Widersprüchliche Quellen</Badge>
@@ -117,12 +135,8 @@ function QMessage({ m, onCite, fresh }: { m: ChatMessage; onCite: (f: Fact, c: C
     <div className="flex gap-3">
       <QLogo size={34} />
       <div className="min-w-0 max-w-[680px] flex-1">
-        {!shown ? (
-          <div className="inline-flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-line bg-white px-4 py-3.5 shadow-soft">
-            {[0, 1, 2].map((i) => (
-              <motion.span key={i} className="h-2 w-2 rounded-full bg-brand-400" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.15 }} />
-            ))}
-          </div>
+        {!shown && m.source !== "live" ? (
+          <Typing />
         ) : (
           <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl rounded-tl-md border border-line bg-white p-4 shadow-soft">
             {head && <div className="mb-2">{head}</div>}
@@ -136,7 +150,7 @@ function QMessage({ m, onCite, fresh }: { m: ChatMessage; onCite: (f: Fact, c: C
 }
 
 export default function AskView() {
-  const { user, chats, askQ, draft, setDraft, engineState } = useStore();
+  const { user, chats, askQ, draft, setDraft, engineState, backend } = useStore();
   const me = personaById(user.personaId)!;
   const msgs = chats[user.personaId] ?? [];
   const [text, setText] = useState("");
@@ -177,6 +191,17 @@ export default function AskView() {
         title={`Hallo ${me.name.replace("Dr. ", "").split(" ")[0]}, was möchtest du wissen?`}
         sub="Q antwortet nur aus geprüften Quellen, zeigt immer woher die Antwort kommt – und sagt ehrlich, wenn sie etwas nicht weiß."
         right={
+          <div className="flex flex-wrap items-center gap-2">
+          <div
+            title={backend === "live" ? "Antworten kommen aus dem RAG-Backend (Qdrant + lokales LLM)" : "Backend nicht erreichbar – Antworten aus der Demo-Engine im Browser"}
+            className={cx(
+              "flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[12px] font-semibold ring-1",
+              backend === "live" ? "bg-mint-50 text-mint-700 ring-mint-100" : "bg-amber-50 text-amber-700 ring-amber-100",
+            )}
+          >
+            <span className={cx("h-2 w-2 rounded-full", backend === "live" ? "bg-mint-500" : backend === "checking" ? "bg-amber-300" : "bg-amber-500")} />
+            {backend === "live" ? "Live · RAG-Backend" : backend === "checking" ? "Verbinde …" : "Demo-Modus"}
+          </div>
           <div className="flex items-center gap-2 rounded-2xl border border-line bg-white px-3.5 py-2 text-[12px] shadow-soft">
             <Lock size={13} className="text-brand-500" />
             <span className="text-muted">Rolle:</span>
@@ -185,6 +210,7 @@ export default function AskView() {
             <span className="text-muted">
               {access.vis}/{access.total} Wissenseinträge sichtbar
             </span>
+          </div>
           </div>
         }
       />

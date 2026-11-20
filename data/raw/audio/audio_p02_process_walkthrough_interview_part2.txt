@@ -1,27 +1,27 @@
-Hilde: Hallo Jens, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Hilde, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+Q: Hallo Jens, danke, dass du dir Zeit nimmst. Das ist Teil 2 von 2 unserer Interviewreihe. Ich bin Q, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
 
-Hartmann: Gern, Hilde. Dann erzähle ich mal.
+Hartmann: Gern, Q. Dann erzähle ich mal.
 
-Hilde: Hey Jens, da wir gerade beim Thema sind, hast du schon mal über den Verwendungsnachweis für den KI-Piloten nachgedacht? Der Fristenhammer droht ja, und er ist bis zum 30.09.2027 drin.
+Q: Hey Jens, da wir gerade beim Thema sind, hast du schon mal über den Verwendungsnachweis für den KI-Piloten nachgedacht? Der Fristenhammer droht ja, und er ist bis zum 30.09.2027 drin.
 
-Hartmann: Also, Hilde, der Verwendungsnachweis für den KI-Piloten muss bis zum 30.09.2027 eingereicht werden. Wir müssen uns darum kümmern, um die Frist zu beachten.
+Hartmann: Also, Q, der Verwendungsnachweis für den KI-Piloten muss bis zum 30.09.2027 eingereicht werden. Wir müssen uns darum kümmern, um die Frist zu beachten.
 
-Hilde: Jens, warum braucht der KI-Pilot die E-Akte und wann kann der Umbau der Servicestelle beginnen?
+Q: Jens, warum braucht der KI-Pilot die E-Akte und wann kann der Umbau der Servicestelle beginnen?
 
 Hartmann: Also, Jens Hartmann hier. Der KI-Pilot braucht die E-Akte, weil nur digitale Einsprüche vorsortiert werden können. Also, das ist der Haken. Und erst wenn die Infothek übergangsweise in Raum 0.04 umgezogen ist, kann der Umbau der Servicestelle beginnen. Äh, so steht’s also.
 
-Hilde: Jens, wie gehen wir am besten mit den Beschäftigten um, wenn der KI-Pilot bei uns im Personalrat diskutiert wird?
+Q: Jens, wie gehen wir am besten mit den Beschäftigten um, wenn der KI-Pilot bei uns im Personalrat diskutiert wird?
 
-Hartmann: Also, Hilde, das ist definitiv ein sensibles Thema. Wir müssen sicherstellen, dass die Beschäftigten verstehen, dass der KI-Pilot kein Instrument zur Leistungskontrolle ist. Wir müssen deutlich machen, dass die Ergebnisse nie auf einzelne Personen heruntergebrochen werden. Also, das ist eine gute Gelegenheit, die Ziele und Vorteile des Pilots transparent und vertrauensbildend zu kommunizieren.
+Hartmann: Also, Q, das ist definitiv ein sensibles Thema. Wir müssen sicherstellen, dass die Beschäftigten verstehen, dass der KI-Pilot kein Instrument zur Leistungskontrolle ist. Wir müssen deutlich machen, dass die Ergebnisse nie auf einzelne Personen heruntergebrochen werden. Also, das ist eine gute Gelegenheit, die Ziele und Vorteile des Pilots transparent und vertrauensbildend zu kommunizieren.
 
-Hilde: Was sollte man zum Thema Öffentliche Themen wissen?
+Q: Was sollte man zum Thema Öffentliche Themen wissen?
 
 Hartmann: Also: Öffentlich diskutiert werden die vielen Einsprüche gegen Grundsteuerwertbescheide und lange Bearbeitungszeiten. Die Lokalpresse fragt dazu regelmäßig nach.
 
-Hilde: Also, Jens, habt ihr vor ein paar Jahren nicht mit einem großen Rückstau bei den Einsprüchen gegen Grundsteuerbescheiden zu tun gehabt?
+Q: Also, Jens, habt ihr vor ein paar Jahren nicht mit einem großen Rückstau bei den Einsprüchen gegen Grundsteuerbescheiden zu tun gehabt?
 
-Hartmann: Ja, Hilde, 2023 gab es tatsächlich einen großen Rückstau bei den Einsprüchen gegen Grundsteuerbescheiden.
+Hartmann: Ja, Q, 2023 gab es tatsächlich einen großen Rückstau bei den Einsprüchen gegen Grundsteuerbescheiden.
 
-Hilde: Danke, Jens! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+Q: Danke, Jens! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
 
 Hartmann: Prima, so machen wir das.

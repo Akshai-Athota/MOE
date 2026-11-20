@@ -135,3 +135,61 @@ def search(query: str, user: User, k: int = 8, include_history: bool = False) ->
         )
         for d, score in results
     ]
+
+
+# ---------------------------------------------------------------- guardrail helper
+
+# bge-m3 cosine above which a hidden source counts as "about this question"
+RESTRICTED_MIN_SCORE = 0.50  # measured: budget questions 0.55-0.62, parking/canteen <= 0.36
+
+
+def _dense_top(query_vec: list[float], flt: models.Filter) -> tuple[float, dict] | None:
+    res = get_qdrant().query_points(
+        get_settings().qdrant_collection, query=query_vec, using=DENSE, query_filter=flt,
+        limit=1, with_payload=True,
+    ).points
+    return (res[0].score, res[0].payload["metadata"]) if res else None
+
+
+def restricted_probe(query: str, user: User) -> Hit | None:
+    """Is there restricted content that matches the question better than anything the user may see?
+
+    Lets Q say "this exists, but not for your role – ask X" instead of a misleading partial answer.
+    Only the owner is revealed, never the content: the hidden text is not passed to the LLM.
+    """
+    if user.role == "manager":
+        return None
+    vec = get_embeddings().embed_query(query)
+    hidden = _dense_top(vec, models.Filter(
+        must=[models.FieldCondition(key="metadata.access", match=models.MatchValue(value="restricted"))],
+        must_not=[models.FieldCondition(key="metadata.status",
+                                        match=models.MatchAny(any=["superseded", "scheduled"]))],
+    ))
+    if not hidden or hidden[0] < RESTRICTED_MIN_SCORE:
+        return None
+    visible = _dense_top(vec, build_filter(user))
+    if visible and visible[0] >= hidden[0]:
+        return None  # the user's own sources match at least as well: answer normally
+    md = hidden[1]
+    return Hit(chunk_id=md["chunk_id"], text="", score=hidden[0], source_type=md["source_type"],
+               source_id=md["source_id"], citation=md["citation"], access=md["access"],
+               status=md["status"], metadata=md)
+
+
+def set_status_for(fact_or_source_id: str, status: str) -> None:
+    """Mark every chunk of a fact/source (incl. segments that state it) e.g. as superseded."""
+    flt = models.Filter(should=[
+        models.FieldCondition(key="metadata.source_id", match=models.MatchValue(value=fact_or_source_id)),
+        models.FieldCondition(key="metadata.fact_ids", match=models.MatchAny(any=[fact_or_source_id])),
+    ])
+    get_qdrant().set_payload(get_settings().qdrant_collection, payload={"status": status},
+                             key="metadata", points=flt)
+
+
+def delete_learned() -> int:
+    """Remove all knowledge captured live in the app (demo reset). Indexed sources stay."""
+    s = get_settings()
+    flt = models.Filter(must_not=[models.IsEmptyCondition(is_empty=models.PayloadField(key="metadata.learned_via"))])
+    n = get_qdrant().count(s.qdrant_collection, count_filter=flt).count
+    get_qdrant().delete(s.qdrant_collection, points_selector=models.FilterSelector(filter=flt))
+    return n
