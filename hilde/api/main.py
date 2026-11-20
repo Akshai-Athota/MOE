@@ -65,7 +65,7 @@ class AskRequest(BaseModel):
 
 @app.post("/ask", response_model=Answer)
 def ask_endpoint(req: AskRequest) -> Answer:
-    """Cited answer in German, or 'I don't know' + who to ask (question is queued)."""
+    """Cited answer in the language of the question (de/en), or 'I don't know' + who to ask (question is queued)."""
     return ask(req.question, _user(req.user_id))
 
 

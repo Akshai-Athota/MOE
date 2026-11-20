@@ -1,4 +1,4 @@
-"""Prompts for Hilde. German output; instructions control tone and abstaining only.
+"""Prompts for Hilde. Answers in the language of the question (German/English); instructions control tone and abstaining only.
 
 Access control is NOT done here; it happens in retrieval (hilde/guardrails.py).
 """
@@ -20,9 +20,13 @@ Regeln:
 6. "ich/mich/mein" in der Frage bezieht sich auf die FRAGENDE PERSON. Quelle [1] ist ihr eigener
    Eintrag im Personalverzeichnis (Vertretung, Mentor/in, Raum, Vorgesetzte).
 7. Keine Steuerberatung für Bürger, keine Auskünfte zu einzelnen Steuerfällen, keine Personalbewertungen.
-8. Antworte auf Deutsch in Du-Form ("du darfst", nie "Sie dürfen"), höchstens 5 Sätze."""
+8. Antworte in der ANTWORTSPRACHE, auch wenn die QUELLEN deutsch sind (übersetze den Inhalt treu,
+   Eigennamen, Formularnamen und Fachbegriffe wie "Elster" bleiben unverändert).
+   Auf Deutsch in Du-Form ("du darfst", nie "Sie dürfen"); auf Englisch locker und direkt ("you can").
+   Höchstens 5 Sätze."""
 
 ANSWER_USER = """FRAGENDE PERSON: {asker}
+ANTWORTSPRACHE: {language}
 
 QUELLEN:
 {sources}
@@ -40,7 +44,9 @@ answers_question: true NUR, wenn die Antwort genau das beantwortet, was gefragt 
   (ähnliche Wörter bedeuten nicht dasselbe Verfahren, dieselbe Person oder dieselbe Sache).
 supported_by_sources: true NUR, wenn jede Aussage der Antwort in den QUELLEN steht.
 Wenn sich die QUELLEN widersprechen und die Antwort beide Aussagen nennt, ist das richtig
-(answers_question=true, supported_by_sources=true)."""
+(answers_question=true, supported_by_sources=true).
+Die ANTWORT darf in einer anderen Sprache sein als die QUELLEN (z. B. Englisch); eine treue
+Übersetzung gilt als gedeckt."""
 
 VERIFY_USER = """FRAGE: {question}
 

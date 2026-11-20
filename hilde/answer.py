@@ -18,7 +18,7 @@ from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
 
 from hilde import chitchat as smalltalk
-from hilde import open_questions
+from hilde import language, open_questions
 from hilde.llm import get_llm
 from hilde.loaders import load_company, load_personas
 from hilde.prompts import (
@@ -37,7 +37,7 @@ TOP_K = 8
 
 
 class Sentence(BaseModel):
-    text: str = Field(description="ein Satz der Antwort, auf Deutsch, in Du-Form, ohne Quellennummer")
+    text: str = Field(description="ein Satz der Antwort, in der ANTWORTSPRACHE, ohne Quellennummer")
     sources: list[int] = Field(description="Nummern der QUELLEN, die diesen Satz belegen")
 
 
@@ -77,6 +77,7 @@ class PickedPerson(BaseModel):
 class State(TypedDict, total=False):
     question: str
     user: User
+    lang: language.Lang  # language of the question; every reply uses it
     hits: list[Hit]
     history: dict[int, Hit]  # source number -> superseded predecessor
     generated: Generated
@@ -88,12 +89,13 @@ class State(TypedDict, total=False):
 # ---------- nodes ----------
 
 def chitchat(state: State) -> State:
+    lang = language.detect(state["question"])
     kind = smalltalk.classify(state["question"])
     if kind == "none":
-        return {}
+        return {"lang": lang}
     first = (state["user"].name or "").split(" ")[0]
-    return {"result": Answer(question=state["question"], answer=smalltalk.reply(kind, first),
-                             abstained=False)}
+    return {"lang": lang, "result": Answer(
+        question=state["question"], answer=smalltalk.reply(kind, first, lang), abstained=False)}
 
 
 def route_chitchat(state: State) -> str:
@@ -145,6 +147,7 @@ def generate(state: State) -> State:
             asker=_asker(state["user"]),
             sources=_format_sources(state["hits"], state["history"]),
             question=state["question"],
+            language=language.NAMES[state.get("lang", "de")],
         )),
     ]
     out: Generated = llm.invoke(messages)
@@ -258,27 +261,38 @@ def _pick_person(question: str, asker_id: str) -> str | None:
         return None
 
 
+_ABSTAIN = {
+    "de": {
+        "off_topic": ("Dazu habe ich keine Informationen. Ich helfe dir bei Fragen rund um "
+                      "die Arbeit im Finanzamt Hildesheim."),
+        "unknown": "Das weiß ich leider nicht – dazu habe ich keine Quelle.",
+        "ask": " Frag am besten {name} ({role}, Raum {room}, Tel. {ext}).",
+        "leaving": " Ich habe die Frage für das nächste Übergabe-Interview mit {name} vorgemerkt.",
+        "noted": " Ich habe die Frage vorgemerkt, damit wir die Wissenslücke schließen.",
+    },
+    "en": {
+        "off_topic": ("I don't have any information on that. I can help you with questions about "
+                      "working at the Finanzamt Hildesheim."),
+        "unknown": "Sorry, I don't know that – I have no source for it.",
+        "ask": " Your best bet is to ask {name} ({role}, room {room}, ext. {ext}).",
+        "leaving": " I've noted the question for the next handover interview with {name}.",
+        "noted": " I've noted the question so we can close this knowledge gap.",
+    },
+}
+
+
 def abstain(state: State) -> State:
     user, question = state["user"], state["question"]
+    t = _ABSTAIN[state.get("lang", "de")]
     pid = _pick_person(question, user.id)
     if not pid:  # off-topic: nobody to route to, nothing to learn
-        return {"result": Answer(
-            question=question, abstained=True,
-            answer=("Dazu habe ich keine Informationen. Ich helfe dir bei Fragen rund um "
-                    "die Arbeit im Finanzamt Hildesheim."),
-        )}
-    contact = None
-    text = "Das weiß ich leider nicht – dazu habe ich keine Quelle."
-    if pid:
-        p = load_personas()[pid]
-        contact = Contact(id=pid, name=p["name"], role_de=p["role_de"], room=p["room"],
-                          phone_ext=p["phone_ext"], email=p["email"])
-        text += (f" Frag am besten {p['name']} ({p['role_de']}, Raum {p['room']}, "
-                 f"Tel. {p['phone_ext']}).")
-        if p["status"] == "leaving":
-            text += f" Ich habe die Frage für das nächste Übergabe-Interview mit {p['name']} vorgemerkt."
-        else:
-            text += " Ich habe die Frage vorgemerkt, damit wir die Wissenslücke schließen."
+        return {"result": Answer(question=question, abstained=True, answer=t["off_topic"])}
+    p = load_personas()[pid]
+    contact = Contact(id=pid, name=p["name"], role_de=p["role_de"], room=p["room"],
+                      phone_ext=p["phone_ext"], email=p["email"])
+    text = t["unknown"] + t["ask"].format(name=p["name"], role=p["role_de"], room=p["room"],
+                                          ext=p["phone_ext"])
+    text += (t["leaving"] if p["status"] == "leaving" else t["noted"]).format(name=p["name"])
     qid = open_questions.add(question, asked_by=user.id, assigned_to=pid)
     return {"result": Answer(question=question, answer=text, abstained=True,
                              who_to_ask=contact, open_question_id=qid)}

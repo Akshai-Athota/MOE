@@ -4,7 +4,7 @@ Two stages:
 * regex fast path for obvious cases (no LLM call, no latency);
 * LLM classifier only for short messages the regex did not catch.
 
-Replies are fixed German templates. They state no facts about the Finanzamt, so the
+Replies are fixed templates in German or English (language of the message). They state no facts about the Finanzamt, so the
 "facts only from facts.yaml" rule still holds.
 """
 
@@ -20,6 +20,16 @@ from hilde.prompts import CHITCHAT_SYSTEM
 Kind = Literal["greeting", "how_are_you", "thanks", "goodbye", "about_hilde", "none"]
 
 _HELP = "Was kann ich für dich tun?"
+_HELP_EN = "What can I do for you?"
+
+REPLIES_EN: dict[str, str] = {
+    "greeting": f"Hi{{name}}! Nice to see you. {_HELP_EN}",
+    "how_are_you": f"I'm doing well, thanks for asking{{name}}! {_HELP_EN}",
+    "thanks": "You're welcome! Just let me know if you need anything else.",
+    "goodbye": "Bye{name}, see you soon!",
+    "about_hilde": ("I'm Hilde, the AI colleague at the Finanzamt Hildesheim. I answer questions "
+                    "about work here and always tell you my sources. " + _HELP_EN),
+}
 
 REPLIES: dict[str, str] = {
     "greeting": f"Hallo{{name}}! Schön, dass du da bist. {_HELP}",
@@ -76,6 +86,6 @@ def classify(question: str, use_llm: bool = True) -> Kind:
         return "none"
 
 
-def reply(kind: str, first_name: str = "") -> str:
+def reply(kind: str, first_name: str = "", lang: str = "de") -> str:
     name = f" {first_name}" if first_name else ""
-    return REPLIES[kind].format(name=name)
+    return (REPLIES_EN if lang == "en" else REPLIES)[kind].format(name=name)
