@@ -1,0 +1,29 @@
+# Ollama runs on the host (uses your GPU directly). Qdrant runs locally in Docker.
+#
+#   docker compose up -d qdrant        # only Qdrant (for local dev with `uv run`)
+#   docker compose up --build          # API + Qdrant
+services:
+  api:
+    build: .
+    image: hilde-api:latest
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      QDRANT_URL: http://qdrant:6333   # container-to-container address
+      QDRANT_API_KEY: ""
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0   # keep in step with qdrant-client in uv.lock
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:
