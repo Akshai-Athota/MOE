@@ -31,12 +31,10 @@ export const CATEGORIES: Record<string, { de: string; color: string }> = {
   public: { de: "Öffentlich", color: "#17132B" },
 };
 
-/** Demo users, one per role. */
+/** The two demo users. */
 export const DEMO_USERS: { personaId: string; role: Role; label: string }[] = [
   { personaId: "p13", role: "new_hire", label: "Neu im Amt" },
-  { personaId: "p05", role: "leaver", label: "Geht in Ruhestand" },
-  { personaId: "p03", role: "employee", label: "Mitarbeitende" },
-  { personaId: "p10", role: "manager", label: "Führungskraft" },
+  { personaId: "p05", role: "leaver", label: "Geht in den Ruhestand" },
 ];
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -82,7 +80,7 @@ export function daysUntil(iso: string) {
   return Math.round((Date.parse(iso) - Date.parse(TODAY)) / 86400000);
 }
 
-const AVATAR_COLORS = ["#573CFA", "#FF7A59", "#12B886", "#2FA8F5", "#C04DE0", "#F5A524", "#E5486F", "#0EA5A4"];
+const AVATAR_COLORS = ["#0F5E54", "#3F4A5A", "#7A5C2E", "#5B4B8A", "#2F5D8A", "#8A3B3B", "#4D6B3C", "#6B6B6B"];
 export function avatarColor(id: string) {
   const n = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
   return AVATAR_COLORS[n % AVATAR_COLORS.length];

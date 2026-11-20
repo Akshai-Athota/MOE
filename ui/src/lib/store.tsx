@@ -1,23 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { DATA, DEMO_USERS, TODAY, personaById } from "./data";
-import { askBackend, checkBackend, learnBackend, resetBackend, type BackendMode } from "./api";
+import { DEMO_USERS, TODAY, personaById } from "./data";
+import { askBackend, checkBackend, learnBackend, libraryApi, resetBackend, type BackendMode } from "./api";
 import { ask as engineAsk, guessCategory, redactedString, type EngineState } from "./engine";
-import type { Answer, ChatMessage, Fact, KnowledgeEvent, OpenQuestion, Role } from "./types";
+import type { Answer, ChatMessage, Fact, LibraryPost, OpenQuestion, Role } from "./types";
 
-export type View = "ask" | "onboarding" | "interview" | "celebration" | "memory" | "coverage";
+export type View = "start" | "ask" | "interview" | "library";
 
 export const VIEWS_BY_ROLE: Record<Role, View[]> = {
-  new_hire: ["onboarding", "ask"],
-  leaver: ["interview", "celebration", "ask"],
-  employee: ["ask"],
-  manager: ["coverage", "memory", "celebration", "ask"],
+  new_hire: ["start", "ask", "library"],
+  leaver: ["interview", "ask", "library"],
+  employee: ["ask", "library"],
+  manager: ["ask", "library"],
 };
 
 interface Toast {
   id: number;
   title: string;
   body?: string;
-  tone?: "brand" | "mint" | "coral" | "amber";
 }
 
 interface Persisted {
@@ -25,41 +24,51 @@ interface Persisted {
   supersededAtRuntime: string[];
   resolved: Record<string, string>;
   openQuestions: OpenQuestion[];
-  events: KnowledgeEvent[];
   checks: Record<string, boolean>;
   chats: Record<string, ChatMessage[]>;
+  /** library posts in demo mode (live mode reads them from the backend) */
+  posts: LibraryPost[];
 }
 
-const KEY = "q-demo-v1";
+const KEY = "finn-demo-v1";
+export const INTERVIEW_KEY = "finn-interview-";
 
-function seedEvents(): KnowledgeEvent[] {
-  const ev: KnowledgeEvent[] = [];
-  for (const s of DATA.plants.superseded) {
-    const n = DATA.facts.find((f) => f.id === s.new)!;
-    ev.push({ id: `seed-${s.new}`, at: n.valid_from, kind: "UPDATE", title: n.topic.replace(" (neu)", ""), detail: s.demo, source: n.rule ?? "Dokument" });
-  }
-  for (const c of DATA.plants.conflicts) {
-    const f = DATA.facts.find((x) => x.id === c.facts[1])!;
-    ev.push({ id: `seed-c-${c.question}`, at: f.valid_from, kind: "CONFLICT", title: f.topic.replace(/ \(.*\)/, ""), detail: "Zwei Quellen widersprechen sich – Klärung durch Führungskraft nötig.", source: c.facts.join(" ↔ ") });
-  }
-  ev.push({ id: "seed-int", at: "2026-11-12", kind: "NEW", title: "Übergabeinterview W. Reinecke (Teil 1)", detail: "14 Aussagen extrahiert, 1 Steuerpflichtige:r automatisch geschwärzt.", source: "Interview p05" });
-  ev.push({ id: "seed-same", at: "2026-11-14", kind: "SAME", title: "Vertretungsplan bestätigt", detail: "Interview H.-J. Meyer bestätigt Vertretungsregeln – Quelle ergänzt, Datum aktualisiert.", source: "Interview p11" });
-  return ev.sort((a, b) => b.at.localeCompare(a.at));
+function libraryFact(p: LibraryPost): Fact {
+  return {
+    id: p.factId!,
+    category: p.category,
+    topic: p.text.split(/[.!?]/)[0].slice(0, 60),
+    de: p.text,
+    en: "",
+    owner: p.user_id,
+    department: "ALL",
+    access: "internal",
+    valid_from: p.created.slice(0, 10),
+    status: "current",
+    question_ids: [],
+    sources_planned: ["doc"],
+    learned: { label: `Wissensbibliothek · ${p.author}`, at: p.created, via: "library" },
+  };
 }
+
+const SEED_POSTS: LibraryPost[] = [
+  { id: "lib-1", factId: "LB01", user_id: "p09", author: "Nils Ahrens", category: "it", created: "2026-11-20T08:12:00", text: "Der Drucker im 2. OG neben Raum 2.20 ist defekt. Der Techniker kommt am Donnerstag – bis dahin bitte den Drucker im 1. OG nutzen." },
+  { id: "lib-2", factId: "LB02", user_id: "p07", author: "Marco Lindner", category: "it", created: "2026-11-19T15:40:00", text: "Freitag ab 16 Uhr wird Teams aktualisiert. Danach einmal ab- und wieder anmelden, sonst fehlen die Kanäle." },
+  { id: "lib-3", factId: "LB03", user_id: "p06", author: "Sabine Krüger", category: "general", created: "2026-11-18T10:05:00", text: "Die Kaffeemaschine im 1. OG ist repariert und entkalkt." },
+];
 
 function seed(): Persisted {
   return {
-    learned: [],
+    learned: SEED_POSTS.map(libraryFact),
     supersededAtRuntime: [],
     resolved: {},
     openQuestions: [
       { id: "oq-1", text: "Wie läuft eigentlich die Haushaltsanmeldung fürs nächste Jahr?", askedBy: "p13", askedAt: "2026-11-19", routedTo: "p05", gapId: "Q34" },
       { id: "oq-2", text: "Gibt es Ladesäulen für E-Autos?", askedBy: "p04", askedAt: "2026-11-18", routedTo: "p05", gapId: "G14" },
-      { id: "oq-3", text: "Welche Rentenfälle sollte ich nicht alleine bearbeiten?", askedBy: "p13", askedAt: "2026-11-20", routedTo: "p11", gapId: "X04" },
     ],
-    events: seedEvents(),
     checks: {},
     chats: {},
+    posts: SEED_POSTS,
   };
 }
 
@@ -68,7 +77,6 @@ function load(): Persisted {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const saved = { ...seed(), ...JSON.parse(raw) } as Persisted;
-      // answers still pending when the page was closed will never arrive
       for (const k of Object.keys(saved.chats)) saved.chats[k] = saved.chats[k].filter((m) => !m.pending);
       return saved;
     }
@@ -81,13 +89,13 @@ function load(): Persisted {
 export interface LearnInput {
   text: string;
   owner: string;
-  via: "interview" | "quiz" | "upload";
+  via: "interview" | "upload" | "library";
   label: string;
   gapId?: string;
-  questionIds?: string[];
-  supersedes?: string;
-  validFrom?: string;
   topic?: string;
+  category?: string;
+  /** also index in the backend (false when the backend already did it) */
+  sync?: boolean;
 }
 
 interface Store extends Persisted {
@@ -97,18 +105,17 @@ interface Store extends Persisted {
   draft: string;
   toasts: Toast[];
   engineState: EngineState;
-  /** live = answers come from the RAG backend; offline = in-browser demo engine */
   backend: BackendMode;
+  libraryPosts: LibraryPost[];
   setUserIdx: (i: number) => void;
   setView: (v: View) => void;
   setDraft: (d: string) => void;
-  askQ: (text: string) => void;
+  ask: (text: string) => void;
   learn: (i: LearnInput) => Fact;
-  resolveConflict: (question: string, truth: string) => void;
-  /** live interview: a colleague's question was answered (and indexed by the backend) */
   resolveOpenQuestion: (id: string) => void;
-  /** live interview: knowledge events for the "Wissen & Verlauf" timeline */
-  addEvents: (ev: Omit<KnowledgeEvent, "id" | "at">[]) => void;
+  addPost: (text: string, category: string, file?: File) => Promise<void>;
+  resolvePost: (id: string) => Promise<void>;
+  refreshLibrary: () => void;
   toggleCheck: (k: string) => void;
   toast: (t: Omit<Toast, "id">) => void;
   reset: () => void;
@@ -119,13 +126,13 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [p, setP] = useState<Persisted>(load);
   const [userIdx, setUserIdxRaw] = useState(0);
-  const [view, setView] = useState<View>("onboarding");
+  const [view, setView] = useState<View>("start");
   const [draft, setDraft] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [backend, setBackend] = useState<BackendMode>("checking");
+  const [livePosts, setLivePosts] = useState<LibraryPost[]>([]);
   const user = DEMO_USERS[userIdx];
 
-  // use the RAG backend when it is reachable; re-check every 30 s (it may start after the UI)
   useEffect(() => {
     let alive = true;
     const check = () => checkBackend().then((ok) => alive && setBackend(ok ? "live" : "offline"));
@@ -145,6 +152,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [p]);
 
+  const refreshLibrary = useCallback(() => {
+    if (backend === "live") libraryApi.list().then(setLivePosts).catch(() => undefined);
+  }, [backend]);
+  useEffect(refreshLibrary, [refreshLibrary]);
+
   const engineState: EngineState = useMemo(
     () => ({ learned: p.learned, supersededAtRuntime: p.supersededAtRuntime, resolved: p.resolved }),
     [p.learned, p.supersededAtRuntime, p.resolved],
@@ -153,7 +165,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((t: Omit<Toast, "id">) => {
     const id = Date.now() + Math.random();
     setToasts((x) => [...x, { ...t, id }]);
-    setTimeout(() => setToasts((x) => x.filter((y) => y.id !== id)), 4200);
+    setTimeout(() => setToasts((x) => x.filter((y) => y.id !== id)), 3800);
   }, []);
 
   const setUserIdx = (i: number) => {
@@ -161,7 +173,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setView(VIEWS_BY_ROLE[DEMO_USERS[i].role][0]);
   };
 
-  const askQ = (text: string) => {
+  const ask = (text: string) => {
     const { personaId, role } = user;
     const qId = crypto.randomUUID();
     const msgs: ChatMessage[] = [
@@ -174,114 +186,111 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setP((s) => {
         let openQuestions = s.openQuestions;
         if (answer.kind === "gap" && answer.askPerson && !s.openQuestions.some((q) => !q.resolved && ((answer.gapId && q.gapId === answer.gapId) || q.text === text))) {
-          openQuestions = [
-            { id: crypto.randomUUID(), text, askedBy: personaId, askedAt: TODAY, routedTo: answer.askPerson.id, gapId: answer.gapId },
-            ...s.openQuestions,
-          ];
+          openQuestions = [{ id: crypto.randomUUID(), text, askedBy: personaId, askedAt: TODAY, routedTo: answer.askPerson.id, gapId: answer.gapId }, ...s.openQuestions];
         }
         const chat = (s.chats[personaId] ?? []).map((m) => (m.id === qId ? { id: qId, from: "q" as const, text: answer.text, answer, source } : m));
         return { ...s, openQuestions, chats: { ...s.chats, [personaId]: chat } };
       });
 
     if (backend !== "live") {
-      finish(engineAsk(text, role, personaId, engineState), "demo");
+      setTimeout(() => finish(engineAsk(text, role, personaId, engineState), "demo"), 450);
       return;
     }
     askBackend(text, role, personaId, engineState)
       .then((a) => finish(a, "live"))
       .catch(() => {
         setBackend("offline");
-        toast({ title: "Backend nicht erreichbar", body: "Q antwortet im Demo-Modus.", tone: "amber" });
         finish(engineAsk(text, role, personaId, engineState), "demo");
       });
   };
 
   const learn = (i: LearnInput): Fact => {
     const clean = redactedString(i.text);
-    const id = `L${String(p.learned.length + 1).padStart(3, "0")}`;
-    const gapQ = i.gapId ? [i.gapId] : [];
     const fact: Fact = {
-      id,
-      category: guessCategory(clean),
+      id: `L${Date.now().toString(36)}`,
+      category: i.category ?? guessCategory(clean),
       topic: i.topic ?? clean.split(/[.:–]/)[0].slice(0, 60),
       de: clean,
       en: "",
       owner: i.owner,
-      department: personaById(i.owner)?.department ?? "ALL",
+      department: i.via === "library" ? "ALL" : personaById(i.owner)?.department ?? "ALL",
       access: "internal",
-      valid_from: i.validFrom ?? TODAY,
+      valid_from: TODAY,
       status: "current",
-      supersedes: i.supersedes ?? null,
-      question_ids: [...gapQ, ...(i.questionIds ?? [])],
-      sources_planned: [i.via === "upload" ? "doc" : "interview"],
+      question_ids: i.gapId ? [i.gapId] : [],
+      sources_planned: [i.via === "interview" ? "interview" : "doc"],
       learned: { label: i.label, at: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }), via: i.via },
     };
-    if (backend === "live") {
-      // index in the RAG backend too, so the next question (from anyone) can use it
+    if (backend === "live" && i.sync) {
       const question = p.openQuestions.find((q) => i.gapId && q.gapId === i.gapId && !q.resolved)?.text;
-      learnBackend({
-        text: clean,
-        user_id: i.owner,
-        label: i.label,
-        via: i.via,
-        topic: i.topic,
-        category: fact.category,
-        valid_from: i.validFrom,
-        supersedes: i.supersedes,
-        question,
-      }).catch(() => toast({ title: "Wissen nur lokal gespeichert", body: "Das Backend war nicht erreichbar.", tone: "amber" }));
+      learnBackend({ text: clean, user_id: i.owner, label: i.label, via: i.via, topic: i.topic, category: fact.category, question }).catch(() => undefined);
     }
     setP((s) => ({
       ...s,
       learned: [...s.learned, fact],
-      supersededAtRuntime: i.supersedes && (i.validFrom ?? TODAY) <= TODAY ? [...s.supersededAtRuntime, i.supersedes] : s.supersededAtRuntime,
       openQuestions: s.openQuestions.map((q) => (i.gapId && q.gapId === i.gapId ? { ...q, resolved: true } : q)),
-      events: [
-        {
-          id: crypto.randomUUID(),
-          at: TODAY,
-          kind: i.supersedes ? "UPDATE" : "NEW",
-          title: fact.topic,
-          detail: i.supersedes ? `Ersetzt ${i.supersedes} ab ${i.validFrom}` : `Neue Aussage aufgenommen${i.gapId ? " – Wissenslücke geschlossen" : ""}.`,
-          source: i.label,
-        },
-        ...s.events,
-      ],
     }));
     return fact;
-  };
-
-  const resolveConflict = (question: string, truth: string) => {
-    const f = DATA.facts.find((x) => x.id === truth);
-    setP((s) => ({
-      ...s,
-      resolved: { ...s.resolved, [question]: truth },
-      events: [{ id: crypto.randomUUID(), at: TODAY, kind: "RESOLVED", title: f?.topic.replace(/ \(.*\)/, "") ?? truth, detail: `Entschieden: ${truth} gilt.`, source: "Freigabe Führungskraft" }, ...s.events],
-    }));
   };
 
   const resolveOpenQuestion = (id: string) =>
     setP((s) => ({ ...s, openQuestions: s.openQuestions.map((q) => (q.id === id ? { ...q, resolved: true } : q)) }));
 
-  const addEvents = (ev: Omit<KnowledgeEvent, "id" | "at">[]) =>
-    setP((s) => ({ ...s, events: [...ev.map((e) => ({ ...e, id: crypto.randomUUID(), at: TODAY })), ...s.events] }));
+  const addPost = async (text: string, category: string, file?: File) => {
+    const me = personaById(user.personaId)!;
+    if (backend === "live") {
+      if (file) await libraryApi.upload(me.id, file, category);
+      if (text.trim()) await libraryApi.add(me.id, text.trim(), category);
+      refreshLibrary();
+      return;
+    }
+    const body = [text.trim(), file ? `Anhang: ${file.name}` : ""].filter(Boolean).join("\n");
+    const post: LibraryPost = {
+      id: crypto.randomUUID(),
+      factId: `LB${Date.now().toString(36)}`,
+      user_id: me.id,
+      author: me.name,
+      category,
+      created: new Date().toISOString().slice(0, 19),
+      text: redactedString(body),
+    };
+    setP((s) => ({ ...s, posts: [post, ...s.posts], learned: [...s.learned, libraryFact(post)] }));
+  };
+
+  const resolvePost = async (id: string) => {
+    if (backend === "live") {
+      await libraryApi.resolve(id);
+      refreshLibrary();
+      return;
+    }
+    setP((s) => {
+      const post = s.posts.find((x) => x.id === id);
+      return {
+        ...s,
+        posts: s.posts.map((x) => (x.id === id ? { ...x, resolved: true } : x)),
+        supersededAtRuntime: post?.factId ? [...s.supersededAtRuntime, post.factId] : s.supersededAtRuntime,
+      };
+    });
+  };
 
   const toggleCheck = (k: string) => setP((s) => ({ ...s, checks: { ...s.checks, [k]: !s.checks[k] } }));
 
   const reset = () => {
     setP(seed());
     try {
-      for (const k of Object.keys(localStorage)) if (k.startsWith("q-interview-")) localStorage.removeItem(k);
+      for (const k of Object.keys(localStorage)) if (k.startsWith(INTERVIEW_KEY)) localStorage.removeItem(k);
     } catch {
       /* ignore */
     }
-    if (backend === "live") resetBackend().catch(() => toast({ title: "Backend-Reset fehlgeschlagen", tone: "amber" }));
-    toast({ title: "Demo zurückgesetzt", tone: "brand" });
+    if (backend === "live") resetBackend().then(refreshLibrary).catch(() => undefined);
+    toast({ title: "Demo zurückgesetzt" });
   };
+
+  const libraryPosts = backend === "live" ? livePosts : p.posts;
 
   return (
     <Ctx.Provider
-      value={{ ...p, userIdx, user, view, draft, toasts, engineState, backend, setUserIdx, setView, setDraft, askQ, learn, resolveConflict, resolveOpenQuestion, addEvents, toggleCheck, toast, reset }}
+      value={{ ...p, userIdx, user, view, draft, toasts, engineState, backend, libraryPosts, setUserIdx, setView, setDraft, ask, learn, resolveOpenQuestion, addPost, resolvePost, refreshLibrary, toggleCheck, toast, reset }}
     >
       {children}
     </Ctx.Provider>

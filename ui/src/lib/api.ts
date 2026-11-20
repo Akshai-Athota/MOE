@@ -1,5 +1,5 @@
 /**
- * Connection to Q's RAG backend (FastAPI, `hilde/api/main.py`).
+ * Connection to Finn's RAG backend (FastAPI, `hilde/api/main.py`).
  *
  * The dev server proxies /api -> http://localhost:8000 (vite.config.ts). Set VITE_API_BASE to point
  * elsewhere. If the backend is not reachable, the store falls back to the in-browser engine
@@ -7,7 +7,7 @@
  */
 import { DATA, TODAY, personaById } from "./data";
 import { ask as engineAsk, type EngineState } from "./engine";
-import type { Answer, Citation, Fact, Modality, Role } from "./types";
+import type { Answer, Citation, Fact, LibraryPost, Modality, Role, Voucher } from "./types";
 
 const BASE = (import.meta.env.VITE_API_BASE as string | undefined) ?? "/api";
 /** Local LLM on a laptop GPU: first answer can take a while (model load). */
@@ -187,7 +187,7 @@ export interface LearnPayload {
   text: string;
   user_id: string;
   label: string;
-  via: "interview" | "quiz" | "upload";
+  via: "interview" | "upload" | "library";
   topic?: string;
   category?: string;
   valid_from?: string;
@@ -214,6 +214,7 @@ export interface IvQuestion {
   asked_by?: string | null;
   gap_id?: string | null;
   demo_answer?: string | null;
+  card?: number | null;
 }
 export interface IvClaim {
   id: string;
@@ -245,12 +246,31 @@ export interface IvHandbook {
   published_at?: string | null;
   conflicts: number;
 }
+export interface IvCard {
+  card: number;
+  kind: "open_question" | "gap" | "catalogue";
+  label: string;
+  original: string;
+  asked_by?: string | null;
+  ref?: string | null;
+  gap_id?: string | null;
+  demo_answer?: string | null;
+  done: boolean;
+}
+export interface IvReward {
+  card: number;
+  unlocked: boolean;
+  remaining: number;
+  voucher: Voucher | null;
+}
 export interface IvSession {
   id: string;
   persona: string;
   current: IvQuestion | null;
   turns: IvTurn[];
   handbook: IvHandbook;
+  deck: IvCard[];
+  reward: IvReward;
 }
 
 const IV_TIMEOUT = 180_000; // extraction + comparison on a local LLM
@@ -262,7 +282,40 @@ export const interviewApi = {
   start: (userId: string, openQuestions: { id: string; text: string; asked_by?: string; gap_id?: string }[]) =>
     post<IvSession>("/interview/start", { user_id: userId, open_questions: openQuestions }, 60_000),
   answer: (sid: string, answer: string) => post<IvSession & { turn: IvTurn }>(`/interview/${sid}/answer`, { answer }),
+  pick: (sid: string, card: number) => post<IvSession>(`/interview/${sid}/pick`, { card }, 60_000),
+  /** audio answer: transcribed by Whisper on the server, then redacted and structured */
+  answerAudio: async (sid: string, audio: Blob, filename = "antwort.webm") => {
+    const fd = new FormData();
+    fd.append("file", audio, filename);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), IV_TIMEOUT);
+    try {
+      const r = await fetch(`${BASE}/interview/${sid}/answer-audio`, { method: "POST", body: fd, signal: ctrl.signal });
+      if (!r.ok) throw new Error(`answer-audio: HTTP ${r.status}`);
+      return (await r.json()) as IvSession & { turn: IvTurn };
+    } finally {
+      clearTimeout(t);
+    }
+  },
   focus: (sid: string, q: Partial<IvQuestion>) => post<IvSession>(`/interview/${sid}/focus`, { text: "", ...q }, 60_000),
   skip: (sid: string) => post<IvSession>(`/interview/${sid}/skip`, undefined, 60_000),
   publish: (sid: string) => post<IvSession & { result: { published: number; conflicts_flagged: number } }>(`/interview/${sid}/publish`),
+};
+
+/* ---------------- knowledge library (backend: hilde/library.py) ---------------- */
+export const libraryApi = {
+  list: () => request<LibraryPost[]>("/library", undefined, 10_000),
+  add: (user_id: string, text: string, category: string) => post<LibraryPost>("/library", { user_id, text, category }, 60_000),
+  resolve: (id: string) => post<LibraryPost>(`/library/${id}/resolve`, undefined, 20_000),
+  /** attach a file (PDF, DOCX, image, audio): parsed, redacted and searchable */
+  upload: async (user_id: string, file: File, category: string) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("user_id", user_id);
+    fd.append("title", `Wissensbibliothek · ${file.name}`);
+    fd.append("category", category);
+    const r = await fetch(`${BASE}/ingest`, { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`ingest: HTTP ${r.status}`);
+    return r.json();
+  },
 };

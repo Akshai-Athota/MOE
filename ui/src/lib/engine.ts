@@ -1,10 +1,10 @@
 /**
- * Mock "brain" of Q, running fully in the browser on the synthetic dataset.
+ * In-browser "brain" of Finn (demo mode), running on the synthetic dataset.
  * Person B's real pipeline (Qdrant + LLM) replaces this behind lib/api.ts with the same Answer shape.
  * Guardrails are applied BEFORE ranking: a role never gets content it may not see.
  */
 import { DATA, TODAY, canSee, firstName, personaById, ruleById } from "./data";
-import type { Answer, Citation, Fact, Gap, Role } from "./types";
+import type { Answer, Citation, Fact, Gap, OpenQuestion, Role } from "./types";
 
 const STOP = new Set(
   "der die das und oder ein eine einen einem einer ist sind wie was wer wo wann warum wieso welche welcher welches ich du er sie es wir ihr mich mir dich dir mein meine dein deine sein seine im in am an auf aus bei mit von vom zu zum zur fuer für über ueber unter nach vor bis gibt es hier dort man muss kann darf soll eigentlich denn noch auch nur schon mal bitte hallo hi q den dem des als wenn dass ob nicht kein keine so sich uns euch".split(" "),
@@ -109,7 +109,7 @@ function mmss(id: string) {
 export function citationFor(f: Fact): Citation {
   const owner = personaById(f.owner);
   const short = owner ? `${owner.name.replace("Dr. ", "").split(" ")[0][0]}. ${owner.name.split(" ").slice(-1)[0]}` : "";
-  if (f.learned) return { factId: f.id, label: f.learned.label, kind: f.learned.via === "upload" ? "doc" : "quiz", anchor: f.learned.at };
+  if (f.learned) return { factId: f.id, label: f.learned.label, kind: f.learned.via === "library" ? "library" : f.learned.via === "upload" ? "doc" : "interview", anchor: f.learned.via === "library" ? undefined : f.learned.at };
   const rule = ruleById(f.rule);
   const kind = (f.sources_planned[0] ?? "doc") as Citation["kind"];
   if (rule && (kind === "doc" || kind === "intranet")) return { factId: f.id, label: `${rule.id} · ${rule.title_de}`, kind: "doc", anchor: "§1" };
@@ -310,4 +310,123 @@ export function classifyClaim(text: string, state: EngineState): { kind: "NEW" |
     .sort((a, b) => b.s - a.s)[0];
   if (!best || best.s < 0.45) return { kind: "NEW" };
   return { kind: best.s > 0.8 ? "SAME" : "UPDATE", match: best.f };
+}
+
+
+/* ---------------- Story-card interview (demo twin of hilde/interview.py) ---------------- */
+export const DECK_SIZE = 9; // card 10 is the reward card
+
+export interface DeckCard {
+  card: number;
+  kind: "open_question" | "gap" | "catalogue";
+  label: string;
+  original: string;
+  ref?: string;
+  askedBy?: string;
+  gapId?: string;
+  openQuestionId?: string;
+  demoAnswer?: string;
+}
+
+const CARD_LABEL: Record<string, string> = {
+  org: "Organisation", process: "Abläufe", project: "Projekte", program: "Projekte", finance: "Haushalt & Beschaffung",
+  it: "IT", oversight: "Aufsicht", communication: "Kommunikation", practical: "Ungeschriebenes", general: "Alltag",
+};
+
+/** Same order as the backend: colleagues' questions, gaps only this person can close, then the
+ *  main catalogue questions where this person is the only source. At most 9 cards. */
+export function dealDeck(pid: string, openQs: OpenQuestion[]): DeckCard[] {
+  const out: Omit<DeckCard, "card">[] = [];
+  const gaps = DATA.plants.planted_gaps;
+  const demoFor = (gid?: string) => gaps.find((g) => g.id === gid)?.live_demo_answer_de;
+  for (const q of openQs.filter((x) => x.routedTo === pid && !x.resolved))
+    out.push({ kind: "open_question", label: "Frage aus dem Team", original: q.text, ref: q.id, askedBy: q.askedBy, gapId: q.gapId, openQuestionId: q.id, demoAnswer: demoFor(q.gapId) });
+  const covered = new Set(out.map((q) => q.gapId).filter(Boolean));
+  for (const g of gaps)
+    if (g.who_to_ask === pid && !covered.has(g.id))
+      out.push({ kind: "gap", label: "Wissenslücke", original: g.question_de ?? DATA.questions.find((q) => q.id === g.id)?.de ?? "", ref: g.id, gapId: g.id, demoAnswer: g.live_demo_answer_de });
+
+  const gapIds = new Set(gaps.map((g) => g.id));
+  const weight = new Map<string, number>();
+  const mine = new Map<string, Fact[]>();
+  for (const f of DATA.facts) {
+    const holders = [f.owner, ...(f.also_known_by ?? [])];
+    if (!holders.includes(pid) || f.status === "superseded" || f.access === "restricted") continue;
+    const others = holders.filter((h) => h !== pid && personaById(h)?.status !== "leaving");
+    for (const qid of f.question_ids) {
+      weight.set(qid, (weight.get(qid) ?? 0) + (f.status === "conflict" ? 6 : others.length ? 1 : 3));
+      mine.set(qid, [...(mine.get(qid) ?? []), f]);
+    }
+  }
+  const ranked = [...weight.entries()].sort((a, b) => b[1] - a[1]).map(([q]) => q);
+  for (const qid of ranked) {
+    const q = DATA.questions.find((x) => x.id === qid);
+    if (!q || gapIds.has(qid)) continue;
+    out.push({ kind: "catalogue", label: CARD_LABEL[q.category] ?? "Wissen", original: q.de, ref: qid, demoAnswer: "Also: " + mine.get(qid)!.slice(0, 2).map((f) => f.de).join(" Und: ") });
+  }
+  // redaction demo: a planted taxpayer detail slips into the first main-question answer
+  const t = DATA.plants.redaction_targets.find((x) => x.inject_into === pid);
+  const first = out.find((q) => q.kind === "catalogue");
+  if (t && first) first.demoAnswer = `${first.demoAnswer} Das erinnert mich an den Fall damals, ${t.context}: ${t.value}.`;
+  return out.slice(0, DECK_SIZE).map((q, i) => ({ ...q, card: i + 1 }));
+}
+
+export function phraseCard(c: DeckCard, pid: string): string {
+  const me = firstName(personaById(pid));
+  if (c.kind === "open_question" && c.askedBy) return `${firstName(personaById(c.askedBy))} hat gefragt: „${c.original}“ Kannst du das erklären, ${me}?`;
+  if (c.kind === "gap") return `${me}, das weiß bisher nur du: ${c.original}`;
+  return `${me}, ${c.original[0].toLowerCase()}${c.original.slice(1)}`;
+}
+
+/* contradiction details, like hilde/interview.py details() */
+function details(text: string) {
+  const t = text.toLowerCase();
+  return {
+    zeit: new Set([...text.matchAll(/\b(\d{1,2})[:.](\d{2})\s?(?:Uhr)?\b/g)].filter((m) => +m[1] < 24).map((m) => `${+m[1]}:${m[2]}`)),
+    betrag: new Set([...text.matchAll(/\b(\d{1,3}(?:\.\d{3})*|\d+)(?:,\d{2})?\s?(?:€|Euro)/g)].map((m) => m[1].replace(/\./g, ""))),
+    datum: new Set([...text.matchAll(/\b(\d{1,2})\.\s?(\d{1,2})\.(?!\d)/g)].map((m) => `${+m[1]}.${+m[2]}`)),
+    tag: new Set(["montag", "dienstag", "mittwoch", "donnerstag", "freitag"].filter((d) => t.includes(d))),
+  };
+}
+function contradicts(a: string, b: string) {
+  const x = details(a), y = details(b);
+  return (["zeit", "betrag", "datum"] as const).some((k) => [...x[k]].some((v) => !y[k].has(v)) && [...y[k]].some((v) => !x[k].has(v)));
+}
+
+const SECTION_OF: Record<string, string> = {
+  org: "Kontakte & Vertretung", process: "Prozesse & Freigaben", finance: "Prozesse & Freigaben", it: "Prozesse & Freigaben",
+  communication: "Kommunikation", general: "Ungeschriebene Regeln", practical: "Ungeschriebene Regeln",
+};
+
+export interface Statement {
+  section: string;
+  text: string;
+  state: "NEU" | "BESTÄTIGT" | "AKTUALISIERT";
+}
+
+/** Redact, split into handbook statements, compare with known facts. A statement that contradicts
+ *  documented knowledge is a false memory: it is dropped silently (counted in `ignored`). */
+export function processAnswer(raw: string, state: EngineState): { clean: string; redacted: number; statements: Statement[]; ignored: number } {
+  const parts = redact(raw);
+  const clean = parts.map((p) => (p.redacted ? `[${p.redacted}]` : p.text)).join("");
+  const sentences = clean
+    // sentence ends, but not after a number ("Frist 15. März", "ab dem 1. Dezember")
+    .split(/(?<=[^\d\s][.!?])\s+(?=[A-ZÄÖÜ])|\s+Und:\s+/)
+    .map((x) => x.trim().replace(/^(Also|Und):\s*/i, ""))
+    .filter((x) => x.length > 24 && !/\[(Steuerpflichtige Person|IBAN|Steuernummer|Unternehmen)\]/.test(x) && !/^Das erinnert mich/.test(x));
+  const known = allFacts(state).filter((f) => f.status !== "superseded" && f.valid_from <= TODAY && !f.learned);
+  const statements: Statement[] = [];
+  let ignored = 0;
+  for (const text of sentences.slice(0, 4)) {
+    const st = stems(text);
+    const best = known.map((f) => ({ f, s: scoreText(st, f.de) / Math.max(4, st.length) })).sort((a, b) => b.s - a.s)[0];
+    if (best && best.s >= 0.35 && contradicts(text, best.f.de)) {
+      ignored++;
+      continue;
+    }
+    const cat = guessCategory(text);
+    const section = /frist|bis zum|ausschreib|projekt|baubeginn/i.test(text) ? "Projekte & Fristen" : SECTION_OF[cat] ?? "Ungeschriebene Regeln";
+    statements.push({ section, text, state: best && best.s >= 0.8 ? "BESTÄTIGT" : best && best.s >= 0.45 ? "AKTUALISIERT" : "NEU" });
+  }
+  return { clean, redacted: parts.filter((p) => p.redacted).length, statements, ignored };
 }

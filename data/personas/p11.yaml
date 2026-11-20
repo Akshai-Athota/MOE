@@ -19,7 +19,7 @@ voice: de_DE-thorsten-high
 blind_spots: [E-Akte-Bedienung, Teams]
 interview_type: long_handover          # SECOND LEAVER: tax know-how with unwritten rules
 mentor_of: p13
-# --- Farewell / motivation (used by interviewer style + celebration tab)
+# --- Farewell / motivation (used by interviewer style + reward card)
 motivation: [Ordnung hinterlassen, Faustregeln weitergeben, "die Neuen sollen nicht dieselben Fehler machen"]
 interview_strategy: Nach Faustregeln fragen ("Was ist deine Regel für ...?"), ruhiges Tempo, kein Publikum
 interests: [Kleingarten, Schach, Radfahren auf dem Weserradweg]
@@ -28,4 +28,3 @@ interests_consent:
   given: true
   source: Übergabeinterview 1 (2026-11-14)
   allowed_use: [geschenkvorschlag]
-celebration_preference: solo         # prefers a quiet one-on-one quiz with Q

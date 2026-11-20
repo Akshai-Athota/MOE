@@ -1,4 +1,4 @@
-"""FastAPI entry point for Q's pipeline.
+"""FastAPI entry point for Finn's pipeline (Finn, dein Finanzamt-Assistent).
 
 Run locally:  uv run uvicorn hilde.api.main:app --reload
 Docs:         http://localhost:8000/docs
@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from hilde import interview, open_questions
+from hilde import interview, library, open_questions
 from hilde.answer import ask
 from hilde.config import REPO_ROOT, get_settings
 from hilde.ingest import ingest_file
@@ -21,7 +21,7 @@ from hilde.loaders import load_personas, user_from_persona
 from hilde.schemas import Access, Answer, CaptureMeta, Hit, LearnRequest, User
 from hilde.vectorstore import qdrant_status, search
 
-app = FastAPI(title="Q API", version="0.6.0")
+app = FastAPI(title="Finn API", version="0.7.0")
 
 # the web app (Vite dev server on :5173) calls the API from the browser
 app.add_middleware(
@@ -135,6 +135,7 @@ def reset_learned_endpoint() -> dict:
     removed = delete_learned()
     restored = interview.undo_status_changes()
     open_questions.PATH.unlink(missing_ok=True)
+    library.clear()
     return {"removed": removed, "restored": restored}
 
 
@@ -180,6 +181,42 @@ def interview_answer(sid: str, req: InterviewAnswer) -> dict:
     return {"turn": turn.model_dump(), **interview.to_dict(s)}
 
 
+class InterviewPick(BaseModel):
+    card: int = Field(ge=1, description="story card number from the deck")
+
+
+@app.post("/interview/{sid}/pick")
+def interview_pick(sid: str, req: InterviewPick) -> dict:
+    """The person picked a story card: Finn asks its question."""
+    try:
+        return interview.to_dict(interview.pick(_session(sid), req.card))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+
+
+@app.post("/interview/{sid}/answer-audio")
+def interview_answer_audio(sid: str, file: Annotated[UploadFile, File(description="recorded or uploaded audio")]) -> dict:
+    """Answer the current card by audio: transcribed (Whisper), then handled like a spoken answer.
+    Only the redacted answer is returned and stored."""
+    from hilde.ingest import parsers
+
+    s = _session(sid)
+    if s.current is None:
+        raise HTTPException(409, "pick a card first")
+    suffix = Path(file.filename or "answer.webm").suffix.lower() or ".webm"
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    path = UPLOADS / f"interview-{sid}-{len(s.turns) + 1}{suffix}"
+    path.write_bytes(file.file.read())
+    try:
+        text = " ".join(t for _speaker, t, _anchor in parsers.transcribe(path)).strip()
+    finally:
+        path.unlink(missing_ok=True)  # the audio itself is not kept
+    if len(text) < 2:
+        raise HTTPException(422, "no speech recognized")
+    turn = interview.answer(s, text)
+    return {"turn": turn.model_dump(), **interview.to_dict(s)}
+
+
 @app.post("/interview/{sid}/focus")
 def interview_focus(sid: str, q: interview.PlannedQuestion) -> dict:
     """Answer a specific question now (e.g. a colleague's question picked in the app)."""
@@ -196,3 +233,27 @@ def interview_publish(sid: str) -> dict:
     """The person approved the handbook page: index it. Contradictions go to a manager."""
     s = _session(sid)
     return {"result": interview.publish(s), **interview.to_dict(s)}
+
+
+# ---------------------------------------------------------------- knowledge library
+
+@app.get("/library")
+def library_list() -> list[library.Post]:
+    """Everything colleagues posted, newest first."""
+    return library.list_posts()
+
+
+@app.post("/library")
+def library_add(req: library.PostIn) -> library.Post:
+    """Post a note for everyone (e.g. 'Drucker 2. OG defekt'): redacted and searchable at once."""
+    _user(req.user_id)
+    return library.add(req)
+
+
+@app.post("/library/{post_id}/resolve")
+def library_resolve(post_id: str) -> library.Post:
+    """A notice is no longer true (printer fixed): Finn stops repeating it, history stays."""
+    try:
+        return library.resolve(post_id)
+    except KeyError:
+        raise HTTPException(404, f"unknown post {post_id}") from None

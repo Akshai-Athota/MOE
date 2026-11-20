@@ -1,515 +1,564 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, BookCheck, Camera, Check, CircleDot, FileUp, Inbox, Mic, MicOff, MonitorPlay, Send, ShieldCheck, Sparkles, Square } from "lucide-react";
+import { Check, Gift, Lock, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { PageHeader } from "../components/PageHeader";
-import { Pipeline } from "../components/Pipeline";
-import { Avatar, Badge, Button, Card, Empty, ProgressRing, QLogo, SectionTitle, Waveform, cx } from "../components/ui";
+import { Button, PageHeader, Spinner, cx } from "../components/ui";
+import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
-import { classifyClaim, redact } from "../lib/engine";
-import { useStore } from "../lib/store";
+import { DECK_SIZE, dealDeck, phraseCard, processAnswer } from "../lib/engine";
+import { INTERVIEW_KEY, useStore } from "../lib/store";
+import type { Voucher } from "../lib/types";
+import { mmss, useRecorder } from "../lib/useRecorder";
 import { useSpeech } from "../lib/useSpeech";
-import LiveInterviewView from "./LiveInterviewView";
-import type { Persona } from "../lib/types";
 
-type Section = "Prozesse & Freigaben" | "Kommunikation" | "Kontakte & Vertretung" | "Projekte & Fristen" | "Ungeschriebene Regeln" | "Neu erfasst";
-
-interface Segment {
-  q: string;
-  a: string;
-  t: string;
-  claims: { section: Section; text: string; state: "NEU" | "BESTÄTIGT" | "WIDERSPRUCH" }[];
+/* ------------------------------------------------------------------ model */
+interface Card {
+  card: number;
+  kind: "open_question" | "gap" | "catalogue";
+  label: string;
+  original: string;
+  done: boolean;
+  askedBy?: string;
+  ref?: string;
+  gapId?: string;
+  demoAnswer?: string;
+}
+interface Note {
+  card: number;
+  section: string;
+  text: string;
+}
+interface Saved {
+  mode: "live" | "demo";
+  sid?: string;
+  deck: Card[];
+  notes: Note[];
+  published: boolean;
+  voucher?: Voucher | null;
 }
 
-/** Scripted demo for p05 (paraphrases facts F015, F072, F061, F004, F005, F044, F038, F081). */
-const SCRIPT: Segment[] = [
-  {
-    q: "Wolfgang, erzähl mal: Was passiert bei dir, bevor ein Bericht ans LStN rausgeht?",
-    a: "Also, das ist so: Der Entwurf kommt aus dem Sachgebiet, die Sachgebietsleitung zeichnet mit, dann schauen wir in der Geschäftsstelle formal drüber, und am Ende zeichnet Frau Wöhler. Und – das steht nirgends – vorher immer kurz die Petra anrufen, die kennt die Leute im Referat.",
-    t: "02:14",
-    claims: [
-      { section: "Prozesse & Freigaben", text: "Berichte ans LStN: Sachgebiet → SGL → Geschäftsstelle (formal) → Vorsteherin.", state: "BESTÄTIGT" },
-      { section: "Ungeschriebene Regeln", text: "Vor jedem LStN-Bericht Petra Schulte anrufen – sie kennt das Referat.", state: "NEU" },
-    ],
-  },
-  {
-    q: "Du hast mal einen Einspruch erwähnt, der 2023 in der Presse gelandet ist. Was haben wir daraus gelernt?",
-    a: "Ach ja, der Fall von Herrn Dieter Konopka, der stand dann in der Zeitung. Seitdem ist ganz klar: Presseanfragen sofort an Frau Wöhler und an Nils weiterleiten, und zu Einzelfällen sagen wir gar nichts – Steuergeheimnis.",
-    t: "06:40",
-    claims: [{ section: "Kommunikation", text: "Presseanfragen sofort an Vorsteherin und Öffentlichkeitsarbeit; keine Auskunft zu Einzelfällen (§ 30 AO).", state: "BESTÄTIGT" }],
-  },
-  {
-    q: "Wer übernimmt deine Aufgaben, wenn du nicht da bist?",
-    a: "Die Sabine, also Frau Krüger. Und der Vertretungsplan liegt auf S, Amt, Organisation – da muss jeder seinen Urlaub über drei Tage eintragen, sonst gibt's Chaos.",
-    t: "09:05",
-    claims: [
-      { section: "Kontakte & Vertretung", text: "Vertretung: Sabine Krüger (Haushalt & Beschaffung).", state: "BESTÄTIGT" },
-      { section: "Kontakte & Vertretung", text: "Vertretungsplan: S:\\Amt\\Organisation – Urlaub > 3 Tage eintragen.", state: "NEU" },
-    ],
-  },
-  {
-    q: "Was ist beim Umbau der Servicestelle gerade am wichtigsten?",
-    a: "Die Ausschreibung muss bis 31. Januar bei der Vergabestelle vom LStN sein, sonst schaffen wir den Baubeginn im Mai nicht. Und vorher muss die Infothek nach 0.04 umziehen. Das wird wieder so ein Durcheinander wie damals mit der Erstattung auf das falsche Konto, DE89 3704 0044 0532 0130 00 – aber das ist eine andere Geschichte.",
-    t: "13:31",
-    claims: [
-      { section: "Projekte & Fristen", text: "Umbau Servicestelle: Vergabeunterlagen bis 31.01.2027 an LStN, sonst kein Baubeginn im Mai.", state: "NEU" },
-      { section: "Projekte & Fristen", text: "Abhängigkeit: Infothek muss vorher übergangsweise in Raum 0.04 ziehen.", state: "BESTÄTIGT" },
-    ],
-  },
-  {
-    q: "Welche ungeschriebenen Regeln sollte deine Nachfolge unbedingt kennen?",
-    a: "Montags vor zehn keine Termine bei der Chefin. Die Kaffeekasse, drei Euro, liegt bei Sabine. Und die Kantine hat seit dem Pächterwechsel im August freitags zu – im Intranet steht das noch falsch!",
-    t: "17:52",
-    claims: [
-      { section: "Ungeschriebene Regeln", text: "Montags vor 10 Uhr keine Termine bei der Vorsteherin.", state: "BESTÄTIGT" },
-      { section: "Ungeschriebene Regeln", text: "Kaffeekasse: 3 € im Monat bei Sabine Krüger.", state: "BESTÄTIGT" },
-      { section: "Ungeschriebene Regeln", text: "Kantine seit 08/2026 nur Mo–Do 11:30–13:30 – widerspricht dem Intranet.", state: "WIDERSPRUCH" },
-    ],
-  },
-];
+const fromSession = (s: IvSession): Pick<Saved, "deck" | "notes" | "voucher"> => ({
+  deck: s.deck.map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: c.done, askedBy: c.asked_by ?? undefined, ref: c.ref ?? undefined, gapId: c.gap_id ?? undefined, demoAnswer: c.demo_answer ?? undefined })),
+  notes: s.turns.flatMap((t) => t.claims.map((c) => ({ card: t.question.card ?? 0, section: c.section, text: c.text }))),
+  voucher: s.reward?.voucher ?? null,
+});
 
-const SECTIONS: Section[] = ["Kontakte & Vertretung", "Prozesse & Freigaben", "Projekte & Fristen", "Kommunikation", "Ungeschriebene Regeln", "Neu erfasst"];
-
-function Redacted({ text, caret, limit }: { text: string; caret?: boolean; limit?: number }) {
-  // Redact the FULL text first, then reveal progressively, so a secret is never visible half-typed.
-  let pos = 0;
-  const parts = redact(text).map((p) => {
-    const start = pos;
-    pos += p.text.length;
-    const lim = limit ?? Infinity;
-    if (lim <= start) return null;
-    return p.redacted ? p : { text: p.text.slice(0, lim - start) };
+const dedupe = (notes: Note[]) => {
+  const seen = new Set<string>();
+  return notes.filter((n) => {
+    const k = n.text.toLowerCase().replace(/[^a-zäöüß0-9]/g, "");
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
   });
-  return (
-    <span className={cx(caret && "caret")}>
-      {parts.map((p, i) =>
-        !p ? null : p.redacted ? (
-          <span key={i} className="mx-0.5 inline-flex items-center gap-1 rounded-lg bg-ink px-1.5 py-0.5 align-middle text-[11px] font-bold text-white" title="Automatisch geschwärzt (§ 30 AO)">
-            <ShieldCheck size={11} /> {p.redacted}
-          </span>
-        ) : (
-          <span key={i}>{p.text}</span>
-        ),
-      )}
-    </span>
-  );
-}
+};
 
-interface Turn {
-  q: string;
-  a: string;
-  t?: string;
-  live?: boolean;
-}
-
-/** Live backend available -> real AI interview; otherwise the scripted offline demo below. */
+/* ------------------------------------------------------------------ view */
 export default function InterviewView() {
-  const { backend } = useStore();
-  return backend === "live" ? <LiveInterviewView /> : <ScriptedInterview />;
-}
-
-function ScriptedInterview() {
-  const { user, openQuestions, learn, toast, engineState } = useStore();
+  const { user, backend, openQuestions, resolveOpenQuestion, learn, toast } = useStore();
   const me = personaById(user.personaId)!;
-  const [done, setDone] = useState(0);
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [streaming, setStreaming] = useState<{ full: string; shown: number } | null>(null);
-  const [answering, setAnswering] = useState<{ oqId: string; gapId?: string; q: string } | null>(null);
-  const [draft, setDraft] = useState("");
-  const [extra, setExtra] = useState<{ section: Section; text: string; state: string }[]>([]);
-  const [published, setPublished] = useState(false);
-  const [pipe, setPipe] = useState<{ title: string; kind: string } | null>(null);
-  const speech = useSpeech((t) => setDraft(t));
-  const endRef = useRef<HTMLDivElement>(null);
+  const key = INTERVIEW_KEY + me.id;
+  const [st, setSt] = useState<Saved | null>(null);
+  const [open, setOpen] = useState<Card | null>(null);
+  const [rewardOpen, setRewardOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const myQs = openQuestions.filter((q) => q.routedTo === me.id);
-  const pendingQs = myQs.filter((q) => !q.resolved);
-  const claims = useMemo(() => [...SCRIPT.slice(0, done).flatMap((s) => s.claims.map((c) => ({ ...c, t: s.t }))), ...extra.map((e) => ({ ...e, t: "live" }))], [done, extra]);
-  const myFacts = DATA.facts.filter((f) => f.owner === me.id);
-  const onlyMe = myFacts.filter((f) => !(f.also_known_by ?? []).some((id) => personaById(id)?.status !== "leaving"));
-  const captured = Math.min(1, (done / SCRIPT.length) * 0.7 + 0.15 + engineState.learned.filter((f) => f.owner === me.id).length * 0.05);
+  const persist = (s: Saved) => {
+    setSt(s);
+    try {
+      localStorage.setItem(key, JSON.stringify(s));
+    } catch {
+      /* ignore */
+    }
+  };
 
+  // load or deal the deck (backend when connected, otherwise the in-browser twin)
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [turns.length, streaming?.shown, answering]);
-
-  // typewriter
-  useEffect(() => {
-    if (!streaming) return;
-    if (streaming.shown >= streaming.full.length) {
-      const seg = SCRIPT[done];
-      setTurns((t) => [...t, { q: seg.q, a: seg.a, t: seg.t }]);
-      setStreaming(null);
-      setDone((d) => d + 1);
-      if (seg.claims.some((c) => c.state === "WIDERSPRUCH")) toast({ title: "Widerspruch erkannt", body: "Kantinenzeiten weichen vom Intranet ab – zur Klärung an die Führungskraft gemeldet.", tone: "amber" });
-      if (redact(seg.a).some((p) => p.redacted)) toast({ title: "Steuerdaten geschwärzt", body: "Personenbezogene Steuerdaten wurden vor dem Speichern entfernt (§ 30 AO).", tone: "brand" });
+    if (backend === "checking") return;
+    let saved: Saved | null = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(key) ?? "null");
+    } catch {
+      /* ignore */
+    }
+    const mode = backend === "live" ? "live" : "demo";
+    if (saved && saved.mode === mode) {
+      if (mode === "live" && saved.sid)
+        interviewApi
+          .get(saved.sid)
+          .then((s) => persist({ ...saved!, ...fromSession(s) }))
+          .catch(() => setSt(saved));
+      else setSt(saved);
       return;
     }
-    const t = setTimeout(() => setStreaming((s) => s && { ...s, shown: Math.min(s.full.length, s.shown + 3) }), 22);
-    return () => clearTimeout(t);
-  }, [streaming, done, toast]);
+    const mine = openQuestions.filter((q) => q.routedTo === me.id && !q.resolved);
+    if (mode === "live") {
+      setBusy(true);
+      interviewApi
+        .start(me.id, mine.map((q) => ({ id: q.id, text: q.text, asked_by: q.askedBy, gap_id: q.gapId })))
+        .then((s) => persist({ mode, sid: s.id, published: false, ...fromSession(s) }))
+        .catch(() => toast({ title: "Interview konnte nicht starten" }))
+        .finally(() => setBusy(false));
+    } else {
+      const deck = dealDeck(me.id, mine).map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: false, askedBy: c.askedBy, ref: c.openQuestionId ?? c.ref, gapId: c.gapId, demoAnswer: c.demoAnswer }));
+      persist({ mode, deck, notes: [], published: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backend, me.id]);
 
-  const record = () => {
-    if (done >= SCRIPT.length) return;
-    setStreaming({ full: SCRIPT[done].a, shown: 0 });
+  const deck = st?.deck ?? [];
+  const doneCount = deck.filter((c) => c.done).length;
+  const unlocked = deck.length > 0 && doneCount === deck.length;
+  const voucher: Voucher | undefined = st?.voucher ?? (unlocked ? DATA.rewards.vouchers[me.id]?.[0] : undefined);
+
+  const onAnswered = (card: Card, notes: Note[], session?: IvSession) => {
+    if (!st) return;
+    const next: Saved = session
+      ? { ...st, ...fromSession(session) }
+      : { ...st, deck: st.deck.map((c) => (c.card === card.card ? { ...c, done: true } : c)), notes: dedupe([...st.notes, ...notes]) };
+    persist(next);
+    // a colleague was waiting for this answer
+    const oq = openQuestions.find((q) => !q.resolved && ((card.ref && q.id === card.ref) || (card.gapId && q.gapId === card.gapId)));
+    if (oq) resolveOpenQuestion(oq.id);
+    if (next.deck.every((c) => c.done)) setTimeout(() => toast({ title: "Alle Karten beantwortet", body: "Die letzte Karte ist jetzt offen." }), 400);
   };
 
-  const startAnswer = (oqId: string) => {
-    const oq = myQs.find((q) => q.id === oqId)!;
-    setAnswering({ oqId, gapId: oq.gapId, q: oq.text });
-    setDraft("");
+  const publish = async () => {
+    if (!st) return;
+    if (st.mode === "live" && st.sid) {
+      try {
+        const s = await interviewApi.publish(st.sid);
+        persist({ ...st, ...fromSession(s), published: true });
+      } catch {
+        toast({ title: "Freigabe fehlgeschlagen" });
+        return;
+      }
+    } else persist({ ...st, published: true });
+    toast({ title: "Handbuch freigegeben", body: "Ab sofort in „Frag Finn“ durchsuchbar." });
   };
 
-  const sampleAnswer = () => {
-    const gap = DATA.plants.planted_gaps.find((g) => g.id === answering?.gapId);
-    if (gap?.live_demo_answer_de) setDraft(gap.live_demo_answer_de);
-  };
-
-  const saveAnswer = () => {
-    if (!draft.trim()) return;
-    speech.stop();
-    const q = answering?.q ?? "Freie Notiz";
-    const cls = classifyClaim(draft, engineState);
-    learn({ text: draft, owner: me.id, via: "interview", label: `Interview ${me.name.split(" ")[0][0]}. ${me.name.split(" ").slice(-1)[0]} · live`, gapId: answering?.gapId, topic: answering ? q.replace("?", "") : undefined });
-    setTurns((t) => [...t, { q, a: draft, live: true }]);
-    setExtra((e) => [...e, { section: "Neu erfasst", text: draft.length > 110 ? draft.slice(0, 107) + "…" : draft, state: cls.kind === "SAME" ? "BESTÄTIGT" : "NEU" }]);
-    toast({
-      title: answering?.gapId ? "Wissenslücke geschlossen 🎉" : "Gespeichert",
-      body: answering?.gapId ? "Die Antwort ist sofort in Q durchsuchbar. Die fragende Person wird benachrichtigt." : `Abgleich: ${cls.kind}`,
-      tone: "mint",
-    });
-    setAnswering(null);
-    setDraft("");
-  };
-
-  const sectionsWithClaims = SECTIONS.map((s) => ({ s, items: claims.filter((c) => c.section === s) }));
-  const covered = sectionsWithClaims.filter((x) => x.items.length > 0 && x.s !== "Neu erfasst").length;
+  const sections = useMemo(() => {
+    const m = new Map<string, Note[]>();
+    for (const n of dedupe(st?.notes ?? [])) m.set(n.section, [...(m.get(n.section) ?? []), n]);
+    return [...m.entries()];
+  }, [st?.notes]);
 
   return (
-    <div className="pb-10">
+    <div className="pb-16">
       <PageHeader
-        eyebrow="Wissensinterview"
-        title="Dein Wissen bleibt im Amt"
-        sub="Einfach erzählen – Q strukturiert, schwärzt Steuerdaten und baut daraus dein Übergabe-Handbuch. Kein Schreiben nötig."
+        title="Wissensinterview"
+        sub={`Zieh eine Karte und erzähl. Finn hört zu und schreibt mit. Noch ${daysUntil(me.leave_date!)} Tage bis ${fmtDate(me.leave_date)}.`}
+        right={
+          <div className="flex items-center gap-3 text-[13px] text-muted">
+            <span className="tabular-nums">
+              <span className="font-medium text-ink">{doneCount}</span> / {deck.length || DECK_SIZE}
+            </span>
+            <span className="h-1 w-28 overflow-hidden rounded-full bg-subtle">
+              <span className="block h-full rounded-full bg-accent transition-all" style={{ width: `${(doneCount / Math.max(1, deck.length)) * 100}%` }} />
+            </span>
+          </div>
+        }
       />
-      <div className="space-y-6 px-5 lg:px-8">
-        {/* Status strip */}
-        <div className="grid gap-4 md:grid-cols-[1.3fr_1fr_1fr]">
-          <Card className="flex items-center gap-5 p-5">
-            <ProgressRing value={captured} size={76} stroke={8} color="#573CFA" track="#EAE6FF">
-              <span className="text-[17px] font-extrabold text-brand-600">{Math.round(captured * 100)}%</span>
-            </ProgressRing>
-            <div>
-              <div className="font-bold">Wissen gesichert</div>
-              <div className="text-[13px] text-muted">
-                Sitzung {Math.min(4, 2 + Math.floor(done / 3))} von 4 · noch <b className="text-coral-600">{daysUntil(me.leave_date!)} Tage</b> bis {fmtDate(me.leave_date)}
-              </div>
-            </div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-[13px] text-muted">Nur in deinem Kopf</div>
-            <div className="mt-1 flex items-end gap-2">
-              <span className="text-3xl font-extrabold">{onlyMe.length}</span>
-              <span className="pb-1 text-[13px] text-muted">Themen ohne zweite Quelle</span>
-            </div>
-          </Card>
-          <Card className="p-5">
-            <div className="text-[13px] text-muted">Fragen von Kolleg:innen</div>
-            <div className="mt-1 flex items-end gap-2">
-              <span className="text-3xl font-extrabold text-coral-500">{pendingQs.length}</span>
-              <span className="pb-1 text-[13px] text-muted">warten auf dich</span>
-            </div>
-          </Card>
-        </div>
 
-        <div className="grid items-start gap-6 xl:grid-cols-[1fr_420px]">
-          {/* Conversation */}
-          <Card className="flex h-[720px] flex-col overflow-hidden xl:sticky xl:top-4">
-            <div className="flex items-center gap-3 border-b border-line px-5 py-4">
-              <QLogo size={36} />
-              <div className="flex-1">
-                <div className="font-bold">Q interviewt dich</div>
-                <div className="text-[12px] text-muted">Stil: erst Geschichten, dann Details – angepasst an dich</div>
-              </div>
-              <Badge tone="mint" icon={<CircleDot size={10} />}>
-                Live
-              </Badge>
-            </div>
+      <div className="px-6 pt-8 lg:px-10">
+        {busy || !st ? (
+          <div className="flex items-center gap-2 text-[13px] text-muted">
+            <Spinner /> Finn mischt die Karten …
+          </div>
+        ) : (
+          <div className="grid max-w-[1040px] grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+            {deck.map((c, i) => (
+              <DeckCard key={c.card} c={c} index={i} onPick={() => setOpen(c)} />
+            ))}
+            {Array.from({ length: Math.max(0, DECK_SIZE - deck.length) }).map((_, i) => (
+              <div key={`empty-${i}`} className="aspect-[3/4] rounded-[14px] border border-dashed border-line" />
+            ))}
+            <RewardCard index={DECK_SIZE} unlocked={unlocked} remaining={deck.length - doneCount} onOpen={() => setRewardOpen(true)} />
+          </div>
+        )}
 
-            <div className="scroll-thin min-h-0 flex-1 space-y-4 overflow-y-auto bg-dots p-5">
-              {turns.length === 0 && !streaming && (
-                <div className="mx-auto max-w-md rounded-3xl bg-white p-5 text-center shadow-soft">
-                  <div className="text-[15px] font-bold">Schön, dass du dir Zeit nimmst, {me.name.split(" ")[0]}!</div>
-                  <p className="mt-1 text-[13px] text-muted">Wir machen 10 Minuten. Ich frage, du erzählst – so wie du es einem Neuen beim Kaffee erklären würdest.</p>
-                </div>
-              )}
-              {turns.map((t, i) => (
-                <div key={i} className="space-y-3">
-                  <QBubble text={t.q} />
-                  <MeBubble me={me} text={t.a} t={t.t} live={t.live} />
+        {sections.length > 0 && (
+          <section className="mt-14 max-w-[1040px]">
+            <div className="flex items-end justify-between gap-4 border-b border-line pb-3">
+              <div>
+                <h2 className="text-[15px] font-semibold">Dein Übergabe-Handbuch</h2>
+                <p className="mt-0.5 text-[13px] text-muted">{dedupe(st?.notes ?? []).length} Einträge aus deinen Antworten</p>
+              </div>
+              <Button variant={st?.published ? "secondary" : "primary"} size="sm" disabled={st?.published} onClick={publish} icon={st?.published ? <Check size={14} /> : undefined}>
+                {st?.published ? "Freigegeben" : "Handbuch freigeben"}
+              </Button>
+            </div>
+            <div className="divide-y divide-line">
+              {sections.map(([name, notes]) => (
+                <div key={name} className="grid gap-2 py-4 sm:grid-cols-[200px_1fr]">
+                  <div className="text-[13px] text-muted">{name}</div>
+                  <ul className="space-y-1.5">
+                    {notes.map((n, i) => (
+                      <li key={i} className="text-[14px] leading-relaxed text-ink-2">
+                        {n.text}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
-              {streaming && (
-                <div className="space-y-3">
-                  <QBubble text={SCRIPT[done].q} />
-                  <MeBubble me={me} text={streaming.full} limit={streaming.shown} streaming />
-                </div>
-              )}
-              {!streaming && !answering && done < SCRIPT.length && <QBubble text={SCRIPT[done].q} pending />}
-              {answering && <QBubble text={`Frage aus dem Team: „${answering.q}“`} pending highlight />}
-              <div ref={endRef} />
             </div>
-
-            {/* Controls */}
-            <div className="border-t border-line p-4">
-              {answering || done >= SCRIPT.length ? (
-                <div className="space-y-2.5">
-                  <div className="flex items-end gap-2 rounded-[22px] border border-line bg-canvas p-2 focus-within:border-brand-300 focus-within:bg-white">
-                    {speech.supported && (
-                      <button
-                        onClick={speech.listening ? speech.stop : speech.start}
-                        className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-2xl", speech.listening ? "bg-coral-500 text-white" : "bg-white text-muted hover:text-brand-600")}
-                        aria-label="Sprechen"
-                      >
-                        {speech.listening ? <MicOff size={18} /> : <Mic size={18} />}
-                      </button>
-                    )}
-                    <textarea
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      rows={2}
-                      placeholder={answering ? "Erzähl oder tippe deine Antwort …" : "Noch etwas, das niemand vergessen darf? Erzähl es Q …"}
-                      className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-2 py-2.5 text-[14px] outline-none"
-                    />
-                    <Button onClick={saveAnswer} disabled={!draft.trim()} icon={<Send size={15} />}>
-                      Speichern
-                    </Button>
-                  </div>
-                  {draft && (
-                    <div className="rounded-2xl bg-white px-3 py-2 text-[12px] text-muted ring-1 ring-line">
-                      Vorschau nach Schwärzung: <Redacted text={draft} />
-                    </div>
-                  )}
-                  {answering && (
-                    <div className="flex flex-wrap gap-2">
-                      <Button size="sm" variant="soft" onClick={sampleAnswer}>
-                        Demo-Antwort einsprechen
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => setAnswering(null)}>
-                        Später
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={record}
-                    disabled={!!streaming}
-                    className={cx(
-                      "grid h-14 w-14 shrink-0 place-items-center rounded-full text-white transition",
-                      streaming ? "bg-coral-500 ring-8 ring-coral-100" : "bg-brand-500 shadow-glow hover:scale-105",
-                    )}
-                    aria-label="Antwort aufnehmen"
-                  >
-                    {streaming ? <Square size={18} fill="currentColor" /> : <Mic size={22} />}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold">{streaming ? "Ich höre zu …" : "Antwort aufnehmen"}</div>
-                    <Waveform active={!!streaming} bars={40} className="h-8" />
-                  </div>
-                  <Badge tone="gray">
-                    Frage {done + 1}/{SCRIPT.length}
-                  </Badge>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Handbook */}
-          <div className="space-y-6">
-            <Card className="overflow-hidden">
-              <div className="bg-hero p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <Badge tone="dark" className="!bg-white/15 !text-white !ring-white/20">
-                    <BookCheck size={11} /> Handbuchseite – entsteht live
-                  </Badge>
-                  {published && <Badge tone="mint">Veröffentlicht</Badge>}
-                </div>
-                <div className="mt-3 text-lg font-extrabold">Leitung Geschäftsstelle</div>
-                <div className="text-[13px] text-white/75">
-                  Wissen von {me.name} · {covered}/5 Bereiche
-                </div>
-              </div>
-              <div className="scroll-thin max-h-[440px] space-y-4 overflow-y-auto p-5">
-                {sectionsWithClaims.map(({ s, items }) =>
-                  s === "Neu erfasst" && !items.length ? null : (
-                    <div key={s}>
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <span className="text-[12px] font-bold uppercase tracking-wide text-muted">{s}</span>
-                        {items.length === 0 && <Badge tone="amber">fehlt noch</Badge>}
-                      </div>
-                      <AnimatePresence>
-                        {items.map((c) => (
-                          <motion.div
-                            key={c.text}
-                            initial={{ opacity: 0, x: 12, backgroundColor: "#EAE6FF" }}
-                            animate={{ opacity: 1, x: 0, backgroundColor: "#ffffff" }}
-                            transition={{ duration: 0.6 }}
-                            className="mb-1.5 flex gap-2.5 rounded-2xl border border-line p-2.5"
-                          >
-                            <span
-                              className={cx(
-                                "mt-0.5 h-fit shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide",
-                                c.state === "NEU" ? "bg-mint-50 text-mint-700" : c.state === "WIDERSPRUCH" ? "bg-amber-50 text-amber-700" : "bg-brand-50 text-brand-600",
-                              )}
-                            >
-                              {c.state}
-                            </span>
-                            <div className="min-w-0 flex-1 text-[13px] leading-snug">
-                              <Redacted text={c.text} />
-                              <div className="mt-1 text-[11px] font-semibold text-brand-500">▶ {c.t === "live" ? "Live-Antwort" : `Interview ${c.t}`}</div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  ),
-                )}
-              </div>
-              <div className="border-t border-line p-4">
-                <Button
-                  className="w-full"
-                  disabled={claims.length < 3 || published}
-                  onClick={() => {
-                    setPublished(true);
-                    toast({ title: "Handbuchseite veröffentlicht", body: `${claims.length} Aussagen indexiert – sofort in „Frag Q“ durchsuchbar.`, tone: "mint" });
-                  }}
-                  icon={<Check size={16} />}
-                >
-                  {published ? "Veröffentlicht" : "Prüfen & freigeben"}
-                </Button>
-              </div>
-            </Card>
-
-            <Card className="p-5">
-              <SectionTitle title="Kolleg:innen fragen dich" sub="Fragen, die Q nicht beantworten konnte" right={<Inbox size={18} className="text-coral-500" />} />
-              {myQs.length === 0 ? (
-                <Empty icon={<Sparkles size={18} />} title="Keine offenen Fragen" />
-              ) : (
-                <div className="space-y-2">
-                  {myQs.map((q) => {
-                    const by = personaById(q.askedBy)!;
-                    return (
-                      <div key={q.id} className={cx("rounded-2xl border p-3 transition", q.resolved ? "border-mint-100 bg-mint-50/50" : "border-line")}>
-                        <div className="flex items-start gap-2.5">
-                          <Avatar p={by} size={30} />
-                          <div className="min-w-0 flex-1">
-                            <div className="text-[13px] font-semibold leading-snug">{q.text}</div>
-                            <div className="text-[11px] text-muted">
-                              {by.name} · {fmtDate(q.askedAt)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-2 flex justify-end">
-                          {q.resolved ? (
-                            <Badge tone="mint" icon={<Check size={11} />}>
-                              Beantwortet
-                            </Badge>
-                          ) : (
-                            <Button size="sm" variant={answering?.oqId === q.id ? "soft" : "primary"} onClick={() => startAnswer(q.id)}>
-                              {answering?.oqId === q.id ? "Wird beantwortet …" : "Jetzt beantworten"}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-
-            <Card className="p-5">
-              <SectionTitle title="Auch so kannst du Wissen teilen" />
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { k: "video", t: "Bildschirm aufnehmen", icon: MonitorPlay },
-                  { k: "photo", t: "Whiteboard fotografieren", icon: Camera },
-                  { k: "doc", t: "Dokument hochladen", icon: FileUp },
-                ].map((m) => (
-                  <button
-                    key={m.k}
-                    onClick={() => setPipe({ title: m.t, kind: m.k })}
-                    className="flex flex-col items-center gap-2 rounded-2xl border border-line p-3 text-center text-[12px] font-semibold transition hover:border-brand-200 hover:bg-brand-50"
-                  >
-                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-500">
-                      <m.icon size={18} />
-                    </span>
-                    {m.t}
-                  </button>
-                ))}
-              </div>
-            </Card>
-          </div>
-        </div>
+          </section>
+        )}
       </div>
 
-      <Pipeline
-        open={!!pipe}
-        title={pipe?.title ?? ""}
-        steps={
-          pipe?.kind === "photo"
-            ? ["Foto hochgeladen", "Texterkennung (OCR)", "Struktur erkennen: Organigramm", "Steuerdaten schwärzen", "Aussagen extrahieren & abgleichen"]
-            : pipe?.kind === "video"
-              ? ["Video hochgeladen", "Audio transkribieren (Whisper)", "Schlüsselbilder beschreiben", "Steuerdaten schwärzen", "Aussagen extrahieren & abgleichen"]
-              : ["Dokument hochgeladen", "Struktur lesen (Docling)", "Steuerdaten schwärzen", "Aussagen extrahieren & abgleichen"]
-        }
-        onDone={() => {
-          const k = pipe?.kind;
-          setPipe(null);
-          const text =
-            k === "photo"
-              ? "Organigramm: Rechtsbehelfsstelle (Hartmann), Geschäftsstelle (Reinecke), Arbeitnehmerbereich (Schulte) – alle berichten an die Vorsteherin."
-              : k === "video"
-                ? "Bildschirmvideo: Bedarfsmeldung über das Formular auf S:\\Amt\\Formulare bis zum 15. des Monats."
-                : "Dokument: Formalprüfung von LStN-Berichten durch die Geschäftsstelle vor Zeichnung.";
-          setExtra((e) => [...e, { section: "Neu erfasst", text, state: "BESTÄTIGT" }]);
-          toast({ title: "Verarbeitet", body: "1 Aussage erkannt – bestätigt vorhandenes Wissen (SAME).", tone: "mint" });
-        }}
-      />
+      <AnimatePresence>
+        {open && st && (
+          <CardDialog
+            key={open.card}
+            card={open}
+            saved={st}
+            onClose={() => setOpen(null)}
+            onAnswered={onAnswered}
+            learnOffline={(text) =>
+              learn({ text, owner: me.id, via: "interview", label: `Interview ${me.name.split(" ")[0][0]}. ${me.name.split(" ").slice(-1)[0]}`, gapId: open.gapId, topic: open.original.replace("?", "") })
+            }
+          />
+        )}
+        {rewardOpen && <RewardDialog name={me.name.split(" ")[0]} years={me.tenure_years} voucher={voucher} onClose={() => setRewardOpen(false)} />}
+      </AnimatePresence>
     </div>
   );
 }
 
-function QBubble({ text, pending, highlight }: { text: string; pending?: boolean; highlight?: boolean }) {
+/* ------------------------------------------------------------------ cards */
+function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => void }) {
+  const num = String(c.card).padStart(2, "0");
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex gap-2.5">
-      <QLogo size={30} />
-      <div
-        className={cx(
-          "max-w-[85%] rounded-3xl rounded-tl-md px-4 py-3 text-[14px] shadow-soft",
-          highlight ? "bg-coral-50 ring-1 ring-coral-100" : "bg-white",
-          pending && "ring-2 ring-brand-200",
+    <motion.button
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.25 }}
+      whileHover={c.done ? undefined : { y: -4 }}
+      onClick={c.done ? undefined : onPick}
+      disabled={c.done}
+      className={cx(
+        "group relative flex aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
+        c.done ? "cursor-default border border-line bg-surface" : "card-back text-white shadow-xs hover:shadow-pop",
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span className={cx("text-[12px] tabular-nums", c.done ? "text-faint" : "text-white/45")}>{num}</span>
+        {c.done && (
+          <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-white">
+            <Check size={12} strokeWidth={3} />
+          </span>
         )}
-      >
-        {highlight && (
-          <div className="mb-1 flex items-center gap-1 text-[11px] font-bold text-coral-600">
-            <AlertTriangle size={11} /> Wissenslücke
-          </div>
-        )}
-        {text}
       </div>
+      {c.done ? (
+        <p className="line-clamp-5 text-[13px] leading-snug text-muted">{c.original}</p>
+      ) : (
+        <div className="space-y-1">
+          <div className="h-px w-6 bg-white/25" />
+          <div className="text-[13.5px] font-medium leading-snug">{c.label}</div>
+        </div>
+      )}
+      <span className={cx("text-[11.5px]", c.done ? "text-faint" : "text-white/40 group-hover:text-white/70")}>{c.done ? "Beantwortet" : "Karte ziehen"}</span>
+    </motion.button>
+  );
+}
+
+function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unlocked: boolean; remaining: number; onOpen: () => void }) {
+  return (
+    <motion.button
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.03, duration: 0.25 }}
+      whileHover={unlocked ? { y: -4 } : undefined}
+      onClick={unlocked ? onOpen : undefined}
+      disabled={!unlocked}
+      className={cx("card-reward relative flex aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "opacity-70")}
+    >
+      <span className="text-[12px] tabular-nums text-gold/70">10</span>
+      <div className="space-y-2">
+        {unlocked ? <Gift size={20} className="text-gold" /> : <Lock size={18} className="text-gold/60" />}
+        <div className="text-[13.5px] font-medium leading-snug text-gold">{unlocked ? "Für dich" : "Letzte Karte"}</div>
+      </div>
+      <span className="text-[11.5px] text-gold/60">{unlocked ? "Aufdecken" : `Noch ${remaining} Karte${remaining === 1 ? "" : "n"}`}</span>
+    </motion.button>
+  );
+}
+
+/* ------------------------------------------------------------------ dialog */
+function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <motion.div className="fixed inset-0 z-50 grid place-items-center bg-ink/30 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{ perspective: 1200 }}>
+      <motion.div
+        initial={{ rotateY: -70, opacity: 0, scale: 0.96 }}
+        animate={{ rotateY: 0, opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.97 }}
+        transition={{ type: "spring", stiffness: 220, damping: 24 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[520px]"
+      >
+        {children}
+      </motion.div>
     </motion.div>
   );
 }
 
-function MeBubble({ me, text, t, streaming, live, limit }: { me: Persona; text: string; t?: string; streaming?: boolean; live?: boolean; limit?: number }) {
+type Phase = "asking" | "record" | "sending" | "done";
+
+function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: Card; saved: Saved; onClose: () => void; onAnswered: (c: Card, n: Note[], s?: IvSession) => void; learnOffline: (text: string) => void }) {
+  const { user, engineState } = useStore();
+  const [question, setQuestion] = useState("");
+  const [phase, setPhase] = useState<Phase>("asking");
+  const [result, setResult] = useState<{ notes: Note[]; transcript: string; redacted: number } | null>(null);
+  const [err, setErr] = useState("");
+  const rec = useRecorder();
+  const spoken = useRef("");
+  const speech = useSpeech((t) => (spoken.current = t));
+  const fileRef = useRef<HTMLInputElement>(null);
+  const live = saved.mode === "live" && !!saved.sid;
+
+  useEffect(() => {
+    if (live)
+      interviewApi
+        .pick(saved.sid!, card.card)
+        .then((s) => setQuestion(s.current?.text || card.original))
+        .catch(() => setQuestion(card.original))
+        .finally(() => setPhase("record"));
+    else {
+      setQuestion(phraseCard({ ...card, openQuestionId: card.ref }, user.personaId));
+      setPhase("record");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startRec = async () => {
+    spoken.current = "";
+    await rec.start();
+    if (!live && speech.supported) speech.start(); // demo mode: the browser transcribes
+  };
+  const stopRec = () => {
+    rec.stop();
+    speech.stop();
+  };
+
+  const submit = async (audio: Blob, filename?: string) => {
+    setErr("");
+    setPhase("sending");
+    if (live) {
+      try {
+        const s = await interviewApi.answerAudio(saved.sid!, audio, filename);
+        const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
+        setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
+        onAnswered(card, notes, s);
+        setPhase("done");
+      } catch {
+        setErr("Ich konnte die Aufnahme nicht verstehen. Versuch es bitte noch einmal.");
+        setPhase("record");
+        rec.reset();
+      }
+      return;
+    }
+    // demo mode: browser speech recognition, or the presenter's prepared answer for uploads
+    await new Promise((r) => setTimeout(r, 900));
+    const raw = (filename ? "" : spoken.current.trim()) || card.demoAnswer || spoken.current.trim();
+    if (!raw) {
+      setErr("Ich habe nichts gehört. Versuch es bitte noch einmal.");
+      setPhase("record");
+      rec.reset();
+      return;
+    }
+    const r = processAnswer(raw, engineState);
+    const notes = r.statements.map((s) => ({ card: card.card, section: s.section, text: s.text }));
+    if ((card.kind === "open_question" || card.kind === "gap") && (notes.length || !r.ignored)) {
+      learnOffline(r.ignored ? notes.map((n) => n.text).join(" ") : r.clean);
+    }
+    setResult({ notes, transcript: r.clean, redacted: r.redacted });
+    onAnswered(card, notes);
+    setPhase("done");
+  };
+
+  const asker = card.askedBy ? personaById(card.askedBy) : undefined;
+
   return (
-    <div className="flex flex-row-reverse gap-2.5">
-      <Avatar p={me} size={30} />
-      <div className="max-w-[85%] rounded-3xl rounded-tr-md bg-brand-500 px-4 py-3 text-[14px] leading-relaxed text-white shadow-glow [&_.caret]:after:text-white">
-        <Redacted text={text} caret={streaming} limit={limit} />
-        {(t || live) && <div className="mt-1.5 text-[11px] font-semibold text-white/70">{live ? "● live aufgenommen" : `▶ ${t}`}</div>}
+    <Overlay onClose={phase === "sending" ? () => undefined : onClose}>
+      <div className="overflow-hidden rounded-[16px] bg-surface shadow-pop">
+        <div className="flex items-center justify-between border-b border-line px-6 py-3.5 text-[12.5px] text-muted">
+          <span>
+            Karte {String(card.card).padStart(2, "0")} · {card.label}
+            {asker && ` · von ${asker.name}`}
+          </span>
+          {phase !== "sending" && (
+            <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-md hover:bg-subtle" aria-label="Schließen">
+              <X size={15} />
+            </button>
+          )}
+        </div>
+
+        <div className="px-6 pb-6 pt-5">
+          {phase === "asking" ? (
+            <div className="flex items-center gap-2 py-6 text-[13px] text-muted">
+              <Spinner /> Finn formuliert die Frage …
+            </div>
+          ) : (
+            <h3 className="text-[19px] font-semibold leading-snug tracking-[-0.01em]">{question}</h3>
+          )}
+
+          {phase === "record" && (
+            <div className="mt-7">
+              {rec.state === "recorded" && rec.blob ? (
+                <Recorded blob={rec.blob} seconds={rec.seconds} onRetry={rec.reset} onSend={() => submit(rec.blob!)} />
+              ) : (
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={rec.state === "recording" ? stopRec : startRec}
+                    className={cx("grid h-14 w-14 shrink-0 place-items-center rounded-full text-white transition-colors", rec.state === "recording" ? "bg-danger" : "bg-ink hover:bg-ink-2")}
+                    aria-label={rec.state === "recording" ? "Aufnahme beenden" : "Aufnahme starten"}
+                  >
+                    {rec.state === "recording" ? <Square size={16} fill="currentColor" /> : <Mic size={20} />}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    {rec.state === "recording" ? (
+                      <div className="flex items-center gap-3">
+                        <span className="text-[14px] font-medium tabular-nums">{mmss(rec.seconds)}</span>
+                        <Level level={rec.level} />
+                      </div>
+                    ) : (
+                      <div className="text-[14px] font-medium">Antwort aufnehmen</div>
+                    )}
+                    <button onClick={() => fileRef.current?.click()} className="mt-1 flex items-center gap-1 text-[12.5px] text-muted hover:text-ink" disabled={rec.state === "recording"}>
+                      <Upload size={12} /> oder Audiodatei hochladen
+                    </button>
+                  </div>
+                </div>
+              )}
+              {(err || rec.error) && <p className="mt-4 text-[12.5px] text-danger">{err || rec.error}</p>}
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) submit(f, f.name);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          )}
+
+          {phase === "sending" && (
+            <div className="mt-7 flex items-center gap-2 text-[13px] text-muted">
+              <Spinner /> Finn hört zu und schreibt mit …
+            </div>
+          )}
+
+          {phase === "done" && result && (
+            <div className="mt-6">
+              {result.notes.length > 0 ? (
+                <>
+                  <div className="mb-2 text-[12px] font-medium uppercase tracking-[0.06em] text-faint">Notiert fürs Handbuch</div>
+                  <ul className="space-y-2">
+                    {result.notes.map((n, i) => (
+                      <li key={i} className="flex gap-2.5 text-[14px] leading-relaxed">
+                        <Check size={15} className="mt-[3px] shrink-0 text-accent" />
+                        {n.text}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-[13.5px] text-muted">Danke! Für diese Karte gab es nichts Neues fürs Handbuch.</p>
+              )}
+              <details className="mt-5 text-[12.5px] text-muted">
+                <summary className="cursor-pointer select-none hover:text-ink">
+                  Transkript{result.redacted > 0 && ` · ${result.redacted} Steuerdetail${result.redacted > 1 ? "s" : ""} geschwärzt`}
+                </summary>
+                <p className="mt-2 leading-relaxed text-ink-2">
+                  {result.transcript.split(/(\[[^\]]+\])/).map((x, i) =>
+                    /^\[[^\]]+\]$/.test(x) ? <span key={i} className="mx-0.5 inline-block h-[1.05em] w-16 translate-y-[2px] rounded-sm bg-ink" title="Geschwärzt (§ 30 AO)" /> : <span key={i}>{x}</span>,
+                  )}
+                </p>
+              </details>
+              <div className="mt-6 flex justify-end">
+                <Button onClick={onClose}>Fertig</Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+    </Overlay>
+  );
+}
+
+function Level({ level }: { level: number }) {
+  return (
+    <span className="flex h-6 items-center gap-[3px]">
+      {Array.from({ length: 18 }).map((_, i) => {
+        const h = Math.max(0.15, Math.min(1, level * (0.6 + ((i * 7) % 5) / 5)));
+        return <span key={i} className="w-[3px] rounded-full bg-ink/70 transition-[height] duration-75" style={{ height: `${h * 100}%` }} />;
+      })}
+    </span>
+  );
+}
+
+function Recorded({ blob, seconds, onRetry, onSend }: { blob: Blob; seconds: number; onRetry: () => void; onSend: () => void }) {
+  const [url, setUrl] = useState("");
+  const audio = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    const u = URL.createObjectURL(blob);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [blob]);
+  return (
+    <div className="flex items-center gap-3 rounded-[12px] border border-line p-2.5 pl-3">
+      {url && <audio ref={audio} src={url} onEnded={() => setPlaying(false)} />}
+      <button
+        onClick={() => {
+          if (playing) audio.current?.pause();
+          else audio.current?.play();
+          setPlaying(!playing);
+        }}
+        className="grid h-8 w-8 place-items-center rounded-full bg-subtle text-ink hover:bg-line"
+        aria-label="Anhören"
+      >
+        {playing ? <Pause size={14} /> : <Play size={14} />}
+      </button>
+      <span className="flex-1 text-[13px] tabular-nums text-muted">Aufnahme · {mmss(seconds)}</span>
+      <Button variant="ghost" size="sm" onClick={onRetry} icon={<RotateCcw size={13} />}>
+        Neu
+      </Button>
+      <Button size="sm" onClick={onSend}>
+        Antwort senden
+      </Button>
     </div>
+  );
+}
+
+function RewardDialog({ name, years, voucher, onClose }: { name: string; years: number; voucher?: Voucher; onClose: () => void }) {
+  return (
+    <Overlay onClose={onClose}>
+      <div className="card-reward overflow-hidden rounded-[18px] p-8 text-white shadow-pop">
+        <div className="flex items-center justify-between text-[12px] text-gold/70">
+          <span>Karte 10</span>
+          <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-md text-gold/70 hover:bg-white/5" aria-label="Schließen">
+            <X size={15} />
+          </button>
+        </div>
+        <Gift size={26} className="mt-8 text-gold" />
+        <h3 className="mt-4 text-[24px] font-semibold tracking-[-0.01em]">Danke, {name}.</h3>
+        <p className="mt-1.5 text-[14px] text-white/60">{years} Jahre Wissen – und jetzt bleibt es im Amt.</p>
+        {voucher ? (
+          <div className="mt-8 rounded-[12px] border border-gold/30 p-5">
+            <div className="text-[12px] uppercase tracking-[0.08em] text-gold/80">Gutschein</div>
+            <div className="mt-1.5 text-[18px] font-semibold text-gold">{voucher.title_de}</div>
+            <div className="mt-1 text-[13.5px] leading-relaxed text-white/70">{voucher.detail_de}</div>
+            <div className="mt-4 flex items-center justify-between text-[12.5px] text-white/50">
+              <span>Weil du gern: {voucher.based_on}</span>
+              <span className="tabular-nums">ca. {voucher.est_eur} €</span>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-8 text-[13.5px] text-white/60">Dein Team überrascht dich bei der Verabschiedung.</p>
+        )}
+      </div>
+    </Overlay>
   );
 }

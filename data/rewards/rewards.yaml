@@ -1,0 +1,17 @@
+# Reward card: the 10th story card. It unlocks once the person has answered all question cards
+# in the knowledge interview, and shows ONE voucher that matches interests the person volunteered.
+# ALL FICTIONAL. Interests come from persona.interests and may only be used with interests_consent.
+#
+# Tax note (real rule, fact F106): employer gifts at a farewell are tax-free up to €60
+# (within the €110-per-participant limit, R 19.3 Abs. 2 Nr. 3 LStR).
+
+max_gift_eur: 60
+tax_fact: F106
+
+vouchers:
+  p05:   # Wolfgang Reinecke
+    - {title_de: "Wanderwochenende im Harz", detail_de: "Wanderführer „Harzer Hexenstieg“ und Einkehrgutschein im Gasthaus am Brocken", est_eur: 55, based_on: Wandern im Harz}
+    - {title_de: "Modellbahn-Gutschein", detail_de: "Gutschein für den Modellbahn-Fachhandel in Hildesheim", est_eur: 50, based_on: Modelleisenbahn Spur H0}
+  p11:   # Hans-Jürgen Meyer
+    - {title_de: "Gartencenter-Gutschein", detail_de: "Für den Kleingarten: Gutschein im Gartencenter", est_eur: 50, based_on: Kleingarten}
+    - {title_de: "Weserradweg-Set", detail_de: "Radkarten-Set Weserradweg und Fahrradtasche", est_eur: 58, based_on: Radfahren auf dem Weserradweg}

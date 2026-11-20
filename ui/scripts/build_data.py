@@ -30,7 +30,7 @@ bundle = {
     "facts": facts_doc["facts"],
     "plants": facts_doc["plants"],
     "questions": load(DATA / "schema" / "questions.yaml")["questions"],
-    "quiz": load(DATA / "celebration" / "quiz.yaml"),
+    "rewards": load(DATA / "rewards" / "rewards.yaml"),
 }
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(json.dumps(bundle, ensure_ascii=False, default=default, indent=1), encoding="utf-8")

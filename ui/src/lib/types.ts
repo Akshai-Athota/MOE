@@ -1,7 +1,7 @@
 export type Access = "public" | "internal" | "restricted";
 export type Role = "employee" | "new_hire" | "leaver" | "manager";
 export type FactStatus = "current" | "superseded" | "conflict";
-export type Modality = "interview" | "doc" | "email" | "minutes" | "image" | "video" | "intranet" | "quiz";
+export type Modality = "interview" | "doc" | "email" | "minutes" | "image" | "video" | "intranet" | "library";
 
 export interface Persona {
   id: string;
@@ -29,7 +29,6 @@ export interface Persona {
   interview_strategy?: string;
   interests?: string[];
   retirement_plans?: string;
-  celebration_preference?: "party" | "solo";
 }
 
 export interface Fact {
@@ -51,7 +50,7 @@ export interface Fact {
   sources_planned: Modality[];
   plant?: string | null;
   /** runtime-only: where a learned claim came from */
-  learned?: { label: string; at: string; via: "interview" | "quiz" | "upload" };
+  learned?: { label: string; at: string; via: "interview" | "upload" | "library" };
 }
 
 export interface Rule {
@@ -84,19 +83,6 @@ export interface Gap {
   live_demo_answer_de?: string;
 }
 
-export interface QuizQuestion {
-  id: string;
-  leaver: string;
-  type: "funny" | "gap";
-  question_de: string;
-  options?: string[];
-  answer?: number;
-  answer_fact?: string;
-  reveal_prompt_de?: string;
-  gap_id?: string;
-  host_line_de?: string;
-}
-
 export interface Dataset {
   company: any;
   personas: Persona[];
@@ -111,16 +97,10 @@ export interface Dataset {
     live_update: { id: string; title_de: string; valid_from: string; changes: string; new_de: string }[];
   };
   questions: Question[];
-  quiz: {
-    settings: any;
-    rewards: {
-      principle: string;
-      tax_fact: string;
-      max_gift_eur: number;
-      suggestions: Record<string, { de: string; est_eur: number; based_on: string }[]>;
-    };
-    leavers: Record<string, { name: string; last_day: string; mode: "party" | "solo" }>;
-    questions: QuizQuestion[];
+  rewards: {
+    max_gift_eur: number;
+    tax_fact: string;
+    vouchers: Record<string, Voucher[]>;
   };
 }
 
@@ -172,4 +152,24 @@ export interface KnowledgeEvent {
   title: string;
   detail: string;
   source: string;
+}
+
+export interface Voucher {
+  title_de: string;
+  detail_de: string;
+  est_eur: number;
+  based_on: string;
+  max_eur?: number;
+}
+
+export interface LibraryPost {
+  id: string;
+  user_id: string;
+  author: string;
+  text: string;
+  category: string;
+  created: string;
+  resolved?: boolean;
+  /** offline: the learned fact that holds this post */
+  factId?: string;
 }
