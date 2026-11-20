@@ -80,3 +80,10 @@ def test_abstain_reason_names_the_failing_step():
                             "verdict": {"key_term_missing": True}})[0] == "key_term_missing"
     reason, debug = _abstain_reason({"hits": hits, "generated": ok, "verdict": {"answers_question": False}})
     assert reason == "verify_rejected" and debug["sources"][0].startswith("[1] F1")
+
+
+def test_model_writes_sentences_before_deciding():
+    # "answerable" first made the model commit to true and then return no sentences
+    from hilde.answer import Generated
+    props = list(Generated.model_json_schema()["properties"])
+    assert props.index("sentences") < props.index("answerable")

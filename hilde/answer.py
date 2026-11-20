@@ -51,10 +51,13 @@ def _all_required(schema: dict) -> None:
 class Generated(BaseModel):
     model_config = ConfigDict(json_schema_extra=_all_required)
 
-    answerable: bool = Field(description="true nur, wenn die QUELLEN die Frage beantworten")
+    # field order matters: with constrained decoding the model writes the sentences first and
+    # decides afterwards. With "answerable" first it committed to true and then closed the list
+    # empty ("yes + no sentences"), which flipped between runs.
     sentences: list[Sentence] = Field(
-        default_factory=list, description="1-5 Sätze; leer, wenn answerable=false"
+        default_factory=list, description="1-5 Sätze; leer, wenn die QUELLEN die Frage nicht beantworten"
     )
+    answerable: bool = Field(description="true nur, wenn sentences die Frage mit Quellen beantworten")
     conflict: bool = False
 
     def valid_sentences(self, n_sources: int) -> list[tuple[str, list[int]]]:

@@ -17,6 +17,22 @@ CASES = [  # (question, user, expected: answer|abstain|conflict)
 ]
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 total = 0
+details: list[tuple[str, str, str]] = []  # per abstain: what the failing step saw
+
+
+def _detail(a) -> str:
+    v, g = a.debug.get("verdict") or {}, a.debug.get("generated") or {}
+    if a.abstain_reason == "verify_rejected":
+        return (f"answers_question={v.get('answers_question')} "
+                f"supported_by_sources={v.get('supported_by_sources')}\n"
+                f"      question_meaning: {v.get('question_meaning')}\n"
+                f"      source_meaning:   {v.get('source_meaning')}\n"
+                f"      answer: {' '.join(x['text'] for x in g.get('sentences', []))}")
+    if a.abstain_reason in ("no_valid_citations", "model_unanswerable", "key_term_missing"):
+        return f"generated: {g}"
+    return ""
+
+
 reasons: Counter = Counter()  # (question, abstain_reason) -> count: which step drops answers
 for q, uid, want in CASES:
     got = Counter()
@@ -26,6 +42,7 @@ for q, uid, want in CASES:
         got[outcome] += 1
         if a.abstained:
             reasons[(q, a.abstain_reason)] += 1
+            details.append((q, a.abstain_reason, _detail(a)))
     hit = n if want == "any" else got[want]
     total += hit
     print(f"{hit}/{n}  want={want:<8} {dict(got)}  {q}")
@@ -34,3 +51,9 @@ if reasons:
     print("\nwhy abstained (step that dropped the answer):")
     for (q, r), c in sorted(reasons.items()):
         print(f"  {c}x {r:<20} {q}")
+
+if details:
+    print("\ndetails per abstain:")
+    for q, r, d in details:
+        if d:
+            print(f"  [{r}] {q}\n      {d}")
