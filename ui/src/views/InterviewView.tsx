@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Gift, Lock, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Peeker } from "../components/Peeker";
+import { CursorGlow } from "../components/CursorGlow";
+import { MouseBuddy } from "../components/MouseBuddy";
 import { Button, PageHeader, Spinner, cx } from "../components/ui";
 import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
@@ -160,12 +161,16 @@ export default function InterviewView() {
         }
       />
 
-      <div className="px-6 pt-8 lg:px-10">
+      <div className="relative isolate min-h-[calc(100vh-110px)] px-6 pb-10 pt-16 lg:px-10">
+        <CursorGlow />
+        <div className="relative z-10 mx-auto max-w-[1040px]">
         {busy || !st ? (
           <div className="flex items-center gap-2 text-[13px] text-muted">
             <Spinner /> Finn mischt die Karten …
           </div>
         ) : (
+          <>
+          <div className="mb-8"><MouseBuddy /></div>
           <div className="grid w-full grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-5 lg:gap-6">
             {deck.map((c, i) => (
               <DeckCard key={c.card} c={c} index={i} onPick={() => setOpen(c)} />
@@ -175,10 +180,11 @@ export default function InterviewView() {
             ))}
             <RewardCard index={DECK_SIZE} unlocked={unlocked} remaining={deck.length - doneCount} onOpen={() => setRewardOpen(true)} />
           </div>
+          </>
         )}
 
         {sections.length > 0 && (
-          <section className="mt-14 max-w-[1040px]">
+          <section className="mt-14">
             <div className="flex items-end justify-between gap-4 border-b border-line pb-3">
               <div>
                 <h2 className="text-[15px] font-semibold">Dein Übergabe-Handbuch</h2>
@@ -204,6 +210,7 @@ export default function InterviewView() {
             </div>
           </section>
         )}
+        </div>
       </div>
 
       <AnimatePresence>
@@ -230,7 +237,6 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
   const num = String(c.card).padStart(2, "0");
   return (
     <div className="relative">
-    {!c.done && <Peeker />}
     <motion.button
       initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
       animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
@@ -269,7 +275,6 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
 function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unlocked: boolean; remaining: number; onOpen: () => void }) {
   return (
     <div className="relative">
-    <Peeker />
     <motion.button
       initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
       animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
