@@ -21,6 +21,7 @@ answers everyday questions from all staff (parking, canteen, leave and so on), a
 | `data/rules/` | A | `rules.yaml`: internal orders (Hausverfügungen), including superseded versions |
 | `data/facts/` | A | `facts.yaml`: **single source of truth**, plus planted cases |
 | `data/schema/` | A | `questions.yaml`: onboarding and general question catalogue |
+| `data/celebration/` | A | `quiz.yaml`: farewell quiz bank (funny + gap questions), reward settings |
 | `generators/` | B (text), C (media) | scripts that read the YAML and write to `data/raw/` |
 | `generators/validate.py` | A creates, B extends | consistency checks; **run before every push** |
 | `data/raw/` | generated | `docs/ audio/ images/ video/`; the output of generators |
@@ -106,5 +107,15 @@ start_date, leave_date, reports_to, deputy, room, phone_ext, email, access_role,
 Listed under `plants:` in `facts.yaml`: superseded rules, conflicts between sources, restricted content,
 taxpayer data for redaction, and `planted_gaps` (questions with **no** source, so Hilde must say "I don't know" and name who to ask).
 
-## 7. Tech defaults (B and C may change, but must say so here)
+## 7. UI backlog (do not forget)
+The app needs these tabs or modes: **Interview** · **Onboarding** · **Ask Hilde** · **Celebration ("Abschied")** · Admin/Coverage.
+
+**Celebration tab** (required by the jury feedback: win over retiring staff):
+1. Pick a leaver → party or solo mode (taken from `celebration_preference`).
+2. Generate a quiz from `data/celebration/quiz.yaml`, mixed 3 funny : 1 gap. Later, generate new funny questions from the leaver's captured claims.
+3. Party mode: big screen, team scores, answer reveal → a "tell the story" prompt for the retiree.
+4. Gap question → record the retiree's answer → transcribe → claim draft → retiree confirms → indexed with the quiz source label.
+5. End screen: download the legacy booklet ("Wissen von {name}"), gift suggestion from consented interests (≤ €60), and a thank-you.
+
+## 8. Tech defaults (B and C may change, but must say so here)
 Ollama + Qwen2.5/Qwen3 (German) · faster-whisper · Piper TTS (German voices) · bge-m3 + Qdrant · Docling · Presidio · Chainlit.

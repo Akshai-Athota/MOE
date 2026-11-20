@@ -90,3 +90,5 @@ questions:
   # --- Public questions (public) – answerable for anyone
   - {id: G16, category: public, answer_type: procedural, de: "Wann hat das Finanzamt für Bürger geöffnet?"}
   - {id: G17, category: public, answer_type: procedural, de: "Wie lautet die Adresse und Telefonnummer des Finanzamts?"}
+  # --- Farewell
+  - {id: G18, category: general, answer_type: procedural, de: "Wie läuft eine Verabschiedung in den Ruhestand ab und was darf ein Geschenk kosten?"}

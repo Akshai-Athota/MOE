@@ -149,6 +149,52 @@ def main() -> int:
         if t["inject_into"] not in pids:
             err(f"redaction target {t['value']}: unknown persona")
 
+    # personas: interests may only exist with explicit consent
+    for pid, d in personas.items():
+        if d.get("interests") and not (d.get("interests_consent") or {}).get("given"):
+            err(f"{pid}: has interests but no interests_consent.given")
+
+    # celebration quiz
+    quiz_path = DATA / "celebration" / "quiz.yaml"
+    if quiz_path.exists():
+        quiz = load(quiz_path)
+        gaps_by_id = {g["id"]: g for g in plants.get("planted_gaps", [])}
+        secrets = [t["value"] for t in plants.get("redaction_targets", [])]
+        qz_ids = [q["id"] for q in quiz["questions"]]
+        if len(set(qz_ids)) != len(qz_ids):
+            err("quiz.yaml: duplicate question ids")
+        for lid in quiz.get("leavers", {}):
+            if personas.get(lid, {}).get("status") != "leaving":
+                err(f"quiz.yaml: {lid} is not a leaving persona")
+        for lid in quiz.get("rewards", {}).get("suggestions", {}):
+            if not personas.get(lid, {}).get("interests_consent", {}).get("given"):
+                err(f"quiz.yaml: gift suggestions for {lid} without interests consent")
+            for s in quiz["rewards"]["suggestions"][lid]:
+                if s["est_eur"] > quiz["rewards"]["max_gift_eur"]:
+                    err(f"quiz.yaml: gift '{s['de']}' exceeds max_gift_eur")
+        for q in quiz["questions"]:
+            qid, lid = q["id"], q["leaver"]
+            if lid not in quiz.get("leavers", {}):
+                err(f"quiz {qid}: leaver {lid} not in leavers")
+            if any(s in str(q) for s in secrets):
+                err(f"quiz {qid}: contains redaction target")
+            if q["type"] == "funny":
+                f = fmap.get(q.get("answer_fact"))
+                if not f:
+                    err(f"quiz {qid}: unknown answer_fact {q.get('answer_fact')}")
+                elif lid != f["owner"] and lid not in f.get("also_known_by", []):
+                    err(f"quiz {qid}: leaver {lid} does not know {f['id']}")
+                if not 0 <= q.get("answer", -1) < len(q.get("options", [])):
+                    err(f"quiz {qid}: answer index out of range")
+            elif q["type"] == "gap":
+                g = gaps_by_id.get(q.get("gap_id"))
+                if not g:
+                    err(f"quiz {qid}: gap_id {q.get('gap_id')} is not a planted gap")
+                elif g["who_to_ask"] != lid:
+                    err(f"quiz {qid}: gap {g['id']} should be asked to {g['who_to_ask']}, not {lid}")
+            else:
+                err(f"quiz {qid}: bad type {q['type']}")
+
     # every catalogue question must be answered or be a planted gap
     for q in qids:
         if q not in gap_ids and not any(q in f.get("question_ids", []) for f in facts):
