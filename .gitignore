@@ -6,3 +6,6 @@ __pycache__/
 data/raw/audio/*.wav
 data/raw/video/*.mp4
 models/
+
+# runtime data (open questions, drafts)
+var/

@@ -22,8 +22,13 @@ class Settings(BaseSettings):
     llm_model: str = "qwen2.5:7b"
     embed_model: str = "bge-m3"
     embed_dim: int = 1024  # bge-m3 dense vector size
-    llm_temperature: float = 0.1
+    llm_temperature: float = 0.0
+    llm_seed: int = 42  # with temperature 0 -> repeatable answers for demo and tests
     llm_num_ctx: int = 8192
+    # 6 GB GPUs cannot hold qwen2.5:7b and bge-m3 together -> Ollama swaps them on every
+    # question (~20 s). Running the embedder on CPU keeps the LLM resident on the GPU.
+    embed_on_cpu: bool = True
+    keep_alive_s: int = 1800  # seconds a model stays loaded
 
     # --- Qdrant ---
     qdrant_url: str = "http://localhost:6333"

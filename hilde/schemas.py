@@ -27,6 +27,47 @@ class User(BaseModel):
     department: str = Field(description="AL | RB | GS | VA")
 
 
+class Citation(BaseModel):
+    n: int = Field(description="number used in the answer text, e.g. [2]")
+    source_id: str
+    source_type: str
+    citation: str = Field(description="human-readable label for the UI")
+    snippet: str
+    status: str
+    valid_from: str | None = None
+
+
+class Contact(BaseModel):
+    id: str
+    name: str
+    role_de: str
+    room: str
+    phone_ext: str
+    email: str
+
+
+class Change(BaseModel):
+    """A cited source replaced older knowledge: UI shows 'geändert am ..., vorher ...'."""
+
+    n: int
+    source_id: str
+    changed_on: str | None
+    previous_source_id: str
+    previous_text: str
+
+
+class Answer(BaseModel):
+    question: str
+    answer: str
+    abstained: bool
+    conflict: bool = False
+    citations: list[Citation] = []
+    changes: list[Change] = []
+    who_to_ask: Contact | None = None
+    open_question_id: str | None = None
+    seconds: float = 0.0
+
+
 class Hit(BaseModel):
     """One retrieved chunk, as returned by search."""
 

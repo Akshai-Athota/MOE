@@ -85,6 +85,25 @@ def index_documents(docs: list[Document], batch_size: int = 32) -> int:
     return len(docs)
 
 
+def get_by_source_id(source_id: str, user: User) -> Hit | None:
+    """Exact lookup (e.g. the superseded predecessor of a hit), still role-filtered."""
+    f = build_filter(user, include_history=True)
+    f.must.append(
+        models.FieldCondition(key="metadata.source_id", match=models.MatchValue(value=source_id))
+    )
+    points, _ = get_qdrant().scroll(
+        get_settings().qdrant_collection, scroll_filter=f, limit=1, with_payload=True
+    )
+    if not points:
+        return None
+    md = points[0].payload["metadata"]
+    return Hit(
+        chunk_id=md["chunk_id"], text=points[0].payload["page_content"], score=1.0,
+        source_type=md["source_type"], source_id=md["source_id"], citation=md["citation"],
+        access=md["access"], status=md["status"], metadata=md,
+    )
+
+
 def search(query: str, user: User, k: int = 8, include_history: bool = False) -> list[Hit]:
     """Hybrid search (dense + BM25, fused with RRF), restricted to what `user` may see."""
     results = get_store().similarity_search_with_score(

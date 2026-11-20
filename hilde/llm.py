@@ -15,14 +15,21 @@ def get_llm() -> ChatOllama:
         base_url=s.ollama_base_url,
         model=s.llm_model,
         temperature=s.llm_temperature,
+        seed=s.llm_seed,
         num_ctx=s.llm_num_ctx,
+        keep_alive=s.keep_alive_s,
     )
 
 
 @lru_cache
 def get_embeddings() -> OllamaEmbeddings:
     s = get_settings()
-    return OllamaEmbeddings(base_url=s.ollama_base_url, model=s.embed_model)
+    return OllamaEmbeddings(
+        base_url=s.ollama_base_url,
+        model=s.embed_model,
+        keep_alive=s.keep_alive_s,
+        num_gpu=0 if s.embed_on_cpu else None,
+    )
 
 
 def ollama_status() -> dict:
