@@ -42,3 +42,13 @@ def test_conflict_flag_from_source_status():
     g = Generated(answerable=True, sentences=[Sentence(text="a", sources=[1]),
                                                Sentence(text="b", sources=[2])])
     assert cite({"question": "q", "hits": hits, "generated": g, "history": {}})["result"].conflict
+
+
+def test_key_term_grounding_for_german_compounds():
+    from hilde.answer import key_term_grounded
+
+    assert not key_term_grounded("Wie läuft die Haushaltsanmeldung ab?",
+                                 ["Bedarf wird mit dem Formular 'Bedarfsmeldung' gemeldet."])
+    assert key_term_grounded("Wie funktioniert das Mitzeichnungsverfahren?",
+                             ["Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen."])
+    assert key_term_grounded("Wo kann ich parken?", ["irrelevant"])  # no long word -> no check

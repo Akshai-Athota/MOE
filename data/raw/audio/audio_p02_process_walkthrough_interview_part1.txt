@@ -1,0 +1,31 @@
+Hilde: Hallo Jens, danke, dass du dir Zeit nimmst. Das ist Teil 1 von 2 unserer Interviewreihe. Ich bin Hilde, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+
+Hartmann: Gern, Hilde. Dann erzähle ich mal.
+
+Hilde: Also Jens, wie funktioniert denn genau die Zusammenarbeit zwischen Arbeitnehmerbereich und Rechtsbehelfsstelle?
+
+Hartmann: Na, Hilde, wenn ein Einspruch kommt, prüfen wir zunächst, ob wir den Veranlagungsteil abwickeln können. Wenn nicht, geht die Akte an die Rechtsbehelfsstelle weiter. So funktioniert das.
+
+Hilde: Jens, wie läuft die Amtsleiterbesprechung am Montag ab?
+
+Hartmann: Also, Jens, die Amtsleiterbesprechung am Montag beginnt um 9:00 Uhr im Sitzungssaal 3.10. Da sind alle Amtsleiter, die Vorsteherin und natürlich auch die Sachgebietsleitungen. Wir diskutieren die wichtigsten Punkte der Woche, und ich denke, das ist immer ein guter Zeitpunkt, um die Neuerungen durchzugehen.
+
+Hilde: Hey Jens, wie funktioniert die Berechnung der Einspruchsfrist, wenn der Bescheid per Post versendet wird?
+
+Hartmann: Also, wenn der Bescheid per Post geht, zählt man ab dem vierten Tag nach dem Versand. Das bedeutet, der Empfänger hat erst ab diesem Tag den Bescheid, und danach beginnt die Einspruchsfrist. Die Frist ist dann ein ganzer Monat lang.
+
+Hilde: Jens, wie gestaltet sich die Praxis, wenn ein Fall länger als sechs Monate in der Rechtsbehelfsstelle hängen bleibt, und was passiert dann, wenn er überhaupt über sechs Monate hinaus verweilt?
+
+Hartmann: Also, Hilde, das ist eine gute Frage. In der Praxis sieht das manchmal anders aus, als es auf den ersten Blick scheint. Wenn ein Fall länger als sechs Monate hängen bleibt, müssen wir erst mal feststellen, ob es einen rechtmäßigen Grund dafür gibt. Wenn alles in Ordnung ist, dann ist es einfach ein Zufall. Aber wenn es länger als zwölf Monate dauert, dann landet der Fall auf der Tagesordnung unserer Amtsleiterbesprechung. Da werden wir ihn dann einzeln besprechen, um herauszufinden, was da los ist. Ich sag’s ja: Manchmal ist es amüsant, einen Fall so lange wachsen zu lassen, bis er auf der Tagesordnung landet, aber das ist natürlich nur humorvoll gemeint. äh, also, es ist wichtig, dass wir immer wieder aufpassen und den Prozess optimieren.
+
+Hilde: Also, Jens, wie lief das Pilotprojekt mit der KI-Assistenz für die Einspruchsbearbeitung? War das vorsortieren der digital eingegangenen Einsprüche nach Thema wirklich effektiv?
+
+Hartmann: Ja, also, das vorsortieren der digital eingegangenen Einsprüche hat definitiv geholfen. Die KI hat die Einsprüche nach dem Thema ordentlich verteilt, was unsere Bearbeitungsprozesse echt beschleunigt hat. Äh, die Leistung der KI war überraschend gut, und wir konnten uns auf die eigentliche Bearbeitung konzentrieren, anstatt uns mit der Sortierung zu befassen.
+
+Hilde: Jens, wie funktioniert die Förderung von 48.000 € in der Rechtsbehelfsstelle? Welche Ausgaben sind damit verbunden, und was passiert mit den nicht abgerufenen Mitteln?
+
+Hartmann: Also, Hilde, die Förderung von 48.000 € ist speziell für Sachkosten und externe Dienstleistungen gedacht. Keine Personalkosten sind dabei drin. Wir müssen den Eigenanteil von 10 % aus dem Amtsbudget tragen. Und was nicht abgerufen wird, verfällt am 31.12. des jeweiligen Jahres, also im Dezember. 
+
+Hilde: Danke, Jens! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+
+Hartmann: Prima, so machen wir das.

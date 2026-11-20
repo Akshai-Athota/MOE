@@ -27,6 +27,34 @@ class User(BaseModel):
     department: str = Field(description="AL | RB | GS | VA")
 
 
+class Segment(BaseModel):
+    """A piece of a real source (interview, document, image) with an anchor back into it."""
+
+    id: str = Field(description="<capture_id>#<n>")
+    capture_id: str
+    modality: Literal["audio", "video", "doc", "email", "text", "image"]
+    text: str
+    speaker: str | None = None
+    anchor: dict = Field(default_factory=dict,
+                         description="{t_start,t_end} | {paragraph} | {page} | {section}")
+    source_file: str
+
+
+class CaptureMeta(BaseModel):
+    """Who/what a capture is about; drives access filtering and citations."""
+
+    title: str
+    persona: str | None = Field(default=None, description="speaker / owner persona id")
+    department: str = "ALL"
+    access: Access = "internal"
+    category: str = "general"
+    fact_ids: list[str] = Field(default_factory=list, description="ground truth (synthetic data only)")
+    status: str = "current"
+    valid_from: str | None = None
+    valid_to: str | None = None
+    supersedes: str | None = Field(default=None, description="capture id this source replaces")
+
+
 class Citation(BaseModel):
     n: int = Field(description="number used in the answer text, e.g. [2]")
     source_id: str
@@ -35,6 +63,8 @@ class Citation(BaseModel):
     snippet: str
     status: str
     valid_from: str | None = None
+    anchor: dict = Field(default_factory=dict, description="e.g. {t_start: 252.1} -> play audio from 04:12")
+    source_file: str | None = None
 
 
 class Contact(BaseModel):

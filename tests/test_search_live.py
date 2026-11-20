@@ -16,7 +16,12 @@ RESTRICTED = {"F040", "F057", "F096", "F097"}
 
 
 def _ids(query, pid, **kw):
-    return [h.source_id for h in search(query, user_from_persona(pid), k=10, **kw)]
+    """Fact ids behind the hits: works for the seed index (facts) and the raw index (segments
+    carry the ground-truth fact ids of their source from the manifest)."""
+    ids = []
+    for h in search(query, user_from_persona(pid), k=10, **kw):
+        ids += [h.source_id, *h.metadata.get("fact_ids", [])]
+    return ids
 
 
 def test_new_hire_never_gets_restricted_budget():

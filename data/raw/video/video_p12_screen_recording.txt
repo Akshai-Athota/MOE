@@ -1,0 +1,11 @@
+Nowak: Hallo zusammen, ich zeige euch heute ein paar Dinge direkt am Bildschirm.
+
+Nowak: Hier seht ihr den Startbildschirm der E-Akte. Julia Nowak erklärt: 'Seht, das hier ist unser Eingangsbildschirm. Die Pilotphase begann im September 2026, und wir starten die Go-live am 01.03.2027.'
+
+Nowak: Also: Die E-Akte wird mit einem Kanban-Board im Microsoft Planner ('E-Akte VA') gesteuert. Jede Aufgabe ist eine Karte mit verantwortlicher Person. Stand-up jeden Mittwoch um 14:00 Uhr für 15 Minuten.
+
+Nowak: Hier seht ihr, dass die Projektunterlagen unter S:\Amt\Projekte\<Projektname> liegen. Das ist unser Hauptverzeichnis für alle Projekte. Die Unterlagen sind nicht in Teams-Dateien, sondern hier gespeichert.
+
+Nowak: Also: Täglich genutzt werden im Arbeitnehmerbereich: die KONSENS-Veranlagungsverfahren, die E-Akte (Pilot), Outlook, Teams, das PersonalPortal NI und die ELSTER-Eingangsliste.
+
+Nowak: Das war's für heute. Bei Fragen meldet euch gern.

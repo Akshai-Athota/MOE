@@ -85,6 +85,18 @@ def index_documents(docs: list[Document], batch_size: int = 32) -> int:
     return len(docs)
 
 
+def delete_source(source_id: str) -> None:
+    """Remove all chunks of one source (before re-ingesting a changed file)."""
+    s = get_settings()
+    ensure_collection()
+    get_qdrant().delete(
+        s.qdrant_collection,
+        points_selector=models.FilterSelector(filter=models.Filter(must=[
+            models.FieldCondition(key="metadata.source_id", match=models.MatchValue(value=source_id))
+        ])),
+    )
+
+
 def get_by_source_id(source_id: str, user: User) -> Hit | None:
     """Exact lookup (e.g. the superseded predecessor of a hit), still role-filtered."""
     f = build_filter(user, include_history=True)

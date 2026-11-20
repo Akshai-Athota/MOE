@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     embed_on_cpu: bool = True
     keep_alive_s: int = 1800  # seconds a model stays loaded
 
+    # --- Ingestion ---
+    whisper_model: str = "small"  # faster-whisper on CPU/int8; "medium" = better, slower
+    vision_model: str = "qwen2.5vl:3b"  # Ollama vision model for images (pull before use)
+
     # --- Qdrant ---
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str | None = None

@@ -39,8 +39,8 @@ answers_question: true NUR, wenn die Antwort genau das beantwortet, was gefragt 
   Eine Antwort zu einem verwandten oder ähnlich klingenden Thema ist FALSCH
   (ähnliche Wörter bedeuten nicht dasselbe Verfahren, dieselbe Person oder dieselbe Sache).
 supported_by_sources: true NUR, wenn jede Aussage der Antwort in den QUELLEN steht.
-Wenn sich die QUELLEN widersprechen und die Antwort beide Aussagen nennt, ist das richtig
-(answers_question=true, supported_by_sources=true)."""
+sources_contradict: true, wenn verschiedene QUELLEN zur Frage Unterschiedliches sagen
+(z. B. andere Zeiten, Beträge oder Zuständigkeiten). Nennt die Antwort dann beide Aussagen, ist sie richtig."""
 
 VERIFY_USER = """FRAGE: {question}
 

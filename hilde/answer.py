@@ -9,6 +9,7 @@
 * abstain:  "I don't know", pick who to ask, store the open question for the next interview.
 """
 
+import re
 import time
 from typing import TypedDict
 
@@ -66,6 +67,8 @@ class Verdict(BaseModel):
     )
     answers_question: bool = Field(description="beantwortet die ANTWORT genau die gestellte FRAGE?")
     supported_by_sources: bool = Field(description="ist jede Aussage durch die QUELLEN gedeckt?")
+    sources_contradict: bool = Field(
+        default=False, description="widersprechen sich die QUELLEN in dem, was zur FRAGE gesagt wird?")
 
 
 class PickedPerson(BaseModel):
@@ -79,6 +82,7 @@ class State(TypedDict, total=False):
     history: dict[int, Hit]  # source number -> superseded predecessor
     generated: Generated
     verified: bool
+    contradiction: bool
     result: Answer
     started: float
 
@@ -99,7 +103,16 @@ def retrieve(state: State) -> State:
     return {"hits": hits, "history": history}
 
 
+# Windows paths (S:\Amt\...) break the model's JSON output ("\A" is an invalid escape) and get
+# cut off. The model sees a look-alike character instead; cite() turns it back into "\".
+BS, BS_SAFE = "\\", "29f5"
+
+
 def _format_sources(hits: list[Hit], history: dict[int, Hit]) -> str:
+    return _format_sources_raw(hits, history).replace(BS, BS_SAFE)
+
+
+def _format_sources_raw(hits: list[Hit], history: dict[int, Hit]) -> str:
     lines = []
     for n, h in enumerate(hits, 1):
         md = h.metadata
@@ -148,12 +161,28 @@ def route_generated(state: State) -> str:
     return "verify"
 
 
+WORD = re.compile(r"[A-Za-zÄÖÜäöüß]{10,}")
+
+
+def key_term_grounded(question: str, sources: list[str]) -> bool:
+    """German compounds carry the topic ("Haushaltsanmeldung", "Mitzeichnungsverfahren").
+    The longest such word of the question must appear (first 7 letters) in a cited source.
+    Cheap guard against fluent answers about a similar-sounding topic."""
+    words = WORD.findall(question)
+    if not words:
+        return True
+    stem = max(words, key=len)[:11].lower()  # 11: "haushaltsan" must not match "Haushaltsüberw..."
+    return any(stem in s.lower() for s in sources)
+
+
 def verify(state: State) -> State:
-    """Second, strict LLM pass: does the answer really address the question, and do the
-    cited sources support it? Catches 'related topic' answers (fluent, cited, but wrong)."""
+    """Second, strict pass: does the answer really address the question, do the cited sources
+    support it, and do they contradict each other? Catches 'related topic' answers."""
     g, hits = state["generated"], state["hits"]
     sentences = g.valid_sentences(len(hits))
     used = sorted({n for _, nums in sentences for n in nums})
+    if not key_term_grounded(state["question"], [hits[n - 1].text for n in used]):
+        return {"verified": False, "contradiction": False}
     try:
         v: Verdict = get_llm().with_structured_output(Verdict, method="json_schema").invoke([
             SystemMessage(VERIFY_SYSTEM),
@@ -161,17 +190,20 @@ def verify(state: State) -> State:
                 question=state["question"],
                 answer=" ".join(t for t, _ in sentences),
                 sources="\n\n".join(
-                    f"[{n}] Thema: {hits[n - 1].metadata.get('title', '')}\n{hits[n - 1].text}"
-                    for n in used
+                    f"[{n}] Thema: {hits[n - 1].citation}\n{hits[n - 1].text}" for n in used
                 ),
             )),
         ])
     except Exception:  # noqa: BLE001 - if the check itself fails, do not block the answer
-        return {"verified": True}
-    if any(hits[n - 1].status == "conflict" for n in used):
-        # known contradiction between sources: reporting both is the desired behaviour
-        return {"verified": v.supported_by_sources}
-    return {"verified": v.answers_question and v.supported_by_sources}
+        return {"verified": True, "contradiction": False}
+    # Conflicts are detected when knowledge is stored (memory update step) and kept as
+    # status="conflict". Pairwise LLM checks at question time were unreliable with a 7B model.
+    contradiction = (v.sources_contradict and len(used) > 1) or any(
+        hits[n - 1].status == "conflict" for n in used)
+    if contradiction:
+        # contradicting sources: reporting both (and flagging it) is the desired behaviour
+        return {"verified": v.supported_by_sources, "contradiction": True}
+    return {"verified": v.answers_question and v.supported_by_sources, "contradiction": False}
 
 
 def route_verified(state: State) -> str:
@@ -187,7 +219,7 @@ def cite(state: State) -> State:
         for n in nums:
             renumber.setdefault(n, len(renumber) + 1)
         marks = "".join(f"[{renumber[n]}]" for n in nums)
-        parts.append(f"{text.rstrip()} {marks}")
+        parts.append(f"{text.rstrip().replace(BS_SAFE, BS)} {marks}")
     citations = [
         Citation(
             n=new,
@@ -197,12 +229,15 @@ def cite(state: State) -> State:
             snippet=hits[old - 1].text[:300],
             status=hits[old - 1].status,
             valid_from=hits[old - 1].metadata.get("valid_from"),
+            anchor=hits[old - 1].metadata.get("anchor") or {},
+            source_file=hits[old - 1].metadata.get("source_file"),
         )
         for old, new in renumber.items()
     ]
     return {"result": Answer(
         question=state["question"], answer=" ".join(parts), abstained=False,
-        conflict=g.conflict or any(c.status == "conflict" for c in citations),
+        conflict=g.conflict or state.get("contradiction", False)
+        or any(c.status == "conflict" for c in citations),
         citations=citations,
         changes=_changes(renumber, hits, state["history"]),
     )}
@@ -210,10 +245,11 @@ def cite(state: State) -> State:
 
 def _changes(renumber: dict[int, int], hits: list[Hit], history: dict[int, Hit]) -> list[Change]:
     """Deterministic 'changed on ..., previously ...' notes for cited sources (no LLM needed)."""
-    out = []
+    out, seen = [], set()
     for old_n, new_n in renumber.items():
-        if old_n in history:
+        if old_n in history and history[old_n].source_id not in seen:
             prev = history[old_n]
+            seen.add(prev.source_id)
             out.append(Change(
                 n=new_n,
                 source_id=hits[old_n - 1].source_id,

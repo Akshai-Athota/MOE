@@ -4,18 +4,22 @@ Run locally:  uv run uvicorn hilde.api.main:app --reload
 Docs:         http://localhost:8000/docs
 """
 
-from fastapi import FastAPI, HTTPException
+from pathlib import Path
+from typing import Annotated
+
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from hilde import open_questions
 from hilde.answer import ask
-from hilde.config import get_settings
+from hilde.config import REPO_ROOT, get_settings
+from hilde.ingest import ingest_file
 from hilde.llm import ollama_status
 from hilde.loaders import load_personas, user_from_persona
-from hilde.schemas import Answer, Hit, User
+from hilde.schemas import Access, Answer, CaptureMeta, Hit, User
 from hilde.vectorstore import qdrant_status, search
 
-app = FastAPI(title="Hilde API", version="0.3.0")
+app = FastAPI(title="Hilde API", version="0.4.0")
 
 
 @app.get("/health")
@@ -73,3 +77,30 @@ def ask_endpoint(req: AskRequest) -> Answer:
 def open_questions_endpoint(assigned_to: str | None = None) -> list[dict]:
     """Questions Hilde could not answer; the interviewer (B6) uses these."""
     return open_questions.list_open(assigned_to)
+
+
+UPLOADS = REPO_ROOT / "var" / "uploads"
+
+
+@app.post("/ingest")
+def ingest_endpoint(
+    file: Annotated[UploadFile, File(description="audio/video, PDF, DOCX, MD, TXT or image")],
+    user_id: Annotated[str, Form(description="uploader persona id; becomes the knowledge owner")],
+    title: Annotated[str, Form(description="e.g. 'Sprachmemo Reinecke zur Haushaltsanmeldung'")],
+    access: Annotated[Access, Form()] = "internal",
+    category: Annotated[str, Form()] = "general",
+) -> dict:
+    """Upload a source: it is transcribed/parsed, redacted (§ 30 AO) and searchable at once."""
+    user = _user(user_id)
+    if access == "restricted" and user.role != "manager":
+        raise HTTPException(403, "only managers may store restricted knowledge")
+    name = Path(file.filename or "upload").name
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    path = UPLOADS / name
+    path.write_bytes(file.file.read())
+    meta = CaptureMeta(title=title, persona=user.id, department=user.department,
+                       access=access, category=category)
+    try:
+        return ingest_file(path, meta)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(400, str(exc)) from None

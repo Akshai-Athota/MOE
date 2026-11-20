@@ -17,7 +17,7 @@ RESTRICTED = {"F040", "F057", "F096", "F097"}
 def test_signing_limit_is_cited_with_change_history():
     a = ask("Bis zu welchem Betrag darf ich Bescheide selbst zeichnen?", user_from_persona("p13"))
     assert not a.abstained and "10.000" in a.answer
-    assert {"F013", "HV-2026-07"} & {c.source_id for c in a.citations}
+    assert any("F013" in c.source_id or "HV-2026-07" in c.source_id for c in a.citations)
     assert a.changes, "should report the change from 5.000 € (F012)"
 
 

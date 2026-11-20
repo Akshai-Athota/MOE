@@ -1,0 +1,13 @@
+Lindner: Hallo zusammen, ich zeige euch heute ein paar Dinge direkt am Bildschirm.
+
+Lindner: Also: Projektunterlagen liegen unter S:\Amt\Projekte\<Projektname>, nicht in Teams-Dateien. Ausnahme: Aufgaben der E-Akte im Planner.
+
+Lindner: Hier seht ihr die wichtigsten Tools, die wir täglich im Arbeitnehmerbereich einsetzen. Zunächst die KONSENS-Veranlagungsverfahren, dann die E-Akte (Pilot), Outlook, Teams, das PersonalPortal NI und die ELSTER-Eingangsliste. Sie sind unerlässlich für unseren täglichen Ablauf.
+
+Lindner: Hier seht ihr, dass bei IT-Problemen zuerst Marco Lindner anrufen. Das ist mein Name, und ich kann am 302-108 erreicht werden. Ich helfe von Montag bis Freitag von 7:30 bis 15:30 Uhr im Raum 0.08. Wenn ich nicht helfen kann, kann ihr ein Ticket beim zentralen IT-Servicedesk des Landes über das Intranet erstellen. Die Vertretung ist Nils Ahrens.
+
+Lindner: Also: Laufwerke: S:\Amt (amtsweite Ablage), T:\Team (nur eigenes Sachgebiet), H:\ (persönlich, 5 GB, keine Steuerdaten). Teams-Kanäle: 'FA HI – Allgemein' und je Sachgebiet ein Kanal.
+
+Lindner: Hier seht ihr die Anforderungen an unsere Passwörter. Sie müssen mindestens 12 Zeichen lang sein und nur bei Verdacht geändert werden. Sobald ihr das Fenster verlasst, drückt bitte Windows-Taste + L, um den Bildschirm zu sperren. Zum Schluss prüft uns die USB-Verschlüsselung, damit nur dienstliche, verschlüsselte USB-Sticks verwendet werden. Und falls ihr Verdacht habt, dass eine E-Mail Phishing ist, meldet sie bitte unverzüglich.
+
+Lindner: Das war's für heute. Bei Fragen meldet euch gern.
