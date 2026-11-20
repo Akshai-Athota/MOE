@@ -1,0 +1,21 @@
+id: p13
+name: Finn Albers
+department: VA
+role_de: Steuerinspektor (neu), Arbeitnehmerbereich
+role_en: New tax inspector, employee tax assessment
+grade: A9
+status: new
+tenure_years: 0           # Diplom-Finanzwirt (FH), just finished training
+start_date: 2026-12-01
+leave_date: null
+reports_to: p10
+deputy: null
+room: "2.05"
+phone_ext: "302-205"
+email: finn.albers@fa-hildesheim.example
+access_role: new_hire
+speaking_style: neugierig, unsicher bei Abläufen, fragt in Alltagssprache ("Wer unterschreibt das eigentlich?")
+voice: de_DE-karlsson-low
+blind_spots: [alles Hausinterne]
+interview_type: none      # asks questions; drives the onboarding demo
+mentor: p11

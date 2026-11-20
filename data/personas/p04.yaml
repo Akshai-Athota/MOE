@@ -1,0 +1,20 @@
+id: p04
+name: Tobias Brandt
+department: RB
+role_de: Sachbearbeiter Rechtsbehelfsstelle
+role_en: Appeals case worker (junior)
+grade: A9
+status: active
+tenure_years: 3
+start_date: 2023-10-01
+leave_date: null
+reports_to: p02
+deputy: p03
+room: "2.14"
+phone_ext: "302-214"
+email: tobias.brandt@fa-hildesheim.example
+access_role: employee
+speaking_style: locker, erinnert sich gut an die eigene Einarbeitung, erzählt was ihm am Anfang gefehlt hat
+voice: de_DE-karlsson-low
+blind_spots: [Gremien, Berichte an das LStN, Haushalt]
+interview_type: onboarding_retro      # "what I wish I had known"

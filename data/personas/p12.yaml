@@ -1,0 +1,21 @@
+id: p12
+name: Julia Nowak
+department: VA
+role_de: Sachbearbeiterin Arbeitnehmerbereich, Key-Userin E-Akte
+role_en: Employee tax case worker, e-file key user
+grade: A9
+status: active
+tenure_years: 5
+start_date: 2021-08-01
+leave_date: null
+reports_to: p10
+deputy: p11
+room: "2.04"
+phone_ext: "302-204"
+email: julia.nowak@fa-hildesheim.example
+access_role: employee
+speaking_style: motiviert, digitalaffin, erklärt Schritt für Schritt
+voice: de_DE-eva_k-x_low
+blind_spots: [Haushalt, Gremien]
+interview_type: screen_recording
+first_aider: true

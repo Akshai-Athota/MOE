@@ -1,0 +1,21 @@
+id: p11
+name: Hans-Jürgen Meyer
+department: VA
+role_de: Sachbearbeiter Arbeitnehmerbereich (Schwerpunkt Renten und doppelte Haushaltsführung)
+role_en: Employee tax case worker (pensions, double household)
+grade: A11
+status: leaving
+tenure_years: 38
+start_date: 1988-08-01
+leave_date: 2027-04-30    # Altersteilzeit, Freistellungsphase ab 01.05.2027
+reports_to: p10
+deputy: p12
+room: "2.03"
+phone_ext: "302-203"
+email: hans-juergen.meyer@fa-hildesheim.example
+access_role: leaver
+speaking_style: ruhig, erklärt geduldig, hat für alles eine Faustregel, misstraut der E-Akte
+voice: de_DE-thorsten-high
+blind_spots: [E-Akte-Bedienung, Teams]
+interview_type: long_handover          # SECOND LEAVER: tax know-how with unwritten rules
+mentor_of: p13

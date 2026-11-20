@@ -1,0 +1,92 @@
+# Question catalogue. Q## = onboarding questions from "Das Gedächtnis der Verwaltung" (PDF),
+# adapted to a Finanzamt where needed (note: adaptation). G## = everyday questions from all staff.
+# answer_type: relational -> graph/structured lookup, procedural -> vector search, both.
+# Used by: interviewer (gap check), coverage dashboard, eval/qa.yaml.
+
+questions:
+  # --- Organisation und Zuständigkeiten (org)
+  - {id: Q01, category: org, answer_type: relational, de: "Wer sind meine wichtigsten Ansprechpersonen?"}
+  - {id: Q02, category: org, answer_type: relational, de: "Wer entscheidet was?"}
+  - {id: Q03, category: org, answer_type: relational, de: "Wer muss bei welchen Themen eingebunden werden?"}
+  - {id: Q04, category: org, answer_type: relational, de: "Welche Fachbereiche arbeiten regelmäßig zusammen?"}
+  - {id: Q05, category: org, answer_type: relational, de: "Wer vertritt mich bei Urlaub oder Krankheit?"}
+  - {id: Q06, category: org, answer_type: both, de: "Welche Projekte haben aktuell Priorität?"}
+  - {id: Q07, category: org, answer_type: relational, de: "Welche Gremien sind für meine Themen relevant?", adaptation: "Amtsleiterbesprechung, Sachgebietsleiterrunde, Personalrat statt Rat/Ausschüsse"}
+  # --- Prozesse in der Verwaltung (process)
+  - {id: Q08, category: process, answer_type: procedural, de: "Wie laufen typische Abstimmungsprozesse ab?"}
+  - {id: Q09, category: process, answer_type: both, de: "Wer zeichnet Vorlagen frei?", adaptation: "Zeichnungsrechte für Bescheide und Berichte an das LStN"}
+  - {id: Q10, category: process, answer_type: both, de: "Wann muss der Datenschutz eingebunden werden?"}
+  - {id: Q11, category: process, answer_type: procedural, de: "Wie funktioniert das Mitzeichnungsverfahren?"}
+  - {id: Q12, category: process, answer_type: procedural, de: "Welche Fristen sind einzuhalten?"}
+  - {id: Q13, category: process, answer_type: procedural, de: "Welche Standardprozesse gibt es für Einkauf, Vergabe und Beauftragung?"}
+  - {id: Q14, category: process, answer_type: procedural, de: "Welche Prozesse sind schriftlich dokumentiert und wo finde ich sie?"}
+  # --- Projektarbeit (project)
+  - {id: Q15, category: project, answer_type: both, de: "Welche Projekte laufen derzeit?"}
+  - {id: Q16, category: project, answer_type: procedural, de: "Welche Ziele wurden politisch beschlossen?", adaptation: "Zielvereinbarung mit dem LStN"}
+  - {id: Q17, category: project, answer_type: procedural, de: "Welche Projektstruktur wird genutzt (klassisch, agil, Kanban)?"}
+  - {id: Q18, category: project, answer_type: procedural, de: "Wie werden Aufgaben dokumentiert?"}
+  - {id: Q19, category: project, answer_type: procedural, de: "Welche Tools werden genutzt (Planner, Jira, Trello, Excel etc.)?"}
+  - {id: Q20, category: project, answer_type: procedural, de: "Wie wird über Projektfortschritte berichtet?"}
+  - {id: Q21, category: project, answer_type: procedural, de: "Welche regelmäßigen Termine gibt es?"}
+  # --- Geförderte Projekte (program)
+  - {id: Q22, category: program, answer_type: procedural, de: "Welche Förderbedingungen gelten?", adaptation: "Modernisierungsfonds Steuerverwaltung (PR2)"}
+  - {id: Q23, category: program, answer_type: relational, de: "Welche Fördermittelgeber sind beteiligt?"}
+  - {id: Q24, category: program, answer_type: procedural, de: "Welche Berichtspflichten bestehen?"}
+  - {id: Q25, category: program, answer_type: procedural, de: "Welche Fristen gibt es?"}
+  - {id: Q26, category: program, answer_type: relational, de: "Welche Projektpartner sind beteiligt?"}
+  - {id: Q27, category: program, answer_type: procedural, de: "Welche Ergebnisse müssen erreicht werden?"}
+  - {id: Q28, category: program, answer_type: relational, de: "Welche Maßnahmen hängen voneinander ab?"}
+  # --- Finanzen und Beschaffung (finance)
+  - {id: Q29, category: finance, answer_type: procedural, de: "Welches Budget steht zur Verfügung?"}
+  - {id: Q30, category: finance, answer_type: relational, de: "Wer ist für das Budget verantwortlich?"}
+  - {id: Q31, category: finance, answer_type: procedural, de: "Welche Vergabeverfahren sind noch notwendig?"}
+  - {id: Q32, category: finance, answer_type: procedural, de: "Welche Rahmenverträge existieren bereits?"}
+  - {id: Q33, category: finance, answer_type: relational, de: "Wer prüft Rechnungen?"}
+  - {id: Q34, category: finance, answer_type: procedural, de: "Wie läuft der Haushaltsanmeldeprozess für das nächste Haushaltsjahr?"}
+  # --- IT und Fachverfahren (it)
+  - {id: Q35, category: it, answer_type: procedural, de: "Welche Software nutze ich täglich?"}
+  - {id: Q36, category: it, answer_type: relational, de: "Wo bekomme ich Unterstützung bei technischen Problemen?"}
+  - {id: Q37, category: it, answer_type: procedural, de: "Welche Netzlaufwerke und Kommunikationskanäle sind relevant?"}
+  - {id: Q38, category: it, answer_type: procedural, de: "Welche Fachverfahren werden eingesetzt?"}
+  - {id: Q39, category: it, answer_type: procedural, de: "Wo liegen Projektunterlagen?"}
+  - {id: Q40, category: it, answer_type: procedural, de: "Welche Passwort- und Sicherheitsregeln gelten?"}
+  # --- Politische Ebene (oversight)
+  - {id: Q41, category: oversight, answer_type: relational, de: "Welche Ausschüsse befassen sich mit meinen Themen?", adaptation: "LStN-Referate, Finanzministerium, Personalrat"}
+  - {id: Q42, category: oversight, answer_type: relational, de: "Welche Fraktionen haben besondere Interessen an meinem Bereich?", adaptation: "Personalrat, Gleichstellung, SBV; Landtagsanfragen"}
+  - {id: Q43, category: oversight, answer_type: procedural, de: "Welche Beschlüsse existieren bereits?", adaptation: "Hausverfügungen, Dienstvereinbarungen"}
+  - {id: Q44, category: oversight, answer_type: procedural, de: "Welche politischen Sensibilitäten sollte ich kennen?"}
+  - {id: Q45, category: oversight, answer_type: procedural, de: "Welche Themen werden aktuell öffentlich diskutiert?"}
+  # --- Kommunikation (communication)
+  - {id: Q46, category: communication, answer_type: relational, de: "Wer muss über wichtige Dinge informiert werden?"}
+  - {id: Q47, category: communication, answer_type: procedural, de: "Wann wird die Presse eingebunden?"}
+  - {id: Q48, category: communication, answer_type: relational, de: "Wer gibt Pressemitteilungen frei?"}
+  - {id: Q49, category: communication, answer_type: procedural, de: "Welche Kommunikationskanäle werden genutzt?"}
+  - {id: Q50, category: communication, answer_type: procedural, de: "Wie werden Bürgerinnen und Bürger beteiligt?", adaptation: "Servicestelle, ELSTER, Bürgersprechstunde"}
+  - {id: Q51, category: communication, answer_type: procedural, de: "Welche Themen werden per Mail, Teams oder persönlich abgestimmt?"}
+  # --- Praktische Fragen für die ersten Wochen (practical)
+  - {id: Q52, category: practical, answer_type: procedural, de: "Was sollte ich in den ersten 30 Tagen verstehen?"}
+  - {id: Q53, category: practical, answer_type: procedural, de: "Welche Dokumente sollte ich unbedingt lesen?"}
+  - {id: Q54, category: practical, answer_type: procedural, de: "Welche Termine sollte ich regelmäßig besuchen?"}
+  - {id: Q55, category: practical, answer_type: relational, de: "Wer kann mir informell Dinge erklären?"}
+  - {id: Q56, category: practical, answer_type: procedural, de: "Wo gab es in der Vergangenheit Schwierigkeiten?"}
+  - {id: Q57, category: practical, answer_type: procedural, de: "Welche ungeschriebenen Regeln gibt es?"}
+
+  # --- Everyday staff questions (general) – asked by any employee
+  - {id: G01, category: general, answer_type: procedural, de: "Wo kann ich parken und wie bekomme ich einen Parkausweis?"}
+  - {id: G02, category: general, answer_type: procedural, de: "Wann hat die Kantine geöffnet?"}
+  - {id: G03, category: general, answer_type: procedural, de: "Wie beantrage ich Urlaub?"}
+  - {id: G04, category: general, answer_type: procedural, de: "Was muss ich tun, wenn ich krank bin?"}
+  - {id: G05, category: general, answer_type: procedural, de: "Welche Gleitzeitregeln gelten?"}
+  - {id: G06, category: general, answer_type: procedural, de: "Darf ich im Homeoffice arbeiten?"}
+  - {id: G07, category: general, answer_type: relational, de: "Wen rufe ich bei IT-Problemen an?"}
+  - {id: G08, category: general, answer_type: procedural, de: "Gibt es ein Jobticket?"}
+  - {id: G09, category: general, answer_type: procedural, de: "Wo stelle ich mein Fahrrad ab?"}
+  - {id: G10, category: general, answer_type: procedural, de: "Was mache ich, wenn ich meinen Dienstausweis verloren habe?"}
+  - {id: G11, category: general, answer_type: relational, de: "Wie erreiche ich den Personalrat?"}
+  - {id: G12, category: general, answer_type: procedural, de: "Wann wird die Hauspost verteilt?"}
+  - {id: G13, category: general, answer_type: relational, de: "Wer sind die Ersthelfer?"}
+  - {id: G14, category: general, answer_type: procedural, de: "Gibt es Ladesäulen für E-Autos?"}
+  - {id: G15, category: general, answer_type: procedural, de: "Wie buche ich einen Besprechungsraum?"}
+  # --- Public questions (public) – answerable for anyone
+  - {id: G16, category: public, answer_type: procedural, de: "Wann hat das Finanzamt für Bürger geöffnet?"}
+  - {id: G17, category: public, answer_type: procedural, de: "Wie lautet die Adresse und Telefonnummer des Finanzamts?"}

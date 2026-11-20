@@ -1,0 +1,22 @@
+id: p05
+name: Wolfgang Reinecke
+department: GS
+role_de: Leiter der Geschäftsstelle
+role_en: Head of central services
+grade: A12
+status: leaving
+tenure_years: 41          # 39 of them in Hildesheim
+start_date: 1985-08-01
+leave_date: 2027-01-31    # retirement
+reports_to: p01
+deputy: p06
+room: "1.05"
+phone_ext: "302-105"
+email: wolfgang.reinecke@fa-hildesheim.example
+access_role: leaver
+speaking_style: >
+  ausschweifend, viele Anekdoten ("damals beim Umzug 1998 ..."), nennt das LStN gern noch "die OFD",
+  kennt jede ungeschriebene Regel, springt zwischen Themen, erwähnt versehentlich echte Steuerfälle (→ Redaction)
+voice: de_DE-thorsten_emotional-medium
+blind_spots: [Datenschutz-Details, E-Akte]
+interview_type: long_handover          # MAIN DEMO LEAVER: 2–3 interviews, 8–12 min each + whiteboard photo
