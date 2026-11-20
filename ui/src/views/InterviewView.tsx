@@ -166,7 +166,7 @@ export default function InterviewView() {
             <Spinner /> Finn mischt die Karten …
           </div>
         ) : (
-          <div className="grid max-w-[1040px] grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
+          <div className="grid w-full grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-5 lg:gap-6">
             {deck.map((c, i) => (
               <DeckCard key={c.card} c={c} index={i} onPick={() => setOpen(c)} />
             ))}
