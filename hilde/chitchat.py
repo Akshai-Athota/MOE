@@ -65,6 +65,16 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
         r"are you (a human|an ai|a bot|real))( hilde)?$")),
 ]
 
+# Questions about Hilde's own whereabouts/contact details, tolerant of grammar and typos
+# ("wo bist deine büro?", "what's your phone number"). Searched anywhere in the message, but only
+# used when the message has no first-person word, so "Wo ist mein Büro?" stays a real question.
+_SELF_LOCATION = re.compile(
+    r"\b(dein|deine|deinen|deinem|deiner|your)\b.*\b(büro|raum|zimmer|schreibtisch|arbeitsplatz|platz|"
+    r"telefon\w*|durchwahl|nummer|e ?mail|adresse|office|room|desk|phone|extension|number|address)\b"
+    r"|\bwo (bist|sitzt|arbeitest|wohnst|steckst) du\b|\bwhere (are|do) you\b"
+)
+_FIRST_PERSON = re.compile(r"\b(ich|mein\w*|mich|mir|i|my|me|mine)\b")
+
 MAX_LLM_WORDS = 8  # longer messages are almost always real questions; skip the extra LLM call
 
 
@@ -84,6 +94,8 @@ def classify(question: str, use_llm: bool = True) -> Kind:
     for kind, pattern in _PATTERNS:
         if pattern.match(norm):
             return kind  # type: ignore[return-value]
+    if _SELF_LOCATION.search(norm) and not _FIRST_PERSON.search(norm):
+        return "where_are_you"
     if not use_llm or len(norm.split()) > MAX_LLM_WORDS:
         return "none"
     try:
@@ -93,6 +105,15 @@ def classify(question: str, use_llm: bool = True) -> Kind:
         return out.kind
     except Exception:  # noqa: BLE001 - on failure fall back to the normal QA path
         return "none"
+
+
+def speaks_about_itself(sentences: list[str]) -> bool:
+    """True if an answer talks about Hilde in the first person ("Mein Büro ist ...").
+
+    Sources never describe Hilde, so such a sentence is the asker's own data (source [1])
+    misattributed to Hilde. Used as a deterministic backstop after generation.
+    """
+    return any(_FIRST_PERSON.search(_normalize(s)) for s in sentences)
 
 
 def reply(kind: str, first_name: str = "", lang: str = "de") -> str:

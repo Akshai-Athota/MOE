@@ -19,6 +19,11 @@ from hilde.schemas import User
     ("wo bist du?", "where_are_you"),
     ("Are you a bot?", "about_hilde"),
     ("Wo ist mein Büro?", "none"),
+    ("wo bist deine büro?", "where_are_you"),
+    ("Was ist deine Telefonnummer?", "where_are_you"),
+    ("what's your phone number", "where_are_you"),
+    ("Kannst du mir sagen, wo mein Büro ist?", "none"),
+    ("Wo sitzt Herr Reinecke?", "none"),
     ("Hallo, wie beantrage ich Urlaub?", "none"),
     ("Wer ist meine Vertretung?", "none"),
     ("", "none"),
@@ -60,3 +65,13 @@ def test_chitchat_replies_in_question_language():
     assert en["lang"] == "en" and en["result"].answer.startswith("I'm doing well")
     assert de["lang"] == "de" and de["result"].answer.startswith("Mir geht's gut")
     assert chitchat({"question": "Who is my deputy?", "user": user}) == {"lang": "en"}
+
+
+def test_first_person_answer_is_caught():
+    from hilde.answer import Generated, Sentence, route_generated
+    from tests.test_answer_unit import _hit
+    hits = [_hit("p01")]
+    bad = Generated(answerable=True, sentences=[Sentence(text="Mein Büro befindet sich in Raum 2.04.", sources=[1])])
+    ok = Generated(answerable=True, sentences=[Sentence(text="Dein Büro ist Raum 2.04.", sources=[1])])
+    assert route_generated({"hits": hits, "generated": bad}) == "self"
+    assert route_generated({"hits": hits, "generated": ok}) == "verify"

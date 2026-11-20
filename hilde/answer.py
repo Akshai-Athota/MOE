@@ -161,9 +161,20 @@ def generate(state: State) -> State:
 def route_generated(state: State) -> str:
     g = state["generated"]
     # an answer without at least one sentence backed by a real source is not allowed
-    if not g.answerable or not g.valid_sentences(len(state["hits"])):
+    sentences = g.valid_sentences(len(state["hits"]))
+    if not g.answerable or not sentences:
         return "abstain"
+    # "Mein Büro ist in Raum 2.04" = the asker's data told as if it were Hilde's
+    if smalltalk.speaks_about_itself([t for t, _ in sentences]):
+        return "self"
     return "verify"
+
+
+def about_self(state: State) -> State:
+    """Fixed reply when the model answered a question about Hilde with someone else's data."""
+    first = (state["user"].name or "").split(" ")[0]
+    return {"result": Answer(question=state["question"], abstained=False,
+                             answer=smalltalk.reply("where_are_you", first, state.get("lang", "de")))}
 
 
 def verify(state: State) -> State:
@@ -308,13 +319,15 @@ def build_graph():
     g.add_node("verify", verify)
     g.add_node("cite", cite)
     g.add_node("abstain", abstain)
+    g.add_node("self", about_self)
     g.set_entry_point("chitchat")
     g.add_conditional_edges("chitchat", route_chitchat, {"done": END, "retrieve": "retrieve"})
     g.add_edge("retrieve", "generate")
-    g.add_conditional_edges("generate", route_generated, {"verify": "verify", "abstain": "abstain"})
+    g.add_conditional_edges("generate", route_generated, {"verify": "verify", "abstain": "abstain", "self": "self"})
     g.add_conditional_edges("verify", route_verified, {"cite": "cite", "abstain": "abstain"})
     g.add_edge("cite", END)
     g.add_edge("abstain", END)
+    g.add_edge("self", END)
     return g.compile()
 
 
