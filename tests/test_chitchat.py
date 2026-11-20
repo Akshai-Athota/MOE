@@ -32,15 +32,38 @@ def test_classify_regex(text, kind):
     assert classify(text, use_llm=False) == kind
 
 
-def test_reply_uses_first_name():
-    assert reply("greeting", "Anna").startswith("Hallo Anna!")
-    assert reply("greeting").startswith("Hallo!")
+def test_reply_never_uses_asker_name():
+    assert reply("greeting") == "Hallo! Schön, dass du da bist. Was kann ich für dich tun?"
+    assert reply("greeting", "en") == "Hi! Nice to see you. What can I do for you?"
+
+
+@pytest.mark.parametrize("text,name", [
+    ("hello julia", "Julia"),
+    ("Guten Morgen Peter!", "Peter"),
+    ("danke julia", "Julia"),
+    ("hello hilde", None),
+    ("Hallo zusammen", None),
+    ("hi there", None),
+    ("hello", None),
+    ("Hallo, wie beantrage ich Urlaub?", None),
+])
+def test_addressed_as(text, name):
+    from hilde.chitchat import addressed_as
+    assert addressed_as(text) == name
+
+
+def test_wrong_name_is_corrected():
+    assert classify("hello julia", use_llm=False) == "greeting"
+    assert reply("greeting", "en", wrong_name="Julia") == (
+        "Hi! By the way, I'm Hilde, not Julia. Nice to see you. What can I do for you?")
+    assert reply("thanks", "de", wrong_name="Julia") == (
+        "Gern geschehen! Ich bin übrigens Hilde, nicht Julia. Melde dich einfach, wenn du noch etwas brauchst.")
 
 
 def test_chitchat_node_short_circuits():
     user = User(id="p01", name="Anna Beispiel", role="employee", department="GS")
     out = chitchat({"question": "how are you", "user": user})
-    assert not out["result"].abstained and "Anna" in out["result"].answer
+    assert not out["result"].abstained and "Anna" not in out["result"].answer
     assert route_chitchat({**out}) == "done"
 
 
