@@ -1,17 +1,17 @@
-# Farewell celebration ("Abschiedsfeier mit Hilde"): quiz bank + reward settings. ALL FICTIONAL.
+# Farewell celebration ("Abschiedsfeier mit Q"): quiz bank + reward settings. ALL FICTIONAL.
 # The UI's "Celebration" tab generates a quiz from this file (later: from live claims of the leaver).
 #
 # Idea: knowledge capture as a farewell ritual, not a documentation chore.
 #   T-12 weeks  weekly 10-min story interviews  ->  T-2 weeks legacy booklet  ->  retirement day quiz.
 #   funny questions: colleagues guess, the retiree reveals the story (keeps them in the spotlight).
-#   gap questions:   nobody knows -> the retiree answers -> Hilde records it live as a new claim.
+#   gap questions:   nobody knows -> the retiree answers -> Q records it live as a new claim.
 # Rules: every `funny` answer must come from a fact the leaver owns or knows (validator checks this);
 #        every `gap` question must point to a planted gap whose who_to_ask is the leaver.
 
 settings:
   modes:
-    party: {audience: colleagues in teams, host: Hilde (screen + voice), duration_min: 20}
-    solo:  {audience: retiree alone with Hilde, host: Hilde (chat or voice), duration_min: 15}
+    party: {audience: colleagues in teams, host: Q (screen + voice), duration_min: 20}
+    solo:  {audience: retiree alone with Q, host: Q (chat or voice), duration_min: 15}
   mix: {funny: 3, gap: 1}           # after every 3 funny questions, one gap question
   scoring:
     teams: true                     # colleagues compete in teams; points only for colleagues
@@ -22,7 +22,7 @@ settings:
     requires_confirmation: true     # retiree confirms the captured claim after the quiz
   ending:
     legacy_booklet: true            # "Wissen von {name}": PDF handbook generated from the leaver's claims
-    lasting_credit: true            # Hilde keeps citing the leaver by name in future answers
+    lasting_credit: true            # Q keeps citing the leaver by name in future answers
 
 rewards:
   principle: Anerkennung zuerst, Geschenk als Zeichen – keine Punkte für die Ruheständler.

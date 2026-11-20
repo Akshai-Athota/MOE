@@ -1,4 +1,4 @@
-# SPEC: Hilde, the memory of Finanzamt Hildesheim
+# SPEC: Q, the memory of Finanzamt Hildesheim
 
 **Read this file before editing anything.** It is the contract between data (A), the AI pipeline (B) and the app (C).
 
@@ -7,7 +7,7 @@
 > It was invented for a hackathon. Do not present it as how the real authority works.
 
 ## 1. The product in one sentence
-Hilde is an AI colleague that never retires. It interviews employees who are leaving, guides new hires through onboarding,
+Q is an AI colleague that never retires. It interviews employees who are leaving, guides new hires through onboarding,
 answers everyday questions from all staff (parking, canteen, leave and so on), and keeps its knowledge current
 (new, same, update, conflict) with a citation for every answer and role-based guardrails.
 
@@ -27,6 +27,7 @@ answers everyday questions from all staff (parking, canteen, leave and so on), a
 | `data/raw/` | generated | `docs/ audio/ images/ video/`; the output of generators |
 | `data/manifest.jsonl` | C (builder) | one line per generated file |
 | `eval/` | B | `qa.yaml`, derived from `facts.question_ids` + `planted_gaps` |
+| `ui/` | C | React app (see `ui/README.md`); mock engine until B's API exists |
 
 ## 3. IDs
 
@@ -113,10 +114,10 @@ Optional for leavers: `motivation, interview_strategy, interests, retirement_pla
 
 ## 6. Planted test cases (do not "fix" these)
 Listed under `plants:` in `facts.yaml`: superseded rules, conflicts between sources, restricted content,
-taxpayer data for redaction, and `planted_gaps` (questions with **no** source, so Hilde must say "I don't know" and name who to ask).
+taxpayer data for redaction, and `planted_gaps` (questions with **no** source, so Q must say "I don't know" and name who to ask).
 
-## 7. UI backlog (do not forget)
-The app needs these tabs or modes: **Interview** · **Onboarding** · **Ask Hilde** · **Celebration ("Abschied")** · Admin/Coverage.
+## 7. UI (built: `ui/`; the Celebration tab is implemented as "Abschied")
+The app needs these tabs or modes: **Interview** · **Onboarding** · **Ask Q** · **Celebration ("Abschied")** · Admin/Coverage.
 
 **Celebration tab** (required by the jury feedback: win over retiring staff):
 1. Pick a leaver → party or solo mode (taken from `celebration_preference`).

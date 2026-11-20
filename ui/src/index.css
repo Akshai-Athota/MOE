@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #f4f2ff;
+  --color-brand-100: #eae6ff;
+  --color-brand-200: #d5ccff;
+  --color-brand-300: #b6a6fe;
+  --color-brand-400: #8f78fc;
+  --color-brand-500: #573cfa;
+  --color-brand-600: #4a2fe6;
+  --color-brand-700: #3d24c4;
+  --color-brand-800: #2f1b98;
+  --color-brand-900: #21136b;
+
+  --color-ink: #17132b;
+  --color-muted: #6e6a85;
+  --color-line: #ebe8f5;
+  --color-canvas: #f6f5fb;
+
+  --color-coral-50: #fff3ef;
+  --color-coral-100: #ffe1d7;
+  --color-coral-500: #ff7a59;
+  --color-coral-600: #f05d39;
+  --color-mint-50: #e9faf4;
+  --color-mint-100: #c9f2e3;
+  --color-mint-500: #12b886;
+  --color-mint-700: #0b7e5c;
+  --color-amber-50: #fff7e6;
+  --color-amber-100: #ffe9bd;
+  --color-amber-500: #f5a524;
+  --color-amber-700: #a86a00;
+  --color-rose-50: #fff0f4;
+  --color-rose-100: #ffd9e3;
+  --color-rose-500: #e5486f;
+  --color-rose-700: #b02a4e;
+  --color-sky-50: #eef8ff;
+  --color-sky-500: #2fa8f5;
+
+  --shadow-soft: 0 1px 2px rgb(23 19 43 / 0.04), 0 8px 24px -8px rgb(23 19 43 / 0.08);
+  --shadow-lift: 0 2px 4px rgb(23 19 43 / 0.04), 0 18px 40px -12px rgb(87 60 250 / 0.28);
+  --shadow-glow: 0 10px 30px -6px rgb(87 60 250 / 0.45);
+}
+
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--color-brand-200); }
+
+.scroll-thin { scrollbar-width: thin; scrollbar-color: var(--color-brand-200) transparent; }
+
+.bg-hero {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(255 122 89 / 0.35) 0%, transparent 45%),
+    radial-gradient(90% 120% at 0% 100%, rgb(143 120 252 / 0.6) 0%, transparent 55%),
+    linear-gradient(135deg, #573cfa 0%, #4a2fe6 55%, #3d24c4 100%);
+}
+.bg-party {
+  background:
+    radial-gradient(80% 120% at 0% 0%, rgb(255 180 160 / 0.55) 0%, transparent 50%),
+    radial-gradient(90% 120% at 100% 100%, rgb(87 60 250 / 0.9) 0%, transparent 60%),
+    linear-gradient(135deg, #ff7a59 0%, #c04de0 50%, #573cfa 100%);
+}
+.bg-dots {
+  background-image: radial-gradient(rgb(87 60 250 / 0.12) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+@keyframes wave { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+.wave-bar { animation: wave 1s ease-in-out infinite; transform-origin: center; }
+
+@keyframes blink { 50% { opacity: 0; } }
+.caret::after { content: "▍"; margin-left: 1px; color: var(--color-brand-500); animation: blink 1s steps(1) infinite; }
+
+@media print {
+  body * { visibility: hidden; }
+  #booklet, #booklet * { visibility: visible; }
+  #booklet { position: absolute; inset: 0; }
+}

@@ -1382,8 +1382,8 @@ facts:
   - id: F105
     category: general
     topic: Verabschiedung in den Ruhestand
-    de: "Wer in den Ruhestand geht, wird von der Vorsteherin mit Urkunde verabschiedet. Den Empfang organisiert die Geschäftsstelle; ein Geschenk kommt meist aus einer Sammlung unter den Kolleginnen und Kollegen. Seit 2026 bietet Hilde eine Abschiedsfeier mit Quiz an – als Party mit allen oder solo."
-    en: "Retirees get a certificate from the head; central services hosts; gift from colleagues' collection; Hilde offers a farewell quiz (party or solo)."
+    de: "Wer in den Ruhestand geht, wird von der Vorsteherin mit Urkunde verabschiedet. Den Empfang organisiert die Geschäftsstelle; ein Geschenk kommt meist aus einer Sammlung unter den Kolleginnen und Kollegen. Seit 2026 bietet Q eine Abschiedsfeier mit Quiz an – als Party mit allen oder solo."
+    en: "Retirees get a certificate from the head; central services hosts; gift from colleagues' collection; Q offers a farewell quiz (party or solo)."
     owner: p01
     also_known_by: [p05, p08]
     department: ALL
@@ -1408,14 +1408,14 @@ facts:
 # =========================== PLANTED TEST CASES ===========================
 plants:
   superseded:
-    - {old: F012, new: F013, demo: "Zeichnungsgrenze 5.000 € → 10.000 € (Hilde zeigt 'geändert am 01.07.2026, vorher 5.000 €')"}
+    - {old: F012, new: F013, demo: "Zeichnungsgrenze 5.000 € → 10.000 € (Q zeigt 'geändert am 01.07.2026, vorher 5.000 €')"}
     - {old: F077, new: F078, demo: "Parken: Warteliste & kostenlos → Losverfahren & 10 €/Monat"}
   conflicts:
-    - {facts: [F034, F035], question: Q25, truth: F035, resolution: "Förderbescheid nennt Projektende 30.06.2027; Hartmann verwechselt mit Haushaltsjahr. Hilde soll Konflikt melden und Hartmann + Krüger um Klärung bitten."}
-    - {facts: [F062, F063], question: Q48, truth: F062, resolution: "Hausverfügung gilt; gelebte Praxis widerspricht. Hilde nennt Regel und weist auf abweichende Praxis hin."}
+    - {facts: [F034, F035], question: Q25, truth: F035, resolution: "Förderbescheid nennt Projektende 30.06.2027; Hartmann verwechselt mit Haushaltsjahr. Q soll Konflikt melden und Hartmann + Krüger um Klärung bitten."}
+    - {facts: [F062, F063], question: Q48, truth: F062, resolution: "Hausverfügung gilt; gelebte Praxis widerspricht. Q nennt Regel und weist auf abweichende Praxis hin."}
     - {facts: [F080, F081], question: G02, truth: F081, resolution: "Intranet veraltet; neuere Aussage (valid_from 2026-08-01) gewinnt, Intranet-Seite als 'veraltet' markieren."}
   restricted: [F040, F057, F096, F097]   # employee/new_hire must NOT get these; manager must
-  # Questions with NO source in the initial data -> Hilde must say "I don't know" + who to ask.
+  # Questions with NO source in the initial data -> Q must say "I don't know" + who to ask.
   planted_gaps:
     - id: Q34
       who_to_ask: p05
@@ -1423,7 +1423,7 @@ plants:
       live_demo_answer_de: "Mitte Februar fragt Frau Krüger per Mail alle Sachgebietsleitungen nach ihrem Bedarf, Frist 15. März. Sie sammelt alles in S:\\Amt\\Haushalt\\Anmeldung_<Jahr>.xlsx, ich prüfe und kürze, die Vorsteherin zeichnet, und bis 30. April geht die Anmeldung ans LStN."
     - id: G14
       who_to_ask: p05
-      note: "E-Ladesäulen: nobody documented anything. Hilde should route to Geschäftsstelle."
+      note: "E-Ladesäulen: nobody documented anything. Q should route to Geschäftsstelle."
       live_demo_answer_de: "Ladesäulen gibt es nicht. 2025 hatten wir zwei beantragt, das LStN hat abgelehnt, weil das Gebäude angemietet ist. Der Antrag liegt unter S:\\Amt\\Bau\\Ladesaeulen_2025."
     - id: X01
       question_de: "Wer vertritt die Datenschutzkoordinatorin?"
