@@ -1,0 +1,20 @@
+id: p07
+name: Marco Lindner
+department: GS
+role_de: IT-Koordinator (IuK-Betreuung)
+role_en: IT coordinator
+grade: E10
+status: active
+tenure_years: 7
+start_date: 2019-06-01
+leave_date: null
+reports_to: p05
+deputy: p09
+room: "0.08"
+phone_ext: "302-108"
+email: marco.lindner@fa-hildesheim.example
+access_role: employee
+speaking_style: technisch, ungeduldig mit "Haben Sie es neu gestartet?", nutzt Anglizismen
+voice: de_DE-pavoque-low
+blind_spots: [Haushalt, Gremien]
+interview_type: screen_recording       # video with voice-over

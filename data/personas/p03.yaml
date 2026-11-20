@@ -1,0 +1,20 @@
+id: p03
+name: Leyla Demir
+department: RB
+role_de: Sachbearbeiterin Rechtsbehelfsstelle
+role_en: Appeals case worker
+grade: A11
+status: active
+tenure_years: 9
+start_date: 2017-08-01
+leave_date: null
+reports_to: p02
+deputy: p04
+room: "2.13"
+phone_ext: "302-213"
+email: leyla.demir@fa-hildesheim.example
+access_role: employee
+speaking_style: pragmatisch, schnell, gibt konkrete Tipps, nennt Kolleginnen beim Vornamen
+voice: de_DE-kerstin-low
+blind_spots: [Haushalt, Projektfinanzierung]
+interview_type: tips_and_tricks

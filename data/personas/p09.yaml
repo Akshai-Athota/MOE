@@ -1,0 +1,21 @@
+id: p09
+name: Nils Ahrens
+department: GS
+role_de: Leiter Servicestelle (Infothek) und Öffentlichkeitsarbeit
+role_en: Front desk lead and communications
+grade: A9
+status: active
+tenure_years: 6
+start_date: 2020-08-01
+leave_date: null
+reports_to: p05
+deputy: p08
+room: "0.02"
+phone_ext: "302-102"
+email: nils.ahrens@fa-hildesheim.example
+access_role: employee
+speaking_style: freundlich, bürgernah, erzählt von Situationen an der Infothek
+voice: de_DE-karlsson-low
+blind_spots: [Haushalt, IT-Sicherheit]
+interview_type: email_thread
+first_aider: true

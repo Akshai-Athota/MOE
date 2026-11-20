@@ -1,0 +1,20 @@
+id: p01
+name: Dr. Katrin Wöhler
+department: AL
+role_de: Vorsteherin des Finanzamts
+role_en: Head of the tax office
+grade: A16
+status: active
+tenure_years: 22          # in tax administration; head of this office since 2019
+start_date: 2004-08-01
+leave_date: null
+reports_to: LStN
+deputy: p10               # ständige Vertreterin
+room: "3.01"
+phone_ext: "302-100"
+email: katrin.woehler@fa-hildesheim.example
+access_role: manager
+speaking_style: strukturiert, knapp, denkt in Prioritäten und Risiken, sagt oft "Am Ende zählt, was beim Bürger ankommt."
+voice: de_DE-eva_k-x_low
+blind_spots: [Details der IT-Konfiguration, Kantinenzeiten]
+interview_type: short_priorities   # 3-min interview on priorities and decision rights

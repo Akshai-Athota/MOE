@@ -1,0 +1,1327 @@
+# SINGLE SOURCE OF TRUTH for all synthetic data. ALL FICTIONAL unless category=public.
+# Schema: see SPEC.md §5. Personas are derived from `owner` / `also_known_by`.
+# Defaults (if omitted): also_known_by: [], valid_to: null, status: current, supersedes: null, rule: null, plant: null
+
+meta:
+  as_of: 2026-11-20
+  version: 1
+
+facts:
+  # =========================== ORG ===========================
+  - id: F001
+    category: org
+    topic: Amtsleitung und Vertretung
+    de: "Das Finanzamt wird von der Vorsteherin Dr. Katrin Wöhler geleitet. Ihre ständige Vertreterin ist Petra Schulte, Sachgebietsleiterin Arbeitnehmerbereich."
+    en: "The office is headed by Dr. Katrin Wöhler; her permanent deputy is Petra Schulte."
+    owner: p01
+    also_known_by: [p05, p10]
+    department: AL
+    access: internal
+    valid_from: 2019-10-01
+    question_ids: [Q01, Q02, Q05]
+    sources_planned: [doc, interview, image]
+
+  - id: F002
+    category: org
+    topic: Organigramm
+    de: "Das Amt ist in drei Bereiche gegliedert: Rechtsbehelfsstelle (Leitung Jens Hartmann), Geschäftsstelle & Servicestelle (Leitung Wolfgang Reinecke) und Arbeitnehmerbereich (Leitung Petra Schulte). Alle drei berichten an die Vorsteherin."
+    en: "Three units: appeals (Hartmann), central services (Reinecke), employee tax (Schulte); all report to the head."
+    owner: p05
+    also_known_by: [p01]
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [Q01, Q04]
+    sources_planned: [image, doc]
+
+  - id: F003
+    category: org
+    topic: Entscheidungsbefugnisse
+    de: "Fachliche Entscheidungen trifft die jeweilige Sachgebietsleitung. Personal- und Organisationsentscheidungen trifft die Vorsteherin. Beschaffungen bis 25.000 € entscheidet die Leitung der Geschäftsstelle."
+    en: "Unit heads decide on subject matter; the head decides HR/organisation; central services head decides purchases up to €25k."
+    owner: p01
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2025-01-01
+    rule: HV-2025-02
+    question_ids: [Q02]
+    sources_planned: [interview, doc]
+
+  - id: F004
+    category: org
+    topic: Vertretungsregeln
+    de: "Vertretungen: Hartmann ↔ Demir, Demir ↔ Brandt, Reinecke → Krüger, Krüger → Reinecke, Lindner → Ahrens, Vogt (Personal) → Krüger, Ahrens → Vogt, Schulte → Meyer, Meyer ↔ Nowak. Neue Kolleginnen und Kollegen erhalten in den ersten sechs Monaten keine eigene Vertretungsfunktion."
+    en: "Deputy pairs as listed; new hires have no deputy role in the first six months."
+    owner: p05
+    also_known_by: [p10]
+    department: ALL
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q05]
+    sources_planned: [doc]
+
+  - id: F005
+    category: org
+    topic: Vertretungsplan Ablage
+    de: "Der Vertretungsplan liegt unter S:\\Amt\\Organisation\\Vertretungsplan.xlsx und wird von der Geschäftsstelle gepflegt. Urlaube über drei Tage müssen dort zusätzlich eingetragen werden."
+    en: "The deputy plan lives on S:\\Amt\\Organisation and is maintained by central services; leave over 3 days must be entered there."
+    owner: p05
+    also_known_by: [p08]
+    department: GS
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [Q05, Q14, G03]
+    sources_planned: [interview]
+
+  - id: F006
+    category: org
+    topic: Wer einzubinden ist
+    de: "Einzubinden sind: der Personalrat bei Arbeitszeit, Einstellungen und neuer Technik; die Datenschutzkoordination bei neuen Tools und Listen mit Personenbezug; die Rechtsbehelfsstelle bei rechtlichen Grundsatzfragen; die Geschäftsstelle bei jeder Beschaffung."
+    en: "Involve staff council (working time, hiring, new tech), data protection (new tools/lists), appeals (legal principles), central services (purchasing)."
+    owner: p01
+    also_known_by: [p08, p05]
+    department: ALL
+    access: internal
+    valid_from: 2025-04-01
+    question_ids: [Q03]
+    sources_planned: [interview, doc]
+
+  - id: F007
+    category: org
+    topic: Zusammenarbeit der Bereiche
+    de: "Arbeitnehmerbereich und Rechtsbehelfsstelle arbeiten am engsten zusammen: Geht ein Einspruch ein, prüft zuerst die Veranlagung, ob abgeholfen werden kann; erst dann geht die Akte an die Rechtsbehelfsstelle. Die Servicestelle leitet Bürgeranliegen an den Arbeitnehmerbereich weiter."
+    en: "Employee tax and appeals work closest: assessment checks first whether to grant the objection, then hands the file to appeals."
+    owner: p02
+    also_known_by: [p10, p03]
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [Q04, Q08]
+    sources_planned: [interview, doc]
+
+  - id: F008
+    category: org
+    topic: Prioritäten 2026/27
+    de: "Prioritäten der Amtsleitung: (1) Go-live der E-Akte im Arbeitnehmerbereich am 01.03.2027, (2) Einspruchsbestand unter 900 senken, (3) Wissenssicherung wegen der Ruhestände von Herrn Reinecke und Herrn Meyer."
+    en: "Priorities: e-file go-live 1 Mar 2027, objection backlog below 900, knowledge retention for two retirements."
+    owner: p01
+    also_known_by: [p10]
+    department: ALL
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q06, Q15]
+    sources_planned: [interview, minutes]
+
+  - id: F009
+    category: org
+    topic: Interne Gremien und Runden
+    de: "Amtsleiterbesprechung: montags 9:00 Uhr im Sitzungssaal 3.10 (Vorsteherin, Sachgebietsleitungen, Leitung Geschäftsstelle). Sachgebietsrunde Arbeitnehmerbereich: dienstags 10:00 Uhr, Raum 2.20. Runde Rechtsbehelfsstelle: donnerstags 9:30 Uhr."
+    en: "Management meeting Mon 9:00 room 3.10; employee-tax team Tue 10:00 room 2.20; appeals Thu 9:30."
+    owner: p01
+    also_known_by: [p10, p02]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q07, Q21, Q54]
+    sources_planned: [minutes, interview]
+
+  - id: F010
+    category: oversight
+    topic: Monatsgespräch Personalrat
+    de: "Die Vorsteherin trifft sich am ersten Mittwoch jedes Monats mit dem Personalrat zum Monatsgespräch."
+    en: "Head meets the staff council on the first Wednesday of each month."
+    owner: p08
+    also_known_by: [p01]
+    department: AL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q07, Q41]
+    sources_planned: [interview]
+
+  # =========================== PROCESS ===========================
+  - id: F011
+    category: process
+    topic: Typischer Abstimmungsweg
+    de: "Abstimmungen laufen immer zuerst mündlich mit der eigenen Sachgebietsleitung, dann als E-Mail-Entwurf, dann über die Mitzeichnung. Niemand geht ohne die Sachgebietsleitung direkt zur Vorsteherin."
+    en: "Align verbally with your unit head first, then email draft, then co-signing; never go to the head directly."
+    owner: p10
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2022-02-01
+    question_ids: [Q08, Q57]
+    sources_planned: [interview]
+
+  - id: F012
+    category: process
+    topic: Zeichnungsrecht Sachbearbeitung (alt)
+    de: "Sachbearbeitende zeichnen Bescheide mit Abweichungen bis 5.000 € selbst; darüber zeichnet die Sachgebietsleitung."
+    en: "OLD: case workers sign deviations up to €5,000."
+    owner: p11
+    also_known_by: [p10]
+    department: VA
+    access: internal
+    valid_from: 2019-05-01
+    valid_to: 2026-06-30
+    status: superseded
+    rule: HV-2019-04
+    question_ids: [Q09]
+    sources_planned: [doc, interview]
+    plant: superseded
+
+  - id: F013
+    category: process
+    topic: Zeichnungsrecht Sachbearbeitung (neu)
+    de: "Seit dem 01.07.2026 zeichnen Sachbearbeitende Bescheide mit Abweichungen bis 10.000 € selbst. Abweichungen darüber und Erstattungen über 25.000 € zeichnet die Sachgebietsleitung, Erstattungen über 50.000 € die Vorsteherin."
+    en: "Since 1 Jul 2026: case workers up to €10,000; unit head above that and refunds > €25k; head refunds > €50k."
+    owner: p10
+    also_known_by: [p12]
+    department: VA
+    access: internal
+    valid_from: 2026-07-01
+    supersedes: F012
+    rule: HV-2026-07
+    question_ids: [Q09, Q02]
+    sources_planned: [doc]
+    plant: superseded
+
+  - id: F014
+    category: process
+    topic: Mitzeichnung für Neue
+    de: "Neue Kolleginnen und Kollegen zeichnen in den ersten sechs Monaten alle Bescheide mit Mitzeichnung durch ihre Mentorin oder ihren Mentor."
+    en: "New staff need their mentor's co-signature on all assessments for six months."
+    owner: p10
+    also_known_by: [p11]
+    department: VA
+    access: internal
+    valid_from: 2026-07-01
+    rule: HV-2026-07
+    question_ids: [Q09, Q11, Q52]
+    sources_planned: [doc, interview]
+
+  - id: F015
+    category: process
+    topic: Berichte an das LStN
+    de: "Berichte an das LStN: Entwurf im Sachgebiet, Mitzeichnung durch die Sachgebietsleitung, Formalprüfung durch die Geschäftsstelle, Zeichnung durch die Vorsteherin. Bei rechtlichen Grundsatzfragen zeichnet die Rechtsbehelfsstelle mit."
+    en: "Reports to LStN: unit draft → unit head → central services check → head signs; appeals co-signs on legal principles."
+    owner: p05
+    also_known_by: [p01, p02]
+    department: ALL
+    access: internal
+    valid_from: 2022-02-01
+    rule: HV-2022-01
+    question_ids: [Q09, Q11]
+    sources_planned: [doc, image]
+
+  - id: F016
+    category: process
+    topic: Mitzeichnungsfrist
+    de: "Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen. Schweigen gilt nicht als Zustimmung – man muss nachhaken."
+    en: "Co-signing deadline is 3 working days; silence is not consent."
+    owner: p05
+    department: ALL
+    access: internal
+    valid_from: 2022-02-01
+    rule: HV-2022-01
+    question_ids: [Q11, Q12]
+    sources_planned: [doc, interview]
+
+  - id: F017
+    category: process
+    topic: Wann Datenschutz einbinden
+    de: "Die Datenschutzkoordination (Anja Vogt, Raum 1.07) ist einzubinden bei neuen IT-Verfahren oder Tools, eigenen Listen mit Personenbezug, Weitergabe von Daten an Dritte und Fotos oder Videos von Beschäftigten."
+    en: "Involve data protection for new tools, personal-data lists, sharing with third parties, staff photos/videos."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2025-04-01
+    rule: HV-2025-04
+    question_ids: [Q10, Q03]
+    sources_planned: [doc, interview]
+
+  - id: F018
+    category: process
+    topic: Datenpannen melden
+    de: "Datenpannen müssen intern innerhalb von 24 Stunden an die Datenschutzkoordination gemeldet werden, damit die 72-Stunden-Frist nach Art. 33 DSGVO eingehalten wird."
+    en: "Report data breaches internally within 24h so the GDPR 72h deadline holds."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2025-04-01
+    rule: HV-2025-04
+    question_ids: [Q10, Q12]
+    sources_planned: [doc, interview]
+
+  - id: F019
+    category: process
+    topic: Einspruchsfrist
+    de: "Die Einspruchsfrist beträgt einen Monat nach Bekanntgabe des Bescheids (§ 355 AO). Für Bescheide per Post gilt die Bekanntgabe am vierten Tag nach Aufgabe zur Post."
+    en: "Objection period is one month after notification; postal notices are deemed delivered on the 4th day."
+    owner: p02
+    also_known_by: [p03]
+    department: RB
+    access: internal
+    valid_from: 2025-01-01
+    question_ids: [Q12]
+    sources_planned: [interview]
+
+  - id: F020
+    category: process
+    topic: Interne Bearbeitungsfrist Einsprüche
+    de: "Intern sollen Einsprüche innerhalb von sechs Monaten erledigt sein. Fälle älter als zwölf Monate werden in der Amtsleiterbesprechung einzeln besprochen."
+    en: "Objections should be closed in 6 months; cases older than 12 months are discussed individually in the management meeting."
+    owner: p02
+    also_known_by: [p04]
+    department: RB
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q12, Q16]
+    sources_planned: [interview, minutes]
+
+  - id: F021
+    category: process
+    topic: Wertgrenzen Beschaffung
+    de: "Bis 1.000 € netto beschafft die Geschäftsstelle direkt. Von 1.000 € bis 25.000 € braucht es drei Vergleichsangebote, die Leitung der Geschäftsstelle entscheidet. Über 25.000 € läuft ein förmliches Vergabeverfahren über die zentrale Vergabestelle des LStN."
+    en: "≤€1k direct; €1k–25k three quotes; >€25k formal tender via LStN."
+    owner: p06
+    also_known_by: [p05]
+    department: GS
+    access: internal
+    valid_from: 2025-01-01
+    rule: HV-2025-02
+    question_ids: [Q13, Q31]
+    sources_planned: [doc, interview]
+
+  - id: F022
+    category: process
+    topic: Bedarfsmeldung
+    de: "Bedarf wird mit dem Formular 'Bedarfsmeldung' (S:\\Amt\\Formulare) bis zum 15. eines Monats an Frau Krüger gemeldet. Danach gibt es eine Sammelbestellung; Einzelbestellungen zwischendurch nur in Notfällen."
+    en: "Submit purchase requests by the 15th via the form; monthly bulk order."
+    owner: p06
+    department: GS
+    access: internal
+    valid_from: 2023-01-01
+    question_ids: [Q13, Q12]
+    sources_planned: [email, interview]
+
+  - id: F023
+    category: process
+    topic: Wo Prozesse dokumentiert sind
+    de: "Alle Hausverfügungen stehen im Intranet FA-Info unter 'Hausverfügungen'. Prozessbeschreibungen des Arbeitnehmerbereichs liegen unter T:\\Team\\VA\\Prozesse. Viele Abläufe der Geschäftsstelle sind nicht schriftlich dokumentiert, sondern nur Herrn Reinecke bekannt."
+    en: "Orders on the intranet; employee-tax process docs on T:\\Team\\VA\\Prozesse; many central-services processes are undocumented."
+    owner: p05
+    also_known_by: [p12]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q14, Q53]
+    sources_planned: [interview]
+
+  # =========================== PROJECT ===========================
+  - id: F024
+    category: project
+    topic: PR1 E-Akte
+    de: "Projekt E-Akte im Arbeitnehmerbereich: Pilotphase seit September 2026, Go-live am 01.03.2027. Projektleitung Petra Schulte, Key-Userin Julia Nowak."
+    en: "E-file project: pilot since Sep 2026, go-live 1 Mar 2027; lead Schulte, key user Nowak."
+    owner: p10
+    also_known_by: [p12, p01]
+    department: VA
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q15, Q06]
+    sources_planned: [doc, interview, video]
+
+  - id: F025
+    category: project
+    topic: PR1 Arbeitsweise
+    de: "Die E-Akte wird mit einem Kanban-Board im Microsoft Planner ('E-Akte VA') gesteuert. Jede Aufgabe ist eine Karte mit verantwortlicher Person. Stand-up jeden Mittwoch um 14:00 Uhr für 15 Minuten."
+    en: "E-file run on a Planner Kanban board; weekly stand-up Wed 14:00, 15 min."
+    owner: p12
+    also_known_by: [p10]
+    department: VA
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q17, Q18, Q19, Q21]
+    sources_planned: [video, interview]
+
+  - id: F026
+    category: project
+    topic: PR1 Berichtswesen
+    de: "Für die E-Akte geht bis zum 5. Arbeitstag jedes Monats ein Statusbericht im Ampelformat an das LStN, Referat Organisation."
+    en: "Monthly traffic-light status report to LStN by the 5th working day."
+    owner: p10
+    department: VA
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q20, Q24]
+    sources_planned: [email, doc]
+
+  - id: F027
+    category: project
+    topic: PR2 KI-Pilot Einsprüche
+    de: "Pilot 'KI-Assistenz Einspruchsbearbeitung' (01.04.2026–30.06.2027), Leitung Jens Hartmann: Eingehende digitale Einsprüche werden automatisch nach Thema vorsortiert."
+    en: "AI pilot for pre-sorting objections, Apr 2026–Jun 2027, lead Hartmann."
+    owner: p02
+    also_known_by: [p01]
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q15]
+    sources_planned: [doc, interview]
+
+  - id: F028
+    category: project
+    topic: PR3 Umbau Servicestelle
+    de: "Barrierefreier Umbau der Servicestelle: Budget 120.000 €, Baubeginn geplant Mai 2027. Die Ausschreibung ist noch offen. Verantwortlich bisher Herr Reinecke."
+    en: "Accessible front-desk renovation, €120k, start May 2027, tender open, owner Reinecke."
+    owner: p05
+    also_known_by: [p06]
+    department: GS
+    access: internal
+    valid_from: 2026-06-01
+    question_ids: [Q15, Q31]
+    sources_planned: [interview, image]
+
+  - id: F029
+    category: project
+    topic: Zielvereinbarung 2026
+    de: "Zielvereinbarung 2026 mit dem LStN: durchschnittliche Bearbeitungsdauer im Arbeitnehmerbereich unter 45 Tagen, Einspruchsbestand unter 900, ELSTER-Quote über 90 %."
+    en: "2026 target agreement: <45 days processing, <900 objections, >90% ELSTER rate."
+    owner: p01
+    also_known_by: [p10, p02]
+    department: ALL
+    access: internal
+    valid_from: 2026-01-01
+    question_ids: [Q16, Q27, Q43]
+    sources_planned: [doc]
+
+  - id: F030
+    category: it
+    topic: Ablage Projektunterlagen
+    de: "Projektunterlagen liegen unter S:\\Amt\\Projekte\\<Projektname>, nicht in Teams-Dateien. Ausnahme: Aufgaben der E-Akte im Planner."
+    en: "Project docs on S:\\Amt\\Projekte, not in Teams files (except e-file Planner)."
+    owner: p07
+    also_known_by: [p12]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q39, Q18]
+    sources_planned: [video]
+
+  # =========================== PROGRAM (PR2 funding) ===========================
+  - id: F031
+    category: program
+    topic: Fördergeber PR2
+    de: "Der KI-Pilot wird aus dem Modernisierungsfonds Steuerverwaltung des Niedersächsischen Finanzministeriums gefördert; verwaltet wird der Fonds vom LStN, Referat Digitalisierung."
+    en: "AI pilot funded by the ministry's modernisation fund, administered by LStN digitalisation unit."
+    owner: p02
+    also_known_by: [p06]
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q23]
+    sources_planned: [doc]
+
+  - id: F032
+    category: program
+    topic: Förderbedingungen PR2
+    de: "Förderung 48.000 €, nur für Sachkosten und externe Dienstleistungen, keine Personalkosten. 10 % Eigenanteil aus dem Amtsbudget. Nicht abgerufene Mittel verfallen am 31.12. des jeweiligen Jahres."
+    en: "€48k, material/external costs only, 10% own share, unspent funds lapse on 31 Dec."
+    owner: p02
+    also_known_by: [p06]
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q22, Q29]
+    sources_planned: [doc, interview]
+
+  - id: F033
+    category: program
+    topic: Zwischenberichte PR2
+    de: "Für den KI-Pilot ist vierteljährlich ein Zwischenbericht an das LStN fällig: jeweils zum 15.01., 15.04., 15.07. und 15.10."
+    en: "Quarterly interim reports due 15 Jan/Apr/Jul/Oct."
+    owner: p02
+    also_known_by: [p06]
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q24, Q25]
+    sources_planned: [doc]
+
+  - id: F034
+    category: program
+    topic: Verwendungsnachweis PR2 (Version Hartmann)
+    de: "Der Verwendungsnachweis für den KI-Pilot ist bis zum 30.09.2027 einzureichen."
+    en: "Proof of use due 30 Sep 2027 (Hartmann)."
+    owner: p02
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    status: conflict
+    question_ids: [Q25, Q24]
+    sources_planned: [interview]
+    plant: conflict
+
+  - id: F035
+    category: program
+    topic: Verwendungsnachweis PR2 (Version Krüger)
+    de: "Der Verwendungsnachweis für den KI-Pilot muss spätestens zum Projektende am 30.06.2027 vorliegen."
+    en: "Proof of use due at project end 30 Jun 2027 (Krüger email)."
+    owner: p06
+    department: GS
+    access: internal
+    valid_from: 2026-04-01
+    status: conflict
+    question_ids: [Q25, Q24]
+    sources_planned: [email]
+    plant: conflict
+
+  - id: F036
+    category: program
+    topic: Projektpartner PR2
+    de: "Partner im KI-Pilot: das Finanzamt Hannover-Nord als zweites Pilotamt, der externe Dienstleister DataLotse GmbH und die Datenschutzstelle des LStN."
+    en: "Partners: second pilot office Hannover-Nord, vendor DataLotse GmbH, LStN data protection."
+    owner: p02
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q26]
+    sources_planned: [doc]
+
+  - id: F037
+    category: program
+    topic: Ergebnisziele PR2
+    de: "Ziele des KI-Pilots: 70 % der Einsprüche korrekt vorsortiert, 15 % Zeitersparnis in der Eingangsbearbeitung, Abschlussbericht mit Empfehlung zur landesweiten Einführung."
+    en: "Targets: 70% correct pre-sorting, 15% time saved, final report with rollout recommendation."
+    owner: p02
+    department: RB
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q27]
+    sources_planned: [doc]
+
+  - id: F038
+    category: program
+    topic: Abhängigkeiten zwischen Projekten
+    de: "Der KI-Pilot braucht die E-Akte, weil nur digitale Einsprüche vorsortiert werden können. Der Umbau der Servicestelle darf erst beginnen, wenn die Infothek übergangsweise in Raum 0.04 umgezogen ist."
+    en: "AI pilot depends on e-file; renovation depends on temporary move of the front desk to room 0.04."
+    owner: p02
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2026-06-01
+    question_ids: [Q28]
+    sources_planned: [interview, image]
+
+  # =========================== FINANCE ===========================
+  - id: F039
+    category: finance
+    topic: Sachmittelbudget gesamt
+    de: "Das Sachmittelbudget des Amtes für 2026 beträgt 185.000 €."
+    en: "2026 operating budget: €185,000."
+    owner: p06
+    also_known_by: [p05, p01]
+    department: GS
+    access: internal
+    valid_from: 2026-01-01
+    question_ids: [Q29]
+    sources_planned: [doc]
+
+  - id: F040
+    category: finance
+    topic: Budgetaufteilung (vertraulich)
+    de: "Aufteilung 2026: Fortbildung 12.000 €, IT-Kleinbedarf 18.000 €, Bauunterhalt 41.000 €, Reinigung 64.000 €, Büromaterial 15.000 €, Eigenanteil KI-Pilot 4.800 €, Reserve 30.200 €. Die Reserve ist bereits zu 60 % verplant."
+    en: "Detailed 2026 budget split; reserve 60% committed. RESTRICTED."
+    owner: p06
+    also_known_by: [p05]
+    department: GS
+    access: restricted
+    valid_from: 2026-01-01
+    question_ids: [Q29]
+    sources_planned: [doc]
+    plant: restricted
+
+  - id: F041
+    category: finance
+    topic: Budgetverantwortung
+    de: "Beauftragte für den Haushalt ist die Vorsteherin. Die Bewirtschaftung ist an die Leitung der Geschäftsstelle delegiert; Frau Krüger führt die Haushaltsüberwachungsliste."
+    en: "Head is budget officer; management delegated to central services head; Krüger keeps the tracking list."
+    owner: p05
+    also_known_by: [p06]
+    department: GS
+    access: internal
+    valid_from: 2020-01-01
+    question_ids: [Q30]
+    sources_planned: [interview]
+
+  - id: F042
+    category: finance
+    topic: Rahmenverträge
+    de: "Bestehende Rahmenverträge: Büromaterial über den Landesrahmenvertrag (Papier-Union Nord), IT-Hardware über den Warenkorb des LStN, Reinigung mit Glanzwerk Hildesheim (bis 31.12.2027), Möbel über den Landesrahmenvertrag Büromöbel."
+    en: "Framework contracts: office supplies, IT hardware via LStN, cleaning until end 2027, furniture."
+    owner: p06
+    department: GS
+    access: internal
+    valid_from: 2025-01-01
+    rule: HV-2025-02
+    question_ids: [Q32]
+    sources_planned: [doc, email]
+
+  - id: F043
+    category: finance
+    topic: Rechnungsprüfung
+    de: "Frau Krüger prüft Rechnungen sachlich, die rechnerische Prüfung macht eine zweite Person (meist Frau Vogt). Bezahlt wird über die Landeshauptkasse. Skontofristen von 10 Tagen unbedingt beachten."
+    en: "Krüger checks invoices on substance, a second person checks the arithmetic; mind 10-day discount windows."
+    owner: p06
+    also_known_by: [p08]
+    department: GS
+    access: internal
+    valid_from: 2025-01-01
+    rule: HV-2025-02
+    question_ids: [Q33]
+    sources_planned: [interview, doc]
+
+  - id: F044
+    category: finance
+    topic: Offene Vergabe Umbau
+    de: "Für den Umbau der Servicestelle ist ein förmliches Vergabeverfahren über die Vergabestelle des LStN nötig. Die Unterlagen müssen bis zum 31.01.2027 dort sein, sonst ist der Baubeginn im Mai nicht zu halten."
+    en: "Renovation needs formal tender via LStN; documents due 31 Jan 2027 or May start slips."
+    owner: p05
+    also_known_by: [p06]
+    department: GS
+    access: internal
+    valid_from: 2026-10-01
+    question_ids: [Q31, Q25, Q28]
+    sources_planned: [interview]
+
+  - id: F045
+    category: finance
+    topic: Bestellstopp Dezember
+    de: "Ab dem 1. Dezember werden keine neuen Bestellungen mehr ausgelöst, weil der Jahresabschluss vorbereitet wird. Wer etwas braucht, meldet es bis zum 15. November."
+    en: "No new orders from 1 Dec (year-end); request by 15 Nov."
+    owner: p06
+    also_known_by: [p05]
+    department: GS
+    access: internal
+    valid_from: 2023-01-01
+    question_ids: [Q12, Q57, Q13]
+    sources_planned: [email, interview]
+
+  # =========================== IT ===========================
+  - id: F046
+    category: it
+    topic: Tägliche Software
+    de: "Täglich genutzt werden im Arbeitnehmerbereich: die KONSENS-Veranlagungsverfahren, die E-Akte (Pilot), Outlook, Teams, das PersonalPortal NI und die ELSTER-Eingangsliste."
+    en: "Daily: KONSENS, e-file pilot, Outlook, Teams, PersonalPortal NI, ELSTER inbox."
+    owner: p07
+    also_known_by: [p12]
+    department: VA
+    access: internal
+    valid_from: 2026-09-01
+    question_ids: [Q35, Q38]
+    sources_planned: [video]
+
+  - id: F047
+    category: it
+    topic: IT-Unterstützung
+    de: "Bei IT-Problemen zuerst Marco Lindner anrufen (302-108, Mo–Fr 7:30–15:30 Uhr, Raum 0.08). Kann er nicht helfen, ein Ticket beim zentralen IT-Servicedesk des Landes über das Intranet erstellen. Vertretung: Nils Ahrens."
+    en: "IT help: Lindner ext. 302-108 first, else state IT service desk ticket; deputy Ahrens."
+    owner: p07
+    also_known_by: [p09]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q36, G07]
+    sources_planned: [video, intranet]
+
+  - id: F048
+    category: it
+    topic: Laufwerke und Kanäle
+    de: "Laufwerke: S:\\Amt (amtsweite Ablage), T:\\Team (nur eigenes Sachgebiet), H:\\ (persönlich, 5 GB, keine Steuerdaten). Teams-Kanäle: 'FA HI – Allgemein' und je Sachgebiet ein Kanal."
+    en: "Drives S:, T:, H: (personal, no tax data); Teams channels per unit."
+    owner: p07
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q37, Q49]
+    sources_planned: [video, doc]
+
+  - id: F049
+    category: it
+    topic: Sicherheitsregeln
+    de: "Passwörter haben mindestens 12 Zeichen und müssen nur bei Verdacht geändert werden. Bildschirm beim Verlassen sperren (Windows-Taste + L). Nur dienstliche, verschlüsselte USB-Sticks. Verdächtige Mails über 'Phishing melden'."
+    en: "12-char passwords, lock screen, encrypted official USB only, report phishing."
+    owner: p07
+    department: ALL
+    access: internal
+    valid_from: 2023-05-01
+    rule: HV-2023-05
+    question_ids: [Q40]
+    sources_planned: [doc, video]
+
+  - id: F050
+    category: it
+    topic: Zugänge für Neue
+    de: "Konto und Laptop beantragt die Geschäftsstelle zwei Wochen vor Dienstantritt. Am ersten Tag gibt Herr Lindner Laptop und Token aus. KONSENS-Rechte gibt es erst nach der Datenschutzbelehrung und der Verpflichtung auf das Steuergeheimnis."
+    en: "Accounts requested 2 weeks ahead; laptop and token on day 1; KONSENS rights only after data protection briefing and tax secrecy pledge."
+    owner: p07
+    also_known_by: [p08]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q52, Q35]
+    sources_planned: [interview]
+
+  - id: F051
+    category: practical
+    topic: Drucker 2. OG
+    de: "Der Drucker im 2. OG neben Raum 2.20 verklemmt mit Recyclingpapier – immer Fach 2 nehmen."
+    en: "2nd-floor printer jams on recycled paper; use tray 2."
+    owner: p12
+    also_known_by: [p11, p04]
+    department: VA
+    access: internal
+    valid_from: 2025-01-01
+    question_ids: [Q57]
+    sources_planned: [interview]
+
+  # =========================== OVERSIGHT ===========================
+  - id: F052
+    category: oversight
+    topic: LStN-Referate
+    de: "Fach- und Dienstaufsicht hat das Landesamt für Steuern Niedersachsen. Relevante Referate: Organisation (E-Akte), Digitalisierung (KI-Pilot, Modernisierungsfonds) und Personal."
+    en: "LStN supervises; relevant units: organisation, digitalisation, HR."
+    owner: p01
+    also_known_by: [p05]
+    department: AL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q41]
+    sources_planned: [interview]
+
+  - id: F053
+    category: oversight
+    topic: Personalrat
+    de: "Der Personalrat bestimmt mit bei Arbeitszeit, Einstellungen und Einführung neuer Technik (z. B. E-Akte, KI-Pilot). Vorsitz: Rüdiger Fass, Sprechstunde dienstags 13–14 Uhr in Raum 1.12, Durchwahl 302-112."
+    en: "Staff council co-determines working time, hiring, new tech; office hour Tue 13–14, room 1.12."
+    owner: p08
+    also_known_by: [p01]
+    department: ALL
+    access: internal
+    valid_from: 2024-05-01
+    question_ids: [Q42, G11, Q03]
+    sources_planned: [intranet, doc]
+
+  - id: F054
+    category: oversight
+    topic: Gleichstellung und SBV
+    de: "Gleichstellungsbeauftragte und Schwerbehindertenvertretung werden bei allen Stellenbesetzungen beteiligt."
+    en: "Equality officer and disability representative join all hiring."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q42]
+    sources_planned: [doc]
+
+  - id: F055
+    category: oversight
+    topic: Geltende Beschlüsse
+    de: "Verbindlich sind die Hausverfügungen im Intranet, die Dienstvereinbarung Gleitzeit und mobiles Arbeiten (DV-2024-01) und die Zielvereinbarung 2026 mit dem LStN."
+    en: "Binding: house orders, DV-2024-01, 2026 target agreement."
+    owner: p05
+    department: ALL
+    access: internal
+    valid_from: 2026-01-01
+    question_ids: [Q43, Q53]
+    sources_planned: [interview]
+
+  - id: F056
+    category: oversight
+    topic: Sensibles Thema KI
+    de: "Der KI-Pilot ist beim Personalrat ein sensibles Thema, weil Beschäftigte eine Leistungskontrolle befürchten. Ergebnisse des Pilots nie auf einzelne Personen herunterbrechen."
+    en: "AI pilot is sensitive with the staff council; never break results down per person."
+    owner: p01
+    also_known_by: [p02]
+    department: ALL
+    access: internal
+    valid_from: 2026-04-01
+    question_ids: [Q44]
+    sources_planned: [interview]
+
+  - id: F057
+    category: oversight
+    topic: Dienstvereinbarung KI (vertraulich)
+    de: "Mit dem Personalrat wird eine Dienstvereinbarung zum KI-Einsatz verhandelt. Streitpunkt ist die Speicherdauer der Protokolle (Amt: 12 Monate, Personalrat: 3 Monate). Abschluss angestrebt bis 31.03.2027."
+    en: "AI service agreement under negotiation; dispute on log retention. RESTRICTED."
+    owner: p01
+    department: AL
+    access: restricted
+    valid_from: 2026-10-01
+    question_ids: [Q44]
+    sources_planned: [minutes]
+    plant: restricted
+
+  - id: F058
+    category: oversight
+    topic: Öffentliche Themen
+    de: "Öffentlich diskutiert werden die vielen Einsprüche gegen Grundsteuerwertbescheide und lange Bearbeitungszeiten. Die Lokalpresse fragt dazu regelmäßig nach."
+    en: "Public debate: many property-tax objections and long processing times; local press asks regularly."
+    owner: p02
+    also_known_by: [p09]
+    department: ALL
+    access: internal
+    valid_from: 2025-01-01
+    question_ids: [Q45, Q56]
+    sources_planned: [interview, email]
+
+  - id: F059
+    category: oversight
+    topic: Landtagsanfragen
+    de: "Landtagsanfragen kommen über das LStN. Das Amt hat intern fünf Arbeitstage für die Zuarbeit; die Federführung liegt bei der Geschäftsstelle."
+    en: "Parliamentary questions arrive via LStN; 5 working days internally; central services leads."
+    owner: p05
+    also_known_by: [p01]
+    department: GS
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [Q12, Q41]
+    sources_planned: [interview]
+
+  # =========================== COMMUNICATION ===========================
+  - id: F060
+    category: communication
+    topic: Wer informiert werden muss
+    de: "Die Vorsteherin muss sofort informiert werden bei Presseanfragen, Datenpannen, Beschwerden über Beschäftigte und Erstattungen über 50.000 €. Die Sachgebietsleitung bei allem, was eine Frist gefährdet."
+    en: "Inform the head on press, breaches, complaints, refunds >€50k; unit head on any deadline risk."
+    owner: p01
+    also_known_by: [p10]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q46]
+    sources_planned: [interview]
+
+  - id: F061
+    category: communication
+    topic: Presseanfragen
+    de: "Presseanfragen werden sofort an die Vorsteherin und an die Öffentlichkeitsarbeit (Nils Ahrens, Raum 0.02) weitergeleitet. Zu einzelnen Steuerfällen gibt es wegen des Steuergeheimnisses (§ 30 AO) keine Auskunft."
+    en: "Forward press requests to head and comms; no case-specific info (tax secrecy)."
+    owner: p09
+    also_known_by: [p01]
+    department: ALL
+    access: internal
+    valid_from: 2020-06-15
+    rule: HV-2020-06
+    question_ids: [Q47]
+    sources_planned: [doc, email]
+
+  - id: F062
+    category: communication
+    topic: Freigabe Pressemitteilungen (Hausverfügung)
+    de: "Pressemitteilungen gibt die Vorsteherin frei. Bei überregionalem Bezug muss vorher die Pressestelle des LStN zustimmen."
+    en: "Head approves press releases; supra-regional ones need prior LStN approval."
+    owner: p01
+    department: ALL
+    access: internal
+    valid_from: 2020-06-15
+    status: conflict
+    rule: HV-2020-06
+    question_ids: [Q48]
+    sources_planned: [doc]
+    plant: conflict
+
+  - id: F063
+    category: communication
+    topic: Freigabe Pressemitteilungen (gelebte Praxis)
+    de: "In der Praxis gibt Herr Ahrens Pressemitteilungen nach kurzer Rücksprache mit Frau Wöhler heraus; das LStN bekommt nur eine Kopie."
+    en: "In practice Ahrens releases after a quick check with the head; LStN only gets a copy."
+    owner: p09
+    department: GS
+    access: internal
+    valid_from: 2023-01-01
+    status: conflict
+    question_ids: [Q48]
+    sources_planned: [email]
+    plant: conflict
+
+  - id: F064
+    category: communication
+    topic: Kanalwahl
+    de: "Aktenrelevantes per E-Mail (wird zur Akte genommen), Kurzes ohne Steuerdaten im Teams-Chat, Personalthemen und Konflikte persönlich."
+    en: "Email for file-relevant things, Teams chat for quick non-tax things, in person for HR/conflicts."
+    owner: p10
+    also_known_by: [p03]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    rule: HV-2025-04
+    question_ids: [Q49, Q51]
+    sources_planned: [interview]
+
+  - id: F065
+    category: communication
+    topic: Interner Newsletter
+    de: "Einmal im Monat verschickt Nils Ahrens den internen Newsletter 'FA-Info kompakt' per E-Mail."
+    en: "Monthly internal newsletter by Ahrens."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2023-01-01
+    question_ids: [Q49]
+    sources_planned: [email]
+
+  - id: F066
+    category: communication
+    topic: Bürgerkontakt
+    de: "Bürgerinnen und Bürger erreichen das Amt über die Servicestelle (Infothek), Online-Terminvereinbarung und ELSTER. Jedes Jahr im März gibt es einen ELSTER-Hilfetag. Ein Feedbackbogen liegt an der Infothek aus."
+    en: "Citizens: front desk, online appointments, ELSTER, annual ELSTER help day in March, feedback form."
+    owner: p09
+    department: GS
+    access: internal
+    valid_from: 2023-01-01
+    question_ids: [Q50]
+    sources_planned: [email, interview]
+
+  # =========================== PRACTICAL ===========================
+  - id: F067
+    category: practical
+    topic: Die ersten 30 Tage
+    de: "Erste 30 Tage: Tag 1 Datenschutzbelehrung und Verpflichtung auf das Steuergeheimnis; Woche 1–2 KONSENS-Schulung; ab Woche 2 eigene Fälle mit Mitzeichnung durch den Mentor; Woche 3 Einführung in die E-Akte bei Julia Nowak; bis Tag 30 die Rückstandsliste des Sachgebiets kennen."
+    en: "First 30 days: day-1 briefings, KONSENS training, mentored cases, e-file intro, know the backlog."
+    owner: p10
+    also_known_by: [p11]
+    department: VA
+    access: internal
+    valid_from: 2026-07-01
+    question_ids: [Q52]
+    sources_planned: [doc, interview]
+
+  - id: F068
+    category: practical
+    topic: Pflichtlektüre
+    de: "Pflichtlektüre: HV-2026-07 (Zeichnungsrechte), DV-2024-01 (Gleitzeit), HV-2025-04 (Datenschutz), HV-2023-05 (IT-Sicherheit), der Vertretungsplan und die Prozessbeschreibung 'Arbeitnehmerfälle' unter T:\\Team\\VA\\Prozesse."
+    en: "Must-reads: signing rules, flexitime, data protection, IT security, deputy plan, process doc."
+    owner: p10
+    department: VA
+    access: internal
+    valid_from: 2026-07-01
+    question_ids: [Q53]
+    sources_planned: [doc]
+
+  - id: F069
+    category: practical
+    topic: Informelle Runden
+    de: "Freitags um 9:30 Uhr gibt es eine informelle Kaffeerunde in der Teeküche im 2. OG. Dort erfährt man mehr als in jeder Besprechung."
+    en: "Informal coffee round Fri 9:30, 2nd-floor kitchen."
+    owner: p12
+    also_known_by: [p11, p04]
+    department: VA
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q54, Q57]
+    sources_planned: [interview]
+
+  - id: F070
+    category: practical
+    topic: Wer informell erklärt
+    de: "Informell helfen: Hans-Jürgen Meyer (Steuerfachliches, Mentor), Julia Nowak (E-Akte und IT), Leyla Demir (warum Einsprüche entstehen) und bis Januar 2027 Wolfgang Reinecke (alles Hausinterne)."
+    en: "Go-to people: Meyer (tax), Nowak (e-file/IT), Demir (objections), Reinecke (house knowledge, until Jan 2027)."
+    owner: p10
+    also_known_by: [p04]
+    department: VA
+    access: internal
+    valid_from: 2026-11-01
+    question_ids: [Q55, Q01]
+    sources_planned: [interview]
+
+  - id: F071
+    category: practical
+    topic: Schwierigkeiten der Vergangenheit
+    de: "2023 gab es einen großen Rückstau bei Einsprüchen gegen Grundsteuerbescheide. 2024 ging eine E-Mail mit Steuerdaten an einen falschen externen Empfänger; seitdem muss man externe Empfänger in Outlook mit zwei Klicks bestätigen."
+    en: "2023 property-tax objection backlog; 2024 misdirected email → two-click confirmation for external recipients."
+    owner: p05
+    also_known_by: [p08, p02]
+    department: ALL
+    access: internal
+    valid_from: 2024-06-01
+    question_ids: [Q56]
+    sources_planned: [interview]
+
+  - id: F072
+    category: practical
+    topic: Ungeschriebene Regeln (Reinecke)
+    de: "Vor jedem Bericht ans LStN kurz Frau Schulte anrufen – sie kennt die Leute im Referat. Montags vor 10 Uhr keine Termine bei der Vorsteherin. Die Kaffeekasse kostet 3 € im Monat und liegt bei Frau Krüger."
+    en: "Call Schulte before any LStN report; no meetings with the head on Monday before 10; coffee fund €3/month with Krüger."
+    owner: p05
+    department: ALL
+    access: internal
+    valid_from: 2020-01-01
+    question_ids: [Q57]
+    sources_planned: [interview]
+
+  - id: F073
+    category: practical
+    topic: Faustregel doppelte Haushaltsführung (Meyer)
+    de: "Faustregel: Bei doppelter Haushaltsführung immer Mietvertrag und Meldebescheinigung anfordern, bevor der Bescheid rausgeht. Sonst kommt der Einspruch garantiert."
+    en: "Rule of thumb: for double household always request lease and registration before issuing."
+    owner: p11
+    department: VA
+    access: internal
+    valid_from: 2015-01-01
+    question_ids: [Q57]
+    sources_planned: [interview]
+
+  - id: F074
+    category: practical
+    topic: Faustregel Rentnerfälle (Meyer)
+    de: "Bei Rentnerfällen zuerst die Rentenbezugsmitteilungen mit der Erklärung abgleichen. Die meisten Nachfragen entstehen bei Renten aus mehreren Quellen."
+    en: "Pension cases: reconcile pension notifications first; multi-source pensions cause most queries."
+    owner: p11
+    also_known_by: [p12]
+    department: VA
+    access: internal
+    valid_from: 2015-01-01
+    question_ids: [Q57, Q52]
+    sources_planned: [interview]
+
+  - id: F075
+    category: practical
+    topic: Rechtsbehelfsstelle früh fragen (Brandt)
+    de: "Man darf die Rechtsbehelfsstelle schon vor dem Bescheid um eine Einschätzung bitten. Das spart später einen Einspruch – das hätte Tobias Brandt gern früher gewusst."
+    en: "You may ask appeals for an opinion before issuing; it saves objections later."
+    owner: p04
+    also_known_by: [p03]
+    department: RB
+    access: internal
+    valid_from: 2023-10-01
+    question_ids: [Q55, Q57, Q04]
+    sources_planned: [interview]
+
+  - id: F076
+    category: practical
+    topic: Du-Kultur
+    de: "Seit 2024 duzen sich die Beschäftigten im Amt intern. Gegenüber Bürgerinnen und Bürgern und dem LStN wird gesiezt."
+    en: "Internal first-name culture since 2024; formal with citizens and LStN."
+    owner: p01
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [Q57]
+    sources_planned: [interview]
+
+  # =========================== GENERAL (all staff) ===========================
+  - id: F077
+    category: general
+    topic: Parken (alt)
+    de: "Der Hof hat 38 Stellplätze. Parkausweise vergibt die Geschäftsstelle (Raum 1.05) nach Warteliste. Parken ist kostenlos."
+    en: "OLD: 38 spaces, waiting list at central services, free."
+    owner: p05
+    department: ALL
+    access: internal
+    valid_from: 2021-03-01
+    valid_to: 2026-10-31
+    status: superseded
+    rule: HV-2021-02
+    question_ids: [G01]
+    sources_planned: [doc, interview]
+    plant: superseded
+
+  - id: F078
+    category: general
+    topic: Parken (neu)
+    de: "Seit dem 01.11.2026 werden die Stellplätze im Hof halbjährlich (1. Mai, 1. November) per Los über das PersonalPortal NI vergeben. Vorrang haben schwerbehinderte Beschäftigte und Teilzeitkräfte mit Betreuungspflichten. Das Entgelt beträgt 10 € im Monat."
+    en: "Since 1 Nov 2026: semi-annual lottery via PersonalPortal, priority rules, €10/month."
+    owner: p09
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2026-11-01
+    supersedes: F077
+    rule: HV-2026-11
+    question_ids: [G01]
+    sources_planned: [doc, intranet]
+    plant: superseded
+
+  - id: F079
+    category: general
+    topic: Gastparkausweis für Neue
+    de: "Neue Beschäftigte bekommen bis zur nächsten Verlosung einen Gastparkausweis an der Servicestelle (Raum 0.02)."
+    en: "New staff get a guest parking pass at the front desk until the next lottery."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2026-11-01
+    rule: HV-2026-11
+    question_ids: [G01, Q52]
+    sources_planned: [doc]
+
+  - id: F080
+    category: general
+    topic: Kantine (Intranet)
+    de: "Die Kantine im 1. OG hat Montag bis Freitag von 11:30 bis 14:00 Uhr geöffnet."
+    en: "Canteen Mon–Fri 11:30–14:00 (intranet, outdated)."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    status: conflict
+    question_ids: [G02]
+    sources_planned: [intranet]
+    plant: conflict
+
+  - id: F081
+    category: general
+    topic: Kantine (aktuell laut Reinecke)
+    de: "Seit dem Pächterwechsel im August 2026 hat die Kantine nur noch Montag bis Donnerstag von 11:30 bis 13:30 Uhr geöffnet, freitags ist sie zu."
+    en: "Since Aug 2026 canteen Mon–Thu 11:30–13:30, closed Fri (Reinecke interview)."
+    owner: p05
+    department: ALL
+    access: internal
+    valid_from: 2026-08-01
+    status: conflict
+    question_ids: [G02]
+    sources_planned: [interview]
+    plant: conflict
+
+  - id: F082
+    category: general
+    topic: Urlaub beantragen
+    de: "Urlaub wird im PersonalPortal NI beantragt und von der Sachgebietsleitung genehmigt. Urlaub über drei Tage mindestens zwei Wochen vorher beantragen und zusätzlich in den Vertretungsplan eintragen."
+    en: "Leave via PersonalPortal, approved by unit head; >3 days two weeks ahead + deputy plan."
+    owner: p08
+    also_known_by: [p05]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [G03]
+    sources_planned: [intranet, interview]
+
+  - id: F083
+    category: general
+    topic: Krankmeldung
+    de: "Bei Krankheit bis 9:00 Uhr telefonisch bei der Sachgebietsleitung melden. Ab dem vierten Kalendertag ist eine Arbeitsunfähigkeitsbescheinigung nötig; Beamtinnen und Beamte reichen sie bei Frau Vogt ein, bei Tarifbeschäftigten läuft die eAU automatisch."
+    en: "Call unit head by 9:00; sick note from day 4 (civil servants to Vogt; eAU automatic for employees)."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [G04]
+    sources_planned: [intranet, interview]
+
+  - id: F084
+    category: general
+    topic: Gleitzeit
+    de: "Rahmenarbeitszeit Montag bis Freitag 6:30–19:00 Uhr. Funktionszeit Montag bis Donnerstag 8:30–15:00 Uhr und Freitag 8:30–12:00 Uhr. Das Gleitzeitkonto darf zwischen −10 und +40 Stunden liegen."
+    en: "Core frame 6:30–19:00; function time Mon–Thu 8:30–15:00, Fri 8:30–12:00; balance −10/+40h."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    rule: DV-2024-01
+    question_ids: [G05]
+    sources_planned: [doc]
+
+  - id: F085
+    category: general
+    topic: Mobiles Arbeiten
+    de: "Mobiles Arbeiten ist bis zu zwei Tage pro Woche nach Absprache mit der Sachgebietsleitung möglich – in den ersten drei Monaten nach Dienstantritt nicht. Papierakten mit Steuerdaten verlassen das Gebäude nie."
+    en: "Remote up to 2 days/week, not in first 3 months; paper tax files never leave the building."
+    owner: p08
+    also_known_by: [p10]
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    rule: DV-2024-01
+    question_ids: [G06, Q52]
+    sources_planned: [doc, interview]
+
+  - id: F086
+    category: general
+    topic: Jobticket
+    de: "Das Deutschlandticket kann als Jobticket bezogen werden; der Antrag läuft über Frau Vogt (Personal), der Arbeitgeberzuschuss wird mit den Bezügen verrechnet."
+    en: "Deutschlandticket as job ticket via HR (Vogt); subsidy via payroll."
+    owner: p08
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [G08]
+    sources_planned: [intranet]
+
+  - id: F087
+    category: general
+    topic: Fahrradraum
+    de: "Der Fahrradraum ist im Erdgeschoss, Zugang über den Hof mit dem Dienstausweis. Eine Dusche gibt es im Untergeschoss."
+    en: "Bike room ground floor via courtyard with ID badge; shower in basement."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [G09]
+    sources_planned: [intranet, interview]
+
+  - id: F088
+    category: general
+    topic: Dienstausweis verloren
+    de: "Einen verlorenen Dienstausweis sofort der Servicestelle melden (302-102), damit er gesperrt wird. Der Ersatz kostet 15 €."
+    en: "Lost badge: call front desk 302-102 to block; replacement €15."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2023-01-01
+    question_ids: [G10]
+    sources_planned: [intranet]
+
+  - id: F089
+    category: general
+    topic: Hauspost
+    de: "Die Hauspost wird um 9:30 und 13:30 Uhr von der Poststelle im Erdgeschoss verteilt. Postausgang bis 14:00 Uhr."
+    en: "Internal mail at 9:30 and 13:30; outgoing by 14:00."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [G12]
+    sources_planned: [intranet]
+
+  - id: F090
+    category: general
+    topic: Ersthelfer
+    de: "Ersthelferinnen und Ersthelfer sind Sabine Krüger (1. OG), Nils Ahrens (EG) und Julia Nowak (2. OG). Erste-Hilfe-Kästen hängen in jeder Teeküche."
+    en: "First aiders: Krüger, Ahrens, Nowak; kits in each kitchen."
+    owner: p09
+    also_known_by: [p06]
+    department: ALL
+    access: internal
+    valid_from: 2025-01-01
+    question_ids: [G13]
+    sources_planned: [intranet]
+
+  - id: F091
+    category: general
+    topic: Räume buchen
+    de: "Besprechungsräume 1.10 'Innerste' und 2.20 'Galgenberg' werden über den Outlook-Raumkalender gebucht. Den Sitzungssaal 3.10 vergibt nur das Vorzimmer der Vorsteherin."
+    en: "Rooms 1.10 and 2.20 via Outlook; room 3.10 only via the head's office."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2024-01-01
+    question_ids: [G15]
+    sources_planned: [intranet]
+
+  - id: F092
+    category: general
+    topic: Brandschutz
+    de: "Sammelplatz bei Feueralarm ist der Parkplatz im Hof, Ecke Kaiserstraße."
+    en: "Fire assembly point: courtyard car park, Kaiserstraße corner."
+    owner: p09
+    department: ALL
+    access: internal
+    valid_from: 2022-01-01
+    question_ids: [G13]
+    sources_planned: [intranet]
+
+  # =========================== PUBLIC (real, public facts) ===========================
+  - id: F093
+    category: public
+    topic: Adresse und Telefon
+    de: "Finanzamt Hildesheim-Alfeld, Kaiserstraße 47, 31134 Hildesheim. Postanschrift: Postfach 100455, 31104 Hildesheim. Telefon: 05121 302-0. Finanzamtsnummer 2330."
+    en: "Real public address and phone."
+    owner: p09
+    department: ALL
+    access: public
+    valid_from: 2026-10-01
+    question_ids: [G17]
+    sources_planned: [intranet]
+
+  - id: F094
+    category: public
+    topic: Öffnungszeiten Servicestelle
+    de: "Öffnungszeiten für Bürgerinnen und Bürger: Montag, Dienstag und Freitag 8:00–12:00 Uhr, Donnerstag 8:00–12:00 und 13:00–17:00 Uhr, Mittwoch geschlossen."
+    en: "Public opening hours (BZSt-based listing; sources vary)."
+    owner: p09
+    department: ALL
+    access: public
+    valid_from: 2026-10-01
+    question_ids: [G16, Q50]
+    sources_planned: [intranet]
+
+  - id: F095
+    category: public
+    topic: ELSTER
+    de: "Steuererklärungen sollen möglichst elektronisch über ELSTER abgegeben werden. Für Fragen zum Steuerfall vereinbart man einen Termin bei der Servicestelle."
+    en: "File via ELSTER; book an appointment for case questions."
+    owner: p09
+    department: ALL
+    access: public
+    valid_from: 2024-01-01
+    question_ids: [G16, Q50]
+    sources_planned: [intranet]
+
+  # =========================== RESTRICTED (managers only) ===========================
+  - id: F096
+    category: org
+    topic: Nachfolge Geschäftsstelle (vertraulich)
+    de: "Die Stelle der Geschäftsstellenleitung ist ausgeschrieben; eine Besetzung ist frühestens zum 01.04.2027 möglich. Bis dahin übernimmt Sabine Krüger kommissarisch, auch die Verantwortung für den Umbau der Servicestelle."
+    en: "Successor for central services head not before 1 Apr 2027; Krüger acting. RESTRICTED."
+    owner: p01
+    also_known_by: [p05]
+    department: GS
+    access: restricted
+    valid_from: 2026-11-01
+    question_ids: [Q05, Q30]
+    sources_planned: [minutes]
+    plant: restricted
+
+  - id: F097
+    category: org
+    topic: Personalbedarf VA (vertraulich)
+    de: "Nach dem Ausscheiden von Herrn Meyer fehlen im Arbeitnehmerbereich 1,5 Stellen. Ein Antrag beim LStN auf Nachbesetzung läuft; mit einer Entscheidung wird im Februar 2027 gerechnet."
+    en: "1.5 FTE gap in employee tax after Meyer leaves; request pending. RESTRICTED."
+    owner: p10
+    also_known_by: [p01]
+    department: VA
+    access: restricted
+    valid_from: 2026-10-15
+    question_ids: [Q06]
+    sources_planned: [minutes, email]
+    plant: restricted
+
+# =========================== PLANTED TEST CASES ===========================
+plants:
+  superseded:
+    - {old: F012, new: F013, demo: "Zeichnungsgrenze 5.000 € → 10.000 € (Hilde zeigt 'geändert am 01.07.2026, vorher 5.000 €')"}
+    - {old: F077, new: F078, demo: "Parken: Warteliste & kostenlos → Losverfahren & 10 €/Monat"}
+  conflicts:
+    - {facts: [F034, F035], question: Q25, truth: F035, resolution: "Förderbescheid nennt Projektende 30.06.2027; Hartmann verwechselt mit Haushaltsjahr. Hilde soll Konflikt melden und Hartmann + Krüger um Klärung bitten."}
+    - {facts: [F062, F063], question: Q48, truth: F062, resolution: "Hausverfügung gilt; gelebte Praxis widerspricht. Hilde nennt Regel und weist auf abweichende Praxis hin."}
+    - {facts: [F080, F081], question: G02, truth: F081, resolution: "Intranet veraltet; neuere Aussage (valid_from 2026-08-01) gewinnt, Intranet-Seite als 'veraltet' markieren."}
+  restricted: [F040, F057, F096, F097]   # employee/new_hire must NOT get these; manager must
+  # Questions with NO source in the initial data -> Hilde must say "I don't know" + who to ask.
+  planted_gaps:
+    - id: Q34
+      who_to_ask: p05
+      note: "Haushaltsanmeldung is only in Reinecke's head. LIVE DEMO: Reinecke answers it on stage → gap closes."
+      live_demo_answer_de: "Mitte Februar fragt Frau Krüger per Mail alle Sachgebietsleitungen nach ihrem Bedarf, Frist 15. März. Sie sammelt alles in S:\\Amt\\Haushalt\\Anmeldung_<Jahr>.xlsx, ich prüfe und kürze, die Vorsteherin zeichnet, und bis 30. April geht die Anmeldung ans LStN."
+    - id: G14
+      who_to_ask: p05
+      note: "E-Ladesäulen: nobody documented anything. Hilde should route to Geschäftsstelle."
+    - id: X01
+      question_de: "Wer vertritt die Datenschutzkoordinatorin?"
+      who_to_ask: p08
+      note: "Deputy for data protection is not documented anywhere (p08.yaml comments it)."
+  # Fictional taxpayer data that leavers 'accidentally' mention in interviews. Must be redacted before storage.
+  redaction_targets:
+    - {type: person, value: "Dieter Konopka", inject_into: p05, context: "Einspruch, der 2023 in der Presse landete"}
+    - {type: company, value: "Bäckerei Hollmann GmbH", inject_into: p11, context: "Beispiel doppelte Haushaltsführung des Inhabers"}
+    - {type: tax_number, value: "30/215/12345", inject_into: p11, context: "liest Steuernummer vom Zettel ab"}
+    - {type: iban, value: "DE89 3704 0044 0532 0130 00", inject_into: p05, context: "Erstattung auf falsches Konto"}
+  # Documents NOT ingested beforehand; uploaded live to show the knowledge update.
+  live_update:
+    - id: HV-2026-12
+      title_de: "Änderung Parkraumordnung: Entgelt 12 €"
+      valid_from: 2027-01-01
+      changes: F078
+      new_de: "Ab dem 01.01.2027 beträgt das Parkentgelt 12 € im Monat."

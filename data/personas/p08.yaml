@@ -1,0 +1,20 @@
+id: p08
+name: Anja Vogt
+department: GS
+role_de: Sachbearbeiterin Personal und Datenschutzkoordinatorin
+role_en: HR officer and data protection coordinator
+grade: A10
+status: active
+tenure_years: 11
+start_date: 2015-08-01
+leave_date: null
+reports_to: p05
+deputy: p06               # for HR only; deputy for data protection is NOT documented (planted gap)
+room: "1.07"
+phone_ext: "302-107"
+email: anja.vogt@fa-hildesheim.example
+access_role: employee
+speaking_style: vorsichtig, betont Regeln und Fristen, sagt oft "Lieber einmal mehr fragen."
+voice: de_DE-kerstin-low
+blind_spots: [Beschaffung, Parkplätze]
+interview_type: checklist_audio

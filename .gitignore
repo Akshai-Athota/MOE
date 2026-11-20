@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# large generated media: regenerate with generators/ (or use Git LFS)
+data/raw/audio/*.wav
+data/raw/video/*.mp4
+models/

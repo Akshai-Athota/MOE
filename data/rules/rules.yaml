@@ -1,0 +1,163 @@
+# Internal orders (Hausverfügungen, HV) and service agreements (Dienstvereinbarung, DV). ALL FICTIONAL.
+# Statutes cited (AO, DSGVO, NDSG, NPersVG) are real laws; the internal rules built on them are invented.
+# Generators turn each rule into a PDF/DOCX in Behördendeutsch (data/raw/docs/doc_rule_<id>.pdf).
+# Facts in facts.yaml link here via `rule:`.
+
+rules:
+  - id: HV-2019-04
+    title_de: Zeichnungsrechte im Veranlagungsbereich
+    title_en: Signing authority in tax assessment
+    issued_by: p01-Vorgängerin (Vorsteher a. D. Brinkmann, fiktiv)
+    valid_from: 2019-05-01
+    valid_to: 2026-06-30
+    supersedes: null
+    status: superseded
+    access: internal
+    summary_de: Sachbearbeitende zeichnen Bescheide mit Abweichungen bis 5.000 € von der Erklärung selbst; darüber zeichnet die Sachgebietsleitung.
+    clauses:
+      - "Abweichungen bis 5.000 € zeichnet die Sachbearbeitung."
+      - "Abweichungen über 5.000 € sowie Erstattungen über 10.000 € zeichnet die Sachgebietsleitung."
+      - "Erstattungen über 50.000 € zeichnet die Vorsteherin bzw. der Vorsteher."
+
+  - id: HV-2026-07
+    title_de: Zeichnungsrechte im Veranlagungsbereich (Neufassung)
+    title_en: Signing authority in tax assessment (revised)
+    issued_by: p01
+    valid_from: 2026-07-01
+    valid_to: null
+    supersedes: HV-2019-04
+    status: current
+    access: internal
+    summary_de: Grenze für die Sachbearbeitung auf 10.000 € angehoben, Erstattungsgrenze für die Sachgebietsleitung auf 25.000 €.
+    clauses:
+      - "Abweichungen bis 10.000 € zeichnet die Sachbearbeitung."
+      - "Abweichungen über 10.000 € sowie Erstattungen über 25.000 € zeichnet die Sachgebietsleitung."
+      - "Erstattungen über 50.000 € zeichnet die Vorsteherin."
+      - "Neue Kolleginnen und Kollegen zeichnen in den ersten sechs Monaten alle Bescheide mit Mitzeichnung durch die Mentorin bzw. den Mentor."
+
+  - id: HV-2021-02
+    title_de: Parkraumordnung Hof Kaiserstraße
+    title_en: Parking rules, courtyard Kaiserstraße
+    issued_by: p05
+    valid_from: 2021-03-01
+    valid_to: 2026-10-31
+    supersedes: null
+    status: superseded
+    access: internal
+    summary_de: 38 Stellplätze, Vergabe nach Warteliste bei der Geschäftsstelle, Papier-Parkausweis hinter der Windschutzscheibe, kostenlos.
+    clauses:
+      - "Der Hof verfügt über 38 Stellplätze, davon 2 Behindertenparkplätze und 2 Dienstwagenplätze."
+      - "Parkausweise werden nach Warteliste von der Geschäftsstelle (Raum 1.05) ausgegeben."
+      - "Das Parken ist kostenlos."
+
+  - id: HV-2026-11
+    title_de: Parkraumordnung Hof Kaiserstraße (Neufassung)
+    title_en: Parking rules (revised)
+    issued_by: p01
+    valid_from: 2026-11-01
+    valid_to: null
+    supersedes: HV-2021-02
+    status: current
+    access: internal
+    summary_de: Digitaler Parkausweis über das PersonalPortal, halbjährliches Losverfahren, Vorrang für Schwerbehinderte und Teilzeit mit Betreuungspflichten, 10 € Monatsentgelt.
+    clauses:
+      - "Stellplätze werden halbjährlich (1. Mai, 1. November) im Losverfahren über das PersonalPortal NI vergeben."
+      - "Vorrang haben schwerbehinderte Beschäftigte und Teilzeitbeschäftigte mit Betreuungspflichten."
+      - "Das Nutzungsentgelt beträgt 10 € monatlich und wird mit den Bezügen verrechnet."
+      - "Neue Beschäftigte können bis zur nächsten Verlosung einen Gastparkausweis bei der Servicestelle (Raum 0.02) erhalten."
+
+  - id: DV-2024-01
+    title_de: Dienstvereinbarung Gleitzeit und mobiles Arbeiten
+    title_en: Service agreement on flexitime and remote work
+    issued_by: p01 und Personalrat
+    valid_from: 2024-01-01
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Rahmenarbeitszeit 6:30–19:00, Funktionszeit Mo–Do 8:30–15:00 und Fr 8:30–12:00, bis zu zwei Tage mobiles Arbeiten pro Woche.
+    clauses:
+      - "Rahmenarbeitszeit: Montag bis Freitag 6:30 bis 19:00 Uhr."
+      - "Funktionszeit: Montag bis Donnerstag 8:30 bis 15:00 Uhr, Freitag 8:30 bis 12:00 Uhr; jedes Sachgebiet stellt die Erreichbarkeit sicher."
+      - "Mobiles Arbeiten ist an bis zu zwei Tagen pro Woche nach Absprache mit der Sachgebietsleitung möglich; in den ersten drei Monaten nach Dienstantritt nicht."
+      - "Papierakten mit Steuerdaten dürfen das Dienstgebäude nicht verlassen."
+      - "Das Gleitzeitkonto darf +40 / -10 Stunden nicht überschreiten."
+
+  - id: HV-2022-01
+    title_de: Mitzeichnung und Berichtswesen
+    title_en: Co-signing and reporting
+    issued_by: p01
+    valid_from: 2022-02-01
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Berichte an das LStN laufen über Sachgebietsleitung, Geschäftsstelle und Vorsteherin; Grundsatzfragen werden von der Rechtsbehelfsstelle mitgezeichnet.
+    clauses:
+      - "Berichte an das LStN: Entwurf durch das Sachgebiet → Mitzeichnung Sachgebietsleitung → Formalprüfung Geschäftsstelle → Zeichnung Vorsteherin."
+      - "Bei rechtlichen Grundsatzfragen zeichnet die Rechtsbehelfsstelle mit."
+      - "Personalangelegenheiten werden vom Personalrat mitgezeichnet, soweit das NPersVG es vorsieht."
+      - "Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen; Fristablauf gilt nicht als Zustimmung."
+
+  - id: HV-2025-02
+    title_de: Beschaffung und Rechnungsprüfung
+    title_en: Procurement and invoice checking
+    issued_by: p01
+    valid_from: 2025-01-01
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Hausinterne Wertgrenzen für Beschaffungen, Nutzung der Landesrahmenverträge, Vier-Augen-Prinzip bei Rechnungen.
+    clauses:
+      - "Bis 1.000 € netto: Direktbeschaffung durch die Geschäftsstelle nach Bedarfsmeldung."
+      - "1.000 € bis 25.000 € netto: mindestens drei Vergleichsangebote, Entscheidung durch die Geschäftsstellenleitung."
+      - "Über 25.000 € netto: förmliches Vergabeverfahren über die zentrale Vergabestelle des LStN."
+      - "Büromaterial, IT-Hardware und Möbel werden ausschließlich über die Landesrahmenverträge bestellt."
+      - "Rechnungen prüft die Sachbearbeitung Haushalt sachlich; die rechnerische Prüfung erfolgt durch eine zweite Person (Vier-Augen-Prinzip)."
+
+  - id: HV-2020-06
+    title_de: Presse- und Öffentlichkeitsarbeit
+    title_en: Press and public relations
+    issued_by: p01
+    valid_from: 2020-06-15
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Presseanfragen gehen an die Vorsteherin; überregionale Themen werden mit der Pressestelle des LStN abgestimmt; keine Auskünfte zu Einzelfällen.
+    clauses:
+      - "Presseanfragen werden unverzüglich an die Vorsteherin und die Öffentlichkeitsarbeit (Raum 0.02) weitergeleitet."
+      - "Pressemitteilungen mit überregionalem Bezug werden vor Veröffentlichung mit der Pressestelle des LStN abgestimmt."
+      - "Zu einzelnen Steuerfällen werden wegen des Steuergeheimnisses (§ 30 AO) keine Auskünfte erteilt."
+
+  - id: HV-2025-04
+    title_de: Datenschutz im Finanzamt
+    title_en: Data protection in the tax office
+    issued_by: p01
+    valid_from: 2025-04-01
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Datenschutzkoordination bei neuen Verfahren, Excel-Listen mit Personenbezug und Datenpannen einbinden; Meldung von Pannen innerhalb 24 Stunden intern.
+    clauses:
+      - "Die Datenschutzkoordination (Raum 1.07) ist einzubinden bei: neuen IT-Verfahren oder Tools, eigenen Listen/Tabellen mit Personenbezug, Weitergabe von Daten an Dritte, Fotos/Videos von Beschäftigten."
+      - "Datenpannen sind intern innerhalb von 24 Stunden zu melden, damit die Frist nach Art. 33 DSGVO (72 Stunden) gewahrt werden kann."
+      - "Steuerdaten dürfen nicht über Teams-Chats oder private E-Mail-Konten übermittelt werden."
+
+  - id: HV-2023-05
+    title_de: IT-Sicherheit am Arbeitsplatz
+    title_en: IT security at the workplace
+    issued_by: p01
+    valid_from: 2023-05-01
+    valid_to: null
+    supersedes: null
+    status: current
+    access: internal
+    summary_de: Passwörter mindestens 12 Zeichen ohne regelmäßigen Zwangswechsel, Bildschirmsperre beim Verlassen, nur dienstliche verschlüsselte USB-Sticks.
+    clauses:
+      - "Passwörter: mindestens 12 Zeichen; ein Wechsel ist nur bei Verdacht auf Kompromittierung erforderlich."
+      - "Beim Verlassen des Arbeitsplatzes ist der Bildschirm zu sperren (Windows-Taste + L)."
+      - "Es dürfen nur dienstlich ausgegebene, verschlüsselte USB-Sticks verwendet werden."
+      - "Verdächtige E-Mails werden über den Button 'Phishing melden' gemeldet und nicht geöffnet."

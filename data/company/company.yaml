@@ -1,0 +1,118 @@
+# Finanzamt Hildesheim-Alfeld: company world file
+# REAL (public): name, address, postal address, phone, tax office number.
+#   Source: https://www.firma.de/finanzamt/hildesheim-alfeld/ (BZSt data, Oct 2026)
+# Everything marked `synthetic: true` (or every section below `real:`) is FICTIONAL.
+
+real:
+  name: Finanzamt Hildesheim-Alfeld
+  short_name: Finanzamt Hildesheim
+  street: Kaiserstraße 47
+  zip: "31134"
+  city: Hildesheim
+  postal_address: Postfach 100455, 31104 Hildesheim
+  phone: "05121 302-0"
+  tax_office_number: "2330"
+  state: Niedersachsen
+  supervisory_authority: Landesamt für Steuern Niedersachsen (LStN), Hannover
+  ministry: Niedersächsisches Finanzministerium
+  # Opening hours differ between public sources; we use the BZSt-based listing.
+  public_opening_hours:
+    Mo: "08:00–12:00"
+    Di: "08:00–12:00"
+    Mi: "geschlossen"
+    Do: "08:00–12:00, 13:00–17:00"
+    Fr: "08:00–12:00"
+
+disclaimer: >
+  Synthetic hackathon data. All people, internal rules, figures, projects, rooms,
+  phone extensions and taxpayers are fictional and do not describe the real authority.
+
+synthetic: true
+
+assistant:
+  name: Hilde
+  self_intro_de: "Hallo, ich bin Hilde, die KI-Kollegin des Finanzamts Hildesheim. Ich bin eine KI und zeige dir immer, woher meine Antwort stammt."
+  tone: freundlich, duzt intern (Du-Kultur im Amt seit 2024), knapp, nennt Quellen
+  never: [Steuerberatung für Bürger, Auskünfte zu einzelnen Steuerfällen, Personalbewertungen]
+
+departments:
+  AL:
+    name_de: Amtsleitung
+    name_en: Head of office
+    head: p01
+    members: [p01]
+  RB:
+    name_de: Rechtsbehelfsstelle
+    name_en: Appeals office (objections against tax assessments)
+    head: p02
+    members: [p02, p03, p04]
+    floor: 2
+  GS:
+    name_de: Geschäftsstelle & Servicestelle
+    name_en: Central services (HR, budget, IT, data protection) and front desk / PR
+    head: p05
+    members: [p05, p06, p07, p08, p09]
+    floor: "0–1"
+  VA:
+    name_de: Veranlagung – Arbeitnehmerbereich
+    name_en: Tax assessment – employees
+    head: p10
+    members: [p10, p11, p12, p13]
+    floor: 2
+
+staff_count_modelled: 13   # the real office is much larger; we model 3 departments + head
+leavers: [p05, p11]
+new_hires: [p13]
+managers: [p01, p02, p05, p10]
+
+building:
+  main_entrance: Kaiserstraße 47
+  staff_entrance: Hofeinfahrt Kaiserstraße (Schranke, Dienstausweis)
+  floors:
+    "0": Servicestelle/Infothek, Poststelle, IT-Raum 0.08, Fahrradraum
+    "1": Geschäftsstelle (1.05–1.07), Kantine, Besprechungsraum 1.10 "Innerste"
+    "2": Rechtsbehelfsstelle (2.12–2.14), Arbeitnehmerbereich (2.01–2.05), Besprechungsraum 2.20 "Galgenberg"
+    "3": Amtsleitung (3.01), Sitzungssaal 3.10
+  fire_assembly_point: Parkplatz Hof, Ecke Kaiserstraße
+  first_aiders: [p06, p09, p12]
+
+systems:   # real, publicly known systems of the German tax administration + fictional internal tools
+  - {name: ELSTER, real: true, use: Elektronische Steuererklärung der Bürger}
+  - {name: KONSENS-Verfahren, real: true, use: Bundeseinheitliche Steuersoftware (Veranlagung)}
+  - {name: E-Akte Steuer, real: false, use: Elektronische Akte, Pilot im Arbeitnehmerbereich (PR1)}
+  - {name: PersonalPortal NI, real: false, use: Urlaub, Gleitzeit, Dienstreisen}
+  - {name: Laufwerk S:\ Amt, real: false, use: Amtsablage, Ordner je Sachgebiet}
+  - {name: Laufwerk T:\ Team, real: false, use: Sachgebietsablage, nur eigenes Sachgebiet}
+  - {name: Microsoft Teams, real: true, use: Chat und Videokonferenzen, keine Steuerdaten}
+  - {name: Intranet "FA-Info", real: false, use: Hausverfügungen, Speiseplan, Telefonliste}
+
+projects:
+  PR1:
+    name: Einführung E-Akte im Arbeitnehmerbereich
+    owner: p10
+    key_user: p12
+    status: Pilotphase
+    go_live: 2027-03-01
+    method: Kanban-Board in Planner
+    reports_to: LStN, Referat Organisation
+  PR2:
+    name: "Pilot KI-Assistenz Einspruchsbearbeitung"
+    owner: p02
+    funded_by: Modernisierungsfonds Steuerverwaltung Niedersachsen (fiktiv)
+    budget_eur: 48000
+    status: läuft
+    period: 2026-04-01 bis 2027-06-30
+  PR3:
+    name: Barrierefreier Umbau der Servicestelle
+    owner: p05
+    successor_owner: open    # restricted, see facts
+    status: Planung, Ausschreibung offen
+    budget_eur: 120000
+    planned_start: 2027-05
+
+external_bodies:
+  - {id: LStN, name: Landesamt für Steuern Niedersachsen, role: Fach- und Dienstaufsicht}
+  - {id: FM, name: Niedersächsisches Finanzministerium, role: oberste Landesbehörde}
+  - {id: PR, name: Personalrat Finanzamt Hildesheim, role: Mitbestimmung, chair: "Rüdiger Fass (fiktiv, keine Persona)"}
+  - {id: GB, name: Gleichstellungsbeauftragte, role: Beteiligung bei Personalmaßnahmen}
+  - {id: SBV, name: Schwerbehindertenvertretung, role: Beteiligung bei Personalmaßnahmen}
