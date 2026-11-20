@@ -1,42 +1,19 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 
-/** A little AI agent that sits behind a horizontal line, peeks over it and watches the cursor.
- *  Now and then it scurries to a new spot along the line. */
+/** A little AI agent that sits in the middle behind a horizontal line, peeks over it and watches the cursor. */
 export function AgentBuddy() {
-  const reduce = useReducedMotion();
-  const [pos, setPos] = useState(50);
-  const [up, setUp] = useState(true);
-
-  useEffect(() => {
-    if (reduce) return;
-    let t: number;
-    const loop = () => {
-      t = window.setTimeout(() => {
-        setUp(false); // duck, move, pop up again
-        t = window.setTimeout(() => {
-          setPos(8 + Math.random() * 84);
-          t = window.setTimeout(() => {
-            setUp(true);
-            loop();
-          }, 700);
-        }, 350);
-      }, 7000 + Math.random() * 8000);
-    };
-    loop();
-    return () => window.clearTimeout(t);
-  }, [reduce]);
-
   return (
     <div className="relative h-px w-full bg-line-strong">
       {/* clip box: everything below the line is hidden, so the agent looks like it's behind it */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-[70px] overflow-hidden">
         <motion.div
           aria-hidden
-          className="absolute bottom-0"
-          animate={{ left: `${pos}%`, y: up ? 14 : 70 }}
-          transition={{ left: { duration: 0.6, ease: "easeInOut" }, y: { type: "spring", stiffness: 260, damping: 18 } }}
+          className="absolute bottom-0 left-1/2"
           style={{ x: "-50%" }}
+          initial={{ y: 70 }}
+          animate={{ y: 14 }}
+          transition={{ type: "spring", stiffness: 200, damping: 16, delay: 0.4 }}
         >
           <Face />
         </motion.div>
