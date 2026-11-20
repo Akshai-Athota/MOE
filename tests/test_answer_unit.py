@@ -66,3 +66,17 @@ def test_key_term_stem_long_enough_for_similar_compounds():
 
     assert not key_term_grounded("Wie läuft die Haushaltsanmeldung?",
                                  ["Kontrolle und Überwachung der Haushaltsangelegenheiten."])
+
+
+def test_abstain_reason_names_the_failing_step():
+    from hilde.answer import Generated, Sentence, _abstain_reason
+    hits = [_hit("F1")]
+    assert _abstain_reason({"hits": []})[0] == "no_sources"
+    assert _abstain_reason({"hits": hits, "generated": Generated(answerable=False)})[0] == "model_unanswerable"
+    no_src = Generated(answerable=True, sentences=[Sentence(text="x", sources=[])])
+    assert _abstain_reason({"hits": hits, "generated": no_src})[0] == "no_valid_citations"
+    ok = Generated(answerable=True, sentences=[Sentence(text="x", sources=[1])])
+    assert _abstain_reason({"hits": hits, "generated": ok,
+                            "verdict": {"key_term_missing": True}})[0] == "key_term_missing"
+    reason, debug = _abstain_reason({"hits": hits, "generated": ok, "verdict": {"answers_question": False}})
+    assert reason == "verify_rejected" and debug["sources"][0].startswith("[1] F1")

@@ -17,12 +17,20 @@ CASES = [  # (question, user, expected: answer|abstain|conflict)
 ]
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 total = 0
+reasons: Counter = Counter()  # (question, abstain_reason) -> count: which step drops answers
 for q, uid, want in CASES:
     got = Counter()
     for _ in range(n):
         a = ask(q, user_from_persona(uid))
-        got["abstain" if a.abstained else "conflict" if a.conflict else "answer"] += 1
+        outcome = "abstain" if a.abstained else "conflict" if a.conflict else "answer"
+        got[outcome] += 1
+        if a.abstained:
+            reasons[(q, a.abstain_reason)] += 1
     hit = n if want == "any" else got[want]
     total += hit
     print(f"{hit}/{n}  want={want:<8} {dict(got)}  {q}")
 print(f"TOTAL {total}/{n * len(CASES)}")
+if reasons:
+    print("\nwhy abstained (step that dropped the answer):")
+    for (q, r), c in sorted(reasons.items()):
+        print(f"  {c}x {r:<20} {q}")

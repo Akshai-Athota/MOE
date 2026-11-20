@@ -103,6 +103,10 @@ class Answer(BaseModel):
     restricted_owner: Contact | None = Field(
         default=None, description="whom to ask for content this role may not see")
     seconds: float = 0.0
+    abstain_reason: str | None = Field(default=None, description=(
+        "why Hilde did not answer: no_sources | model_unanswerable | no_valid_citations | "
+        "key_term_missing | verify_rejected"))
+    debug: dict = Field(default_factory=dict, description="retrieved sources and model output (abstain only)")
 
 
 class LearnRequest(BaseModel):
