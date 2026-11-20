@@ -24,7 +24,7 @@ def parse_transcript(path: Path) -> list[Piece]:
     for n, para in enumerate(paragraphs, 1):
         m = SPEAKER.match(para)
         speaker, _text = (m.group(1), m.group(2)) if m else (None, para)
-        if speaker in ("Q", "Hilde"):  # the interviewer (older transcripts say "Hilde")
+        if speaker in ("Finn", "Q", "Hilde"):  # the interviewer (older transcripts: "Q", "Hilde")
             pending_question = para
             continue
         body = f"{pending_question}\n{para}" if pending_question else para

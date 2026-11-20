@@ -258,8 +258,8 @@ TURN_USER = """Person: {name}, {role}. Sprechstil: {style}
 FAKT: {fact}"""
 
 TURN_FORMAT = {
-    "audio": ("question = Frage der Interviewerin Q an {first} (1 Satz, duzt {first}), die zu diesem Thema "
-              "führt, ohne die Antwort vorwegzunehmen. answer = gesprochene Antwort von {first} an Q "
+    "audio": ("question = Frage der Interviewer Finn an {first} (1 Satz, duzt {first}), die zu diesem Thema "
+              "führt, ohne die Antwort vorwegzunehmen. answer = gesprochene Antwort von {first} an Finn "
               "(Ich-Form, 2-4 Sätze, natürlich mit 'äh', 'also')."),
     "video": ("question = kurzer Titel des Bildschirmschritts. answer = gesprochene Erklärung von {first}, "
               "während {first} es am Bildschirm zeigt ('Hier seht ihr ...'), 2-4 Sätze."),
@@ -268,7 +268,7 @@ TURN_FORMAT = {
 }
 
 ANECDOTE_USER = """Person: {name}, {role}. Sprechstil: {style}
-question = kurze Nachfrage der Interviewerin Q an {name}. answer = {name} (Ich-Form) erwähnt beiläufig und versehentlich einen echten
+question = kurze Nachfrage der Interviewer Finn an {name}. answer = {name} (Ich-Form) erwähnt beiläufig und versehentlich einen echten
 Steuerfall ({context}) und nennt dabei wörtlich: {value}
 Das ist eine Anekdote, kein Fakt. 2-3 Sätze."""
 
@@ -340,7 +340,7 @@ def run_job(job, personas, llm, judge) -> tuple[str, dict, list[str]]:
     for n, f in enumerate(job["facts"]):
         allowed = allowed_numbers([f], p, staff_numbers)
         # full speaking style only every third answer, so quirks don't repeat in every turn
-        style = _style(p) if n % 3 == 0 else "natürlich, gesprochen, duzt Q"
+        style = _style(p) if n % 3 == 0 else "natürlich, gesprochen, duzt Finn"
         user = TURN_USER.format(name=p["name"], role=p["role_de"], style=style,
                                 format=TURN_FORMAT[job["modality"]].format(first=first), fact=f["de"])
         safe = f["de"].replace("\\", "⧵")  # backslash paths survive JSON (see hilde/answer.py)
@@ -367,15 +367,15 @@ def run_job(job, personas, llm, judge) -> tuple[str, dict, list[str]]:
     if job["modality"] == "audio":
         part = (f" Das ist Teil {job['part']} von {job['parts']} unserer Interviewreihe."
                 if job["parts"] > 1 else "")
-        lines += [(f"Q: Hallo {first}, danke, dass du dir Zeit nimmst.{part} Ich bin Q, eine KI, "
+        lines += [(f"Finn: Hallo {first}, danke, dass du dir Zeit nimmst.{part} Ich bin Finn, eine KI, "
                   "und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt."),
-                  f"{last}: Gern, Q. Dann erzähle ich mal."]
+                  f"{last}: Gern, Finn. Dann erzähle ich mal."]
         for fid, t in turns:
-            lines.append(f"Q: {t.question}")
+            lines.append(f"Finn: {t.question}")
             lines.append(f"{last}: {t.answer}")
             if fid:
                 fact_lines[fid] = len(lines)
-        lines += [f"Q: Danke, {first}! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.",
+        lines += [f"Finn: Danke, {first}! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.",
                   f"{last}: Prima, so machen wir das."]
     elif job["modality"] == "video":
         lines.append(f"{last}: Hallo zusammen, ich zeige euch heute ein paar Dinge direkt am Bildschirm.")

@@ -1,31 +1,31 @@
-Q: Hallo Anja, danke, dass du dir Zeit nimmst. Das ist Teil 1 von 2 unserer Interviewreihe. Ich bin Q, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
+Finn: Hallo Anja, danke, dass du dir Zeit nimmst. Das ist Teil 1 von 2 unserer Interviewreihe. Ich bin Finn, eine KI, und nehme unser Gespräch auf, damit dein Wissen im Amt bleibt.
 
-Vogt: Gern, Q. Dann erzähle ich mal.
+Vogt: Gern, Finn. Dann erzähle ich mal.
 
-Q: Anja, wie exactly handhabst du den Vertretungsplan, und was passiert wenn jemand Urlaubsdienstleistungen leistet?
+Finn: Anja, wie exactly handhabst du den Vertretungsplan, und was passiert wenn jemand Urlaubsdienstleistungen leistet?
 
 Vogt: Also, ich denke, es ist wichtig, dass wir den Vertretungsplan stets im Auge behalten. Der Plan liegt unter S:\Amt\Organisation\Vertretungsplan.xlsx und wird von der Geschäftsstelle gepflegt. Wenn jemand Urlaubsdienstleistungen leistet, müssen wir sicherstellen, dass dies zusätzlich im Plan eingetragen wird, insbesondere wenn es sich um Urlaube über drei Tage handelt. Lieber einmal mehr fragen, ob wir das immer im Auge behalten.
 
-Q: Anja, wie integrierst du den Personalrat bei den Entscheidungen über Arbeitszeit, Einstellungen und neue Technik?
+Finn: Anja, wie integrierst du den Personalrat bei den Entscheidungen über Arbeitszeit, Einstellungen und neue Technik?
 
 Vogt: Also, bei den Arbeitszeiten und Einstellungen, integrieren wir den Personalrat immer, um sicherzustellen, dass wir alle Bedenken und Wünsche berücksichtigen. Und bei der neuen Technik, also bei der Auswahl und Implementierung neuer Tools, ist es ähnlich. Wir laden den Personalrat ein, um seine Meinung zu hören, bevor wir uns auf eine Entscheidung einigen.
 
-Q: Also, Anja, wer nimmt an diesem Monatsgespräch mit der Vorsteherin und dem Personalrat teil?
+Finn: Also, Anja, wer nimmt an diesem Monatsgespräch mit der Vorsteherin und dem Personalrat teil?
 
-Vogt: Also, Q, bei uns trifft sich die Vorsteherin am ersten Mittwoch jedes Monats mit dem Personalrat zum Monatsgespräch.
+Vogt: Also, Finn, bei uns trifft sich die Vorsteherin am ersten Mittwoch jedes Monats mit dem Personalrat zum Monatsgespräch.
 
-Q: Anja, wie wichtig ist es, dass wir die Datenschutzkoordination bei den neuen IT-Verfahren oder Tools einbeziehen, und in welchen Fällen genau das notwendig ist?
+Finn: Anja, wie wichtig ist es, dass wir die Datenschutzkoordination bei den neuen IT-Verfahren oder Tools einbeziehen, und in welchen Fällen genau das notwendig ist?
 
-Vogt: Also, Q, es ist wirklich wichtig, dass wir immer die Datenschutzkoordination bei neuen IT-Verfahren oder Tools einbeziehen. Äh, das gilt insbesondere, wenn es um eigene Listen mit Personenbezug, die Weitergabe von Daten an Dritte oder das Aufnehmen von Fotos oder Videos von Beschäftigten geht. Lieber einmal mehr fragen, ob wir das richtig verstehen, oder?
+Vogt: Also, Finn, es ist wirklich wichtig, dass wir immer die Datenschutzkoordination bei neuen IT-Verfahren oder Tools einbeziehen. Äh, das gilt insbesondere, wenn es um eigene Listen mit Personenbezug, die Weitergabe von Daten an Dritte oder das Aufnehmen von Fotos oder Videos von Beschäftigten geht. Lieber einmal mehr fragen, ob wir das richtig verstehen, oder?
 
-Q: Also, Anja, wie gestaltet sich die Meldeprozess-Implementierung in eurer Abteilung?
+Finn: Also, Anja, wie gestaltet sich die Meldeprozess-Implementierung in eurer Abteilung?
 
-Vogt: Also, Q, wir haben uns darum gekümmert, dass die Mitarbeiterinnen und Mitarbeiter innerhalb der Abteilung Personal und Datenschutz koordinieren, sobald sie von einer Datenpanne erfahren. Ich-Formelweise sagen wir, dass es wichtig ist, die Datenschutzkoordination innerhalb von 24 Stunden zu informieren, damit wir die 72-Stunden-Frist nach Artikel 33 DSGVO einhalten können. Äh, das hat sich als ziemlich effektiv erwiesen, weil wir dann alle notwendigen Schritte im Auge haben und das Risikomanagement verbessern können.
+Vogt: Also, Finn, wir haben uns darum gekümmert, dass die Mitarbeiterinnen und Mitarbeiter innerhalb der Abteilung Personal und Datenschutz koordinieren, sobald sie von einer Datenpanne erfahren. Ich-Formelweise sagen wir, dass es wichtig ist, die Datenschutzkoordination innerhalb von 24 Stunden zu informieren, damit wir die 72-Stunden-Frist nach Artikel 33 DSGVO einhalten können. Äh, das hat sich als ziemlich effektiv erwiesen, weil wir dann alle notwendigen Schritte im Auge haben und das Risikomanagement verbessern können.
 
-Q: Was sollte man zum Thema Rechnungsprüfung wissen?
+Finn: Was sollte man zum Thema Rechnungsprüfung wissen?
 
 Vogt: Also: Frau Krüger prüft Rechnungen sachlich, die rechnerische Prüfung macht eine zweite Person (meist Frau Vogt). Bezahlt wird über die Landeshauptkasse. Skontofristen von 10 Tagen unbedingt beachten.
 
-Q: Danke, Anja! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
+Finn: Danke, Anja! Ich mache daraus eine Handbuchseite und zeige sie dir zur Freigabe.
 
 Vogt: Prima, so machen wir das.
