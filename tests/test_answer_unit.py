@@ -52,3 +52,17 @@ def test_key_term_grounding_for_german_compounds():
     assert key_term_grounded("Wie funktioniert das Mitzeichnungsverfahren?",
                              ["Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen."])
     assert key_term_grounded("Wo kann ich parken?", ["irrelevant"])  # no long word -> no check
+
+
+def test_abstain_reason_names_the_failing_step():
+    from hilde.answer import Generated, Sentence, _abstain_reason
+    hits = [_hit("F1")]
+    assert _abstain_reason({"hits": []})[0] == "no_sources"
+    assert _abstain_reason({"hits": hits, "generated": Generated(answerable=False)})[0] == "model_unanswerable"
+    no_src = Generated(answerable=True, sentences=[Sentence(text="x", sources=[])])
+    assert _abstain_reason({"hits": hits, "generated": no_src})[0] == "no_valid_citations"
+    ok = Generated(answerable=True, sentences=[Sentence(text="x", sources=[1])])
+    assert _abstain_reason({"hits": hits, "generated": ok,
+                            "verdict": {"key_term_missing": True}})[0] == "key_term_missing"
+    reason, debug = _abstain_reason({"hits": hits, "generated": ok, "verdict": {"answers_question": False}})
+    assert reason == "verify_rejected" and debug["sources"][0].startswith("[1] F1")

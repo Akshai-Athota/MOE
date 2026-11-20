@@ -85,6 +85,7 @@ class State(TypedDict, total=False):
     history: dict[int, Hit]  # source number -> superseded predecessor
     generated: Generated
     verified: bool
+    verdict: dict  # verifier output, kept for abstain_reason/debug
     contradiction: bool
     result: Answer
     started: float
@@ -211,7 +212,7 @@ def verify(state: State) -> State:
     # German-compound check: only meaningful when the question is German like the sources
     if state.get("lang", "de") == "de" and not key_term_grounded(
             state["question"], [hits[n - 1].text for n in used]):
-        return {"verified": False, "contradiction": False}
+        return {"verified": False, "contradiction": False, "verdict": {"key_term_missing": True}}
     try:
         v: Verdict = get_llm().with_structured_output(Verdict, method="json_schema").invoke([
             SystemMessage(VERIFY_SYSTEM),
@@ -229,10 +230,12 @@ def verify(state: State) -> State:
     # status="conflict". Pairwise LLM checks at question time were unreliable with a 7B model.
     contradiction = (v.sources_contradict and len(used) > 1) or any(
         hits[n - 1].status == "conflict" for n in used)
+    verdict = v.model_dump()
     if contradiction:
         # contradicting sources: reporting both (and flagging it) is the desired behaviour
-        return {"verified": v.supported_by_sources, "contradiction": True}
-    return {"verified": v.answers_question and v.supported_by_sources, "contradiction": False}
+        return {"verified": v.supported_by_sources, "contradiction": True, "verdict": verdict}
+    return {"verified": v.answers_question and v.supported_by_sources, "contradiction": False,
+            "verdict": verdict}
 
 
 def route_verified(state: State) -> str:
@@ -328,12 +331,30 @@ _ABSTAIN = {
 }
 
 
+def _abstain_reason(state: State) -> tuple[str, dict]:
+    """Which step stopped the answer, plus what it saw (for /ask debugging)."""
+    hits, g = state.get("hits", []), state.get("generated")
+    debug = {"sources": [f"[{n}] {h.source_id}: {h.text[:120]}" for n, h in enumerate(hits, 1)],
+             "generated": g.model_dump() if g else None, "verdict": state.get("verdict")}
+    if not hits:
+        return "no_sources", debug
+    if g is None or not g.answerable:
+        return "model_unanswerable", debug
+    if not g.valid_sentences(len(hits)):
+        return "no_valid_citations", debug
+    if (state.get("verdict") or {}).get("key_term_missing"):
+        return "key_term_missing", debug
+    return "verify_rejected", debug
+
+
 def abstain(state: State) -> State:
     user, question = state["user"], state["question"]
     t = _ABSTAIN[state.get("lang", "de")]
+    reason, debug = _abstain_reason(state)
     pid = _pick_person(question, user.id)
     if not pid:  # off-topic: nobody to route to, nothing to learn
-        return {"result": Answer(question=question, abstained=True, answer=t["off_topic"])}
+        return {"result": Answer(question=question, abstained=True, answer=t["off_topic"],
+                                 abstain_reason=reason, debug=debug)}
     p = load_personas()[pid]
     contact = Contact(id=pid, name=p["name"], role_de=p["role_de"], room=p["room"],
                       phone_ext=p["phone_ext"], email=p["email"])
@@ -342,7 +363,8 @@ def abstain(state: State) -> State:
     text += (t["leaving"] if p["status"] == "leaving" else t["noted"]).format(name=p["name"])
     qid = open_questions.add(question, asked_by=user.id, assigned_to=pid)
     return {"result": Answer(question=question, answer=text, abstained=True,
-                             who_to_ask=contact, open_question_id=qid)}
+                             who_to_ask=contact, open_question_id=qid,
+                             abstain_reason=reason, debug=debug)}
 
 
 # ---------- graph ----------

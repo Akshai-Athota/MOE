@@ -96,6 +96,10 @@ class Answer(BaseModel):
     who_to_ask: Contact | None = None
     open_question_id: str | None = None
     seconds: float = 0.0
+    abstain_reason: str | None = Field(default=None, description=(
+        "why Hilde did not answer: no_sources | model_unanswerable | no_valid_citations | "
+        "key_term_missing | verify_rejected"))
+    debug: dict = Field(default_factory=dict, description="retrieved sources and model output (abstain only)")
 
 
 class Hit(BaseModel):
