@@ -19,13 +19,15 @@ class Settings(BaseSettings):
     # --- Ollama (open-source models, served locally) ---
     # Inside Docker, set OLLAMA_BASE_URL=http://host.docker.internal:11434
     ollama_base_url: str = "http://localhost:11434"
-    llm_model: str = "qwen2.5:7b"
+    llm_model: str = "qwen3:8b"
+    # qwen3 "thinks" before answering by default: slow and unneeded for structured output
+    llm_reasoning: bool = False
     embed_model: str = "bge-m3"
     embed_dim: int = 1024  # bge-m3 dense vector size
     llm_temperature: float = 0.0
     llm_seed: int = 42  # with temperature 0 -> repeatable answers for demo and tests
     llm_num_ctx: int = 8192
-    # 6 GB GPUs cannot hold qwen2.5:7b and bge-m3 together -> Ollama swaps them on every
+    # 6 GB GPUs cannot hold the LLM and bge-m3 together -> Ollama swaps them on every
     # question (~20 s). Running the embedder on CPU keeps the LLM resident on the GPU.
     embed_on_cpu: bool = True
     keep_alive_s: int = 1800  # seconds a model stays loaded

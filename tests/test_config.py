@@ -4,7 +4,7 @@ from hilde.config import Settings
 def test_defaults_without_env(monkeypatch):
     monkeypatch.delenv("QDRANT_URL", raising=False)
     s = Settings(_env_file=None)
-    assert s.llm_model == "qwen2.5:7b"
+    assert s.llm_model == "qwen3:8b"
     assert s.embed_model == "bge-m3"
     assert s.embed_dim == 1024
 
