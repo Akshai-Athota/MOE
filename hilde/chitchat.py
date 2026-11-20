@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from hilde.llm import get_llm
 from hilde.prompts import CHITCHAT_SYSTEM
 
-Kind = Literal["greeting", "how_are_you", "thanks", "goodbye", "about_hilde", "none"]
+Kind = Literal["greeting", "how_are_you", "thanks", "goodbye", "about_hilde", "where_are_you", "none"]
 
 _HELP = "Was kann ich für dich tun?"
 _HELP_EN = "What can I do for you?"
@@ -27,6 +27,8 @@ REPLIES_EN: dict[str, str] = {
     "how_are_you": f"I'm doing well, thanks for asking{{name}}! {_HELP_EN}",
     "thanks": "You're welcome! Just let me know if you need anything else.",
     "goodbye": "Bye{name}, see you soon!",
+    "where_are_you": ("I'm an AI, so I don't have a room or a desk – I'm right here in the chat, "
+                      "any time. " + _HELP_EN),
     "about_hilde": ("I'm Hilde, the AI colleague at the Finanzamt Hildesheim. I answer questions "
                     "about work here and always tell you my sources. " + _HELP_EN),
 }
@@ -36,6 +38,8 @@ REPLIES: dict[str, str] = {
     "how_are_you": f"Mir geht's gut, danke der Nachfrage{{name}}! {_HELP}",
     "thanks": "Gern geschehen! Melde dich einfach, wenn du noch etwas brauchst.",
     "goodbye": "Tschüss{name}, bis bald!",
+    "where_are_you": ("Ich bin eine KI und habe kein Büro und keinen Schreibtisch – du findest mich "
+                      "jederzeit hier im Chat. " + _HELP),
     "about_hilde": ("Ich bin Hilde, die KI-Kollegin des Finanzamts Hildesheim. Ich beantworte "
                     "Fragen rund um die Arbeit hier und nenne dir immer meine Quellen. " + _HELP),
 }
@@ -52,8 +56,13 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
         r"^(danke|vielen dank|danke schön|dankeschön|super danke|thanks|thank you|thx)( dir)?( hilde)?$")),
     ("goodbye", re.compile(
         r"^(tschüss|tschüs|bye|ciao|auf wiedersehen|bis (bald|später|morgen|dann)|schönen feierabend)( hilde)?$")),
+    ("where_are_you", re.compile(
+        r"^(hilde )?(wo bist du|wo (sitzt|wohnst|steckst) du|wo finde ich dich|where are you|"
+        r"where do you (sit|live|work)|where can i find you)( hilde| gerade| right now)?$")),
     ("about_hilde", re.compile(
-        r"^(wer bist du|was bist du|was kannst du|wie heißt du|who are you|what can you do)$")),
+        r"^(wer bist du|was bist du|was kannst du|wie heißt du|bist du (ein mensch|eine ki|ein bot)|"
+        r"who are you|what are you|what can you do|what('?s| is) your name|"
+        r"are you (a human|an ai|a bot|real))( hilde)?$")),
 ]
 
 MAX_LLM_WORDS = 8  # longer messages are almost always real questions; skip the extra LLM call
