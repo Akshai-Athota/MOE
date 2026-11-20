@@ -87,6 +87,14 @@ Personas do **not** list their facts. Derive them with `owner` / `also_known_by`
 ### Persona (`data/personas/pNN.yaml`)
 See `data/personas/p05.yaml`. Required keys: `id, name, department, role_de, role_en, grade, status, tenure_years,
 start_date, leave_date, reports_to, deputy, room, phone_ext, email, access_role, speaking_style, voice, blind_spots`.
+Optional for leavers: `motivation, interview_strategy, interests, retirement_plans, interests_consent, celebration_preference`.
+`interests` may only exist with `interests_consent.given: true`, and only the uses in `allowed_use` (gift suggestions) are permitted.
+
+### Farewell quiz (`data/celebration/quiz.yaml`)
+- `funny` questions are multiple choice. Colleagues guess and the retiree tells the story. `answer_fact` must be a fact the leaver owns or knows.
+- `gap` questions point to a `plants.planted_gaps` entry whose `who_to_ask` is the leaver. The live answer is recorded and becomes a new claim
+  with the source "Abschiedsquiz {name}, {date}, {time}".
+- The retiree is never scored. Gifts stay at or below €60, and the €110 per participant limit for the reception applies (fact F106, R 19.3 Abs. 2 Nr. 3 LStR).
 
 ### Rule (`data/rules/rules.yaml` → `rules:`)
 `id, title_de, title_en, issued_by, valid_from, valid_to, supersedes, access, summary_de, clauses[]`.
