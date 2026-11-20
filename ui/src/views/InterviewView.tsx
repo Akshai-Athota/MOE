@@ -171,15 +171,19 @@ export default function InterviewView() {
         ) : (
           <>
           <div className="mb-8"><AgentBuddy /></div>
-          <div className="grid w-full grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-5 lg:gap-6">
-            {deck.map((c, i) => (
-              <DeckCard key={c.card} c={c} index={i} onPick={() => setOpen(c)} />
-            ))}
-            {Array.from({ length: Math.max(0, DECK_SIZE - deck.length) }).map((_, i) => (
-              <div key={`empty-${i}`} className="aspect-[3/4] rounded-[14px] border border-dashed border-line" />
-            ))}
-            <RewardCard index={DECK_SIZE} unlocked={unlocked} remaining={deck.length - doneCount} onOpen={() => setRewardOpen(true)} />
-          </div>
+          <Fan
+            items={[
+              ...deck.map((c, i) => ({ key: `c${c.card}`, pickable: !c.done, node: <DeckCard c={c} index={i} onPick={() => setOpen(c)} /> })),
+              { key: "reward", pickable: unlocked, node: <RewardCard index={DECK_SIZE} unlocked={unlocked} remaining={deck.length - doneCount} onOpen={() => setRewardOpen(true)} /> },
+            ]}
+          />
+          <p className="mt-6 text-center text-[13px] text-muted">
+            {doneCount === 0
+              ? "Fahr über die Karten und zieh eine. Jede Geschichte, die du erzählst, bleibt dem Team erhalten."
+              : unlocked
+                ? "Alle Karten erzählt. Die letzte Karte ist für dich."
+                : `${doneCount} erzählt, noch ${deck.length - doneCount}. Welche ziehst du als Nächstes?`}
+          </p>
           </>
         )}
 
@@ -232,22 +236,84 @@ export default function InterviewView() {
   );
 }
 
+/* ------------------------------------------------------------------ fan */
+type FanItem = { key: string; pickable: boolean; node: React.ReactNode };
+
+/** Cards start as a messy pile, then spread into a fan around a pivot below the deck. Hovering lifts a card out. */
+function Fan({ items }: { items: FanItem[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(900);
+  const [spread, setSpread] = useState(false);
+  const [hover, setHover] = useState<number | null>(null);
+  const jitter = useMemo(() => items.map(() => (Math.random() - 0.5) * 8), [items.length]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
+    ro.observe(el);
+    const t = window.setTimeout(() => setSpread(true), 650);
+    return () => {
+      ro.disconnect();
+      window.clearTimeout(t);
+    };
+  }, []);
+
+  const n = items.length;
+  const cardW = Math.max(88, Math.min(168, w / 4.6));
+  const cardH = cardW * (4 / 3);
+  const radius = cardH * 2.6; // distance from card centre to the pivot
+  // widest half-angle that still keeps the outer cards inside the container
+  const fit = (Math.asin(Math.min(1, Math.max(0, (w / 2 - cardW * 0.62) / radius))) * 180) / Math.PI;
+  const maxA = Math.min(38, fit);
+  const step = (maxA * 2) / Math.max(1, n - 1);
+  const height = cardH + radius * (1 - Math.cos((maxA * Math.PI) / 180)) + 50;
+
+  return (
+    <div ref={ref} className="relative mx-auto w-full" style={{ height }} onMouseLeave={() => setHover(null)}>
+      {items.map((it, i) => {
+        const base = (i - (n - 1) / 2) * step;
+        const push = hover === null || hover === i ? 0 : i < hover ? -2.5 : 2.5;
+        const lifted = hover === i && it.pickable;
+        return (
+          <motion.div
+            key={it.key}
+            className="absolute"
+            style={{ width: cardW, left: `calc(50% - ${cardW / 2}px)`, top: 40, transformOrigin: `50% ${cardH / 2 + radius}px`, zIndex: lifted ? 50 : i }}
+            initial={{ rotate: jitter[i], y: -30, opacity: 0, scale: 0.92 }}
+            animate={{ rotate: spread ? base + push : jitter[i], y: lifted ? -34 : 0, opacity: 1, scale: lifted ? 1.07 : 1 }}
+            transition={{
+              rotate: { type: "spring", stiffness: 120, damping: 15, delay: spread && hover === null ? i * 0.045 : 0 },
+              y: { type: "spring", stiffness: 300, damping: 22 },
+              scale: { type: "spring", stiffness: 300, damping: 22 },
+              opacity: { duration: 0.3, delay: i * 0.04 },
+            }}
+            onHoverStart={() => setHover(i)}
+            onFocus={() => setHover(i)}
+          >
+            {it.node}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ cards */
 function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => void }) {
   const num = String(c.card).padStart(2, "0");
   return (
     <div className="relative">
     <motion.button
-      initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
+      initial={{ filter: "brightness(1.8) blur(3px)" }}
+      animate={{ filter: "brightness(1) blur(0px)" }}
       transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
-      style={{ ["--shine-delay" as string]: `${index * 0.06 + 0.25}s` }}
-      whileHover={c.done ? undefined : { y: -4 }}
-      onClick={c.done ? undefined : onPick}
+      style={{ ["--shine-delay" as string]: `${index * 0.05 + 1.1}s` }}
+            onClick={c.done ? undefined : onPick}
       disabled={c.done}
       className={cx(
         "group relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
-        c.done ? "cursor-default border border-line bg-surface" : "card-back card-shine text-white shadow-xs hover:shadow-pop",
+        c.done ? "cursor-default border border-line bg-surface shadow-xs" : "card-back card-shine text-white shadow-[0_6px_18px_rgb(0_0_0/0.25)] hover:shadow-pop",
       )}
     >
       <div className="flex items-center justify-between">
@@ -276,14 +342,13 @@ function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unl
   return (
     <div className="relative">
     <motion.button
-      initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
-      animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
+      initial={{ filter: "brightness(1.8) blur(3px)" }}
+      animate={{ filter: "brightness(1) blur(0px)" }}
       transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
-      style={{ ["--shine-delay" as string]: `${index * 0.06 + 0.25}s` }}
-      whileHover={unlocked ? { y: -4 } : undefined}
-      onClick={unlocked ? onOpen : undefined}
+      style={{ ["--shine-delay" as string]: `${index * 0.05 + 1.1}s` }}
+            onClick={unlocked ? onOpen : undefined}
       disabled={!unlocked}
-      className={cx("card-reward card-shine relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "opacity-70")}
+      className={cx("card-reward card-shine relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "shadow-[0_6px_18px_rgb(0_0_0/0.25)]")}
     >
       <span className="text-[12px] tabular-nums text-gold/70">10</span>
       <div className="space-y-2">
