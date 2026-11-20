@@ -1,5 +1,5 @@
 id: p13
-name: Finn Albers
+name: Jonas Albers
 department: VA
 role_de: Steuerinspektor (neu), Arbeitnehmerbereich
 role_en: New tax inspector, employee tax assessment
@@ -12,7 +12,7 @@ reports_to: p10
 deputy: null
 room: "2.05"
 phone_ext: "302-205"
-email: finn.albers@fa-hildesheim.example
+email: jonas.albers@fa-hildesheim.example
 access_role: new_hire
 speaking_style: neugierig, unsicher bei Abläufen, fragt in Alltagssprache ("Wer unterschreibt das eigentlich?")
 voice: de_DE-karlsson-low

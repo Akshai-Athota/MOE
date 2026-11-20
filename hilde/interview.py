@@ -1,12 +1,16 @@
-"""Q interviews people who are leaving (B6): ask, listen, structure, compare, publish.
+"""Finn interviews people who are leaving (B6) with a deck of story cards: pick, answer, publish.
 
-    start   -> plan questions: colleagues' open questions, gaps only this person can close,
-               catalogue questions where the person is the only source, then the rest
-    answer  -> redact (IBAN, tax numbers, taxpayer names) -> extract handbook statements (LLM)
-               -> compare each with existing knowledge: NEU / BESTÄTIGT / AKTUALISIERT / WIDERSPRUCH
-               -> next question (a follow-up if something important was missing)
-    publish -> after the person approved the handbook page: index the statements; a contradiction
-               marks both sources "conflict" (managers decide), an update keeps the history
+    start   -> deal a deck of 9 question cards: colleagues' open questions and gaps only this
+               person can close first, then the main catalogue questions where the person is the
+               only source. Card 10 is the reward card (a voucher from the person's own interests);
+               it unlocks once all question cards are answered. No endless follow-ups.
+    pick    -> the person picks any card; Finn phrases its question for them
+    answer  -> (audio is transcribed first) redact (IBAN, tax numbers, taxpayer names)
+               -> extract handbook statements (LLM) -> compare each with existing knowledge:
+               NEU / BESTÄTIGT / AKTUALISIERT. A statement that CONTRADICTS documented knowledge is
+               treated as a false memory and silently ignored (never shown, never stored).
+    publish -> after the person approved the handbook page: index the statements; an update keeps
+               the history
 
 Sessions are JSON files in var/interviews/ (runtime data, git-ignored).
 """
@@ -35,6 +39,8 @@ from hilde.schemas import LearnRequest
 from hilde.vectorstore import dense_search, index_documents, set_status_for_chunk
 
 DIR = REPO_ROOT / "var" / "interviews"
+DECK_SIZE = 9          # question cards; card 10 is the reward card
+REWARD_CARD = DECK_SIZE + 1
 
 Section = Literal["Kontakte & Vertretung", "Prozesse & Freigaben", "Projekte & Fristen",
                   "Kommunikation", "Ungeschriebene Regeln", "Sonstiges"]
@@ -62,6 +68,7 @@ class PlannedQuestion(BaseModel):
     asked_by: str | None = None
     gap_id: str | None = None
     demo_answer: str | None = Field(default=None, description="presenter helper for the demo")
+    card: int | None = Field(default=None, description="story card number (1-9) in the deck")
 
 
 class Claim(BaseModel):
@@ -85,6 +92,7 @@ class Turn(BaseModel):
     claims: list[Claim] = []
     at: str
     indexed_now: bool = Field(default=False, description="answer to an open question: searchable at once")
+    ignored: int = Field(default=0, description="statements dropped because they contradict known facts")
 
 
 class Session(BaseModel):
@@ -96,6 +104,8 @@ class Session(BaseModel):
     turns: list[Turn] = []
     published_at: str | None = None
     published_claims: list[str] = []
+    deck: list[PlannedQuestion] = []
+    done: list[int] = Field(default_factory=list, description="answered card numbers")
 
 
 class OpenQuestionIn(BaseModel):
@@ -186,7 +196,7 @@ def plan(pid: str, open_qs: list[OpenQuestionIn]) -> list[PlannedQuestion]:
     return out[:12]
 
 
-PHRASE_SYSTEM = """Du bist Q, die KI-Kollegin des Finanzamts Hildesheim, und führst ein Übergabe-Interview
+PHRASE_SYSTEM = """Du bist Finn, der KI-Assistent des Finanzamts Hildesheim, und führst ein Übergabe-Interview
 mit {name} ({role}), {leaving}. Interviewstil für diese Person: {strategy}
 Was die Person motiviert: {motivation}.
 Formuliere die nächste Frage natürlich und freundlich, duze {first}, höchstens 2 Sätze.
@@ -194,7 +204,7 @@ Gib nur die Frage aus, ohne Anführungszeichen."""
 
 
 def phrase(q: PlannedQuestion, pid: str, use_llm: bool = True) -> PlannedQuestion:
-    """Turn a planned question into what Q says to this person."""
+    """Turn a planned question into what Finn says to this person."""
     people = load_personas()
     p = people[pid]
     first = _first(p["name"])
@@ -225,16 +235,38 @@ def _next(s: Session, use_llm: bool = True) -> PlannedQuestion | None:
     return phrase(s.queue.pop(0), s.persona, use_llm) if s.queue else None
 
 
+def deal(pid: str, open_qs: list[OpenQuestionIn]) -> list[PlannedQuestion]:
+    """The deck: gap questions (colleagues' open questions, planted gaps) and main catalogue
+    questions only, at most DECK_SIZE cards, numbered 1..n."""
+    qs = [q for q in plan(pid, open_qs) if q.kind in ("open_question", "gap", "catalogue")][:DECK_SIZE]
+    for i, q in enumerate(qs, 1):
+        q.card = i
+    return qs
+
+
 def start(pid: str, open_qs: list[OpenQuestionIn], use_llm: bool = True) -> Session:
+    """Deal the deck. Nothing is asked until the person picks a card."""
     s = Session(id=uuid.uuid4().hex[:10], persona=pid, created=datetime.now().isoformat(timespec="seconds"),
-                queue=plan(pid, open_qs))
-    s.current = _next(s, use_llm)
+                deck=deal(pid, open_qs))
+    save(s)
+    return s
+
+
+def pick(s: Session, card: int, use_llm: bool = True) -> Session:
+    """The person picked a card: Finn asks its question."""
+    q = next((x for x in s.deck if x.card == card), None)
+    if q is None:
+        raise ValueError(f"no card {card}")
+    if card in s.done:
+        raise ValueError(f"card {card} already answered")
+    s.current = phrase(q.model_copy(), s.persona, use_llm)
     save(s)
     return s
 
 
 def skip(s: Session) -> Session:
-    s.current = _next(s)
+    """Put the card back: nothing is asked until the next pick."""
+    s.current = None
     save(s)
     return s
 
@@ -369,25 +401,28 @@ def answer(s: Session, text: str) -> Turn:
             continue  # a statement about a tax case is not handbook knowledge
         claims.append(Claim(id=f"{len(s.turns) + 1}.{i + 1}", section=c.section, text=ctext))
     _compare(claims, s.persona)
+    # A statement that contradicts documented knowledge is treated as a false memory:
+    # dropped silently (not shown, not stored, nothing marked as conflict).
+    kept = [c for c in claims if c.state != "WIDERSPRUCH"]
+    ignored = len(claims) - len(kept)
 
-    turn = Turn(n=len(s.turns) + 1, question=q, answer=clean, redacted=found + more, claims=claims,
-                at=datetime.now().isoformat(timespec="seconds"))
+    turn = Turn(n=len(s.turns) + 1, question=q, answer=clean, redacted=found + more, claims=kept,
+                at=datetime.now().isoformat(timespec="seconds"), ignored=ignored)
 
-    # a colleague is waiting: the answer is searchable at once (the handbook follows on publish)
+    # a colleague is waiting: the answer is searchable at once (the handbook follows on publish).
+    # If part of the answer was false, only the statements that survived are stored.
     if q.kind in ("open_question", "gap"):
-        learn(LearnRequest(text=clean, user_id=s.persona, via="interview", category="general",
-                           label=f"Interview {_first(p['name'])[0]}. {p['name'].split()[-1]} · live",
-                           question=q.original))
-        turn.indexed_now = True
+        text_to_learn = clean if not ignored else " ".join(c.text for c in kept)
+        if text_to_learn.strip():
+            learn(LearnRequest(text=text_to_learn, user_id=s.persona, via="interview", category="general",
+                               label=f"Interview {_first(p['name'])[0]}. {p['name'].split()[-1]} · live",
+                               question=q.original))
+            turn.indexed_now = True
 
     s.turns.append(turn)
-    follow, hidden = redact_names(redact(ex.follow_up.strip().replace(BS_SAFE, BS))[0], ex.taxpayer_names)
-    if hidden or "entfernt]" in follow:
-        follow = ""  # never ask about a tax case
-    if follow and q.kind != "follow_up" and len(follow) > 8:
-        s.current = PlannedQuestion(kind="follow_up", original=follow, text=follow)
-    else:
-        s.current = _next(s)
+    if q.card and q.card not in s.done:
+        s.done.append(q.card)
+    s.current = None  # the person picks the next card; no endless follow-ups
     save(s)
     return turn
 
@@ -406,9 +441,9 @@ def handbook(s: Session) -> dict:
         "persona": s.persona, "name": p["name"], "title": p["role_de"],
         "sections": sections,
         "covered": sum(1 for x in core if x["claims"]), "total": len(core),
-        "turns": len(s.turns), "remaining": len(s.queue) + (1 if s.current else 0),
+        "turns": len(s.turns), "remaining": len(s.deck) - len(s.done),
         "published_at": s.published_at,
-        "conflicts": sum(1 for t in s.turns for c in t.claims if c.state == "WIDERSPRUCH"),
+        "conflicts": 0,  # contradictions are ignored at answer time
     }
 
 
@@ -468,9 +503,48 @@ def publish(s: Session) -> dict:
     return {"published": len(docs), "conflicts_flagged": conflicts}
 
 
+CARD_LABEL = {"org": "Organisation", "process": "Abläufe", "project": "Projekte", "program": "Projekte",
+              "finance": "Haushalt & Beschaffung", "it": "IT", "oversight": "Aufsicht",
+              "communication": "Kommunikation", "practical": "Ungeschriebenes", "general": "Alltag"}
+
+
+def deck(s: Session) -> list[dict]:
+    _f, _p, catalogue = _data()
+    out = []
+    for q in s.deck:
+        if q.kind == "open_question":
+            label = "Frage aus dem Team"
+        elif q.kind == "gap":
+            label = "Wissenslücke"
+        else:
+            label = CARD_LABEL.get(catalogue.get(q.ref or "", {}).get("category", ""), "Wissen")
+        out.append({"card": q.card, "kind": q.kind, "label": label, "original": q.original,
+                    "ref": q.ref, "gap_id": q.gap_id, "asked_by": q.asked_by, "done": q.card in s.done,
+                    "demo_answer": q.demo_answer})
+    return out
+
+
+def reward(s: Session) -> dict:
+    """Card 10: one voucher from the person's own (consented) interests, once all cards are done."""
+    left = len(s.deck) - len(s.done)
+    out = {"card": REWARD_CARD, "unlocked": left == 0 and bool(s.deck), "remaining": left, "voucher": None}
+    if not out["unlocked"]:
+        return out
+    path = REPO_ROOT / "data" / "rewards" / "rewards.yaml"
+    rw = yaml.safe_load(path.read_text(encoding="utf-8")) if path.exists() else {}
+    person = load_personas()[s.persona]
+    if not (person.get("interests_consent") or {}).get("given"):
+        return out
+    vouchers = rw.get("vouchers", {}).get(s.persona) or []
+    if vouchers:
+        out["voucher"] = {**vouchers[0], "max_eur": rw.get("max_gift_eur", 60)}
+    return out
+
+
 def to_dict(s: Session) -> dict:
     return {"id": s.id, "persona": s.persona, "current": s.current.model_dump() if s.current else None,
-            "turns": [t.model_dump() for t in s.turns], "handbook": handbook(s)}
+            "turns": [t.model_dump() for t in s.turns], "handbook": handbook(s),
+            "deck": deck(s), "reward": reward(s)}
 
 
 def dump(obj) -> str:  # for debugging in a shell

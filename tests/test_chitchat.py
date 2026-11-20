@@ -11,6 +11,7 @@ from hilde.schemas import User
     ("how are you", "how_are_you"),
     ("Wie geht's dir?", "how_are_you"),
     ("Hallo Q!", "greeting"),
+    ("Hallo Finn!", "greeting"),
     ("Guten Morgen", "greeting"),
     ("Danke dir", "thanks"),
     ("Tschüss!", "goodbye"),
@@ -42,6 +43,7 @@ def test_reply_never_uses_asker_name():
     ("Guten Morgen Peter!", "Peter"),
     ("danke julia", "Julia"),
     ("hello q", None),
+    ("hello finn", None),
     ("Hallo zusammen", None),
     ("hi there", None),
     ("hello", None),
@@ -55,9 +57,9 @@ def test_addressed_as(text, name):
 def test_wrong_name_is_corrected():
     assert classify("hello julia", use_llm=False) == "greeting"
     assert reply("greeting", "en", wrong_name="Julia") == (
-        "Hi! By the way, I'm Q, not Julia. Nice to see you. What can I do for you?")
+        "Hi! By the way, I'm Finn, not Julia. Nice to see you. What can I do for you?")
     assert reply("thanks", "de", wrong_name="Julia") == (
-        "Gern geschehen! Ich bin übrigens Q, nicht Julia. Melde dich einfach, wenn du noch etwas brauchst.")
+        "Gern geschehen! Ich bin übrigens Finn, nicht Julia. Melde dich einfach, wenn du noch etwas brauchst.")
 
 
 def test_chitchat_node_short_circuits():
@@ -99,7 +101,7 @@ def test_first_person_answer_is_caught():
     q = "Wo ist dein Büro?"
     assert route_generated({"question": q, "hits": hits, "generated": bad}) == "self"
     assert route_generated({"question": q, "hits": hits, "generated": ok}) == "verify"
-    # a learned interview answer is first person, but the question is not about Q
+    # a learned interview answer is first person, but the question is not about Finn
     learned = Generated(answerable=True, sentences=[Sentence(text="Ich prüfe und kürze die Anmeldung.", sources=[1])])
     assert route_generated({"question": "Wie läuft die Haushaltsanmeldung?", "hits": hits,
                             "generated": learned}) == "verify"

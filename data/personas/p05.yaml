@@ -20,7 +20,7 @@ speaking_style: >
 voice: de_DE-thorsten_emotional-medium
 blind_spots: [Datenschutz-Details, E-Akte]
 interview_type: long_handover          # MAIN DEMO LEAVER: 2–3 interviews, 8–12 min each + whiteboard photo
-# --- Farewell / motivation (used by interviewer style + celebration tab)
+# --- Farewell / motivation (used by interviewer style + reward card)
 motivation: [Anerkennung, Geschichten erzählen, "will, dass der Laden ohne ihn weiterläuft"]
 interview_strategy: Erst nach Anekdoten fragen, dann nachhaken "Und wie läuft das heute konkret ab?"
 interests: [Wandern im Harz, Modelleisenbahn Spur H0, Hannover 96, Grünkohlessen]
@@ -29,4 +29,3 @@ interests_consent:
   given: true
   source: Übergabeinterview 1 (2026-11-12), auf Nachfrage "Was machst du im Ruhestand?"
   allowed_use: [geschenkvorschlag]   # never for anything else
-celebration_preference: party        # big farewell with public quiz

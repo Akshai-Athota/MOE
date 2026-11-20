@@ -106,12 +106,12 @@ class Answer(BaseModel):
 
 
 class LearnRequest(BaseModel):
-    """Knowledge captured in the UI (interview answer, quiz answer, uploaded order)."""
+    """Knowledge captured in the UI (interview answer, library post, uploaded order)."""
 
     text: str = Field(min_length=3)
     user_id: str = Field(description="knowledge holder (persona id)")
     label: str = Field(description="citation label, e.g. 'Interview W. Reinecke · live'")
-    via: Literal["interview", "quiz", "upload"] = "interview"
+    via: Literal["interview", "quiz", "upload", "library"] = "interview"
     topic: str | None = None
     category: str = "general"
     access: Access = "internal"

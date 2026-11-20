@@ -1,4 +1,4 @@
-"""Knowledge captured live in the app: an interview answer, a quiz answer, an uploaded order.
+"""Knowledge captured live in the app: an interview answer, a knowledge-library post, an uploaded order.
 
 It is redacted, indexed at once (searchable in the next question) and changes the timeline:
 * valid_from in the future  -> status "scheduled" (never an answer before that day)
@@ -39,13 +39,13 @@ def learn(req: LearnRequest) -> dict:
         "source_id": cid,
         "title": req.label,
         "category": req.category,
-        "department": "ALL" if req.via == "upload" else owner["department"],
+        "department": "ALL" if req.via in ("upload", "library") else owner["department"],
         "access": req.access,
         "status": "scheduled" if scheduled else "current",
         "valid_from": valid_from,
         "valid_to": None,
         "supersedes": req.supersedes,
-        "modality": "doc" if req.via == "upload" else "interview",
+        "modality": "doc" if req.via in ("upload", "library") else "interview",
         "learned_via": req.via,
         "learned_at": datetime.now().isoformat(timespec="seconds"),
         "speaker": owner["name"],

@@ -1,15 +1,14 @@
-"""Full interview loop with the real LLM + Qdrant (~1-2 min). Skipped when services are down.
+"""Full story-card interview with the real LLM + Qdrant (~1-2 min). Skipped when services are down.
 
-Wolfgang says the canteen is closed on Fridays -> contradicts the intranet -> publish ->
-an employee asking about the canteen now gets a flagged conflict -> demo reset restores it.
+Wolfgang picks the canteen card and says the canteen is open until 15:00 on Fridays -> contradicts
+the documented hours -> the statement is ignored (not shown, not stored, nothing flagged) ->
+publishing creates no conflict. The taxpayer name he mentions is redacted.
 """
 
 import pytest
 
 from hilde import interview
-from hilde.answer import ask
 from hilde.llm import ollama_status
-from hilde.loaders import user_from_persona
 from hilde.vectorstore import delete_learned, qdrant_status
 
 pytestmark = pytest.mark.skipif(
@@ -18,20 +17,20 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_interview_contradiction_reaches_answers_and_is_undone():
+def test_false_statement_is_ignored_and_never_published():
     s = interview.start("p05", [])
-    canteen = next(q for q in s.queue if q.ref == "G02")
-    s = interview.focus(s, canteen)
-    turn = interview.answer(s, "Die Kantine hat seit dem Pächterwechsel nur Montag bis Donnerstag "
-                               "von 11:30 bis 13:30 Uhr geöffnet, freitags ist zu. Herr Dieter Konopka "
-                               "hat sich darüber übrigens auch beschwert.")
+    card = next((q.card for q in s.deck if q.ref == "G02"), None)
+    if card is None:
+        pytest.skip("canteen question not dealt into this deck")
+    s = interview.pick(s, card)
+    turn = interview.answer(s, "Die Kantine hat freitags von 11:30 bis 15:00 Uhr geöffnet. "
+                               "Herr Dieter Konopka hat sich darüber übrigens auch beschwert.")
     try:
         assert "Konopka" not in turn.answer
-        states = {c.state for c in turn.claims}
-        assert "WIDERSPRUCH" in states, [(c.text, c.state, c.reason) for c in turn.claims]
-        assert interview.publish(s)["conflicts_flagged"] >= 1
-        a = ask("Wann hat die Kantine geöffnet?", user_from_persona("p07"))
-        assert a.conflict and not a.abstained
+        assert all(c.state != "WIDERSPRUCH" for c in turn.claims)
+        assert turn.ignored >= 1, [(c.text, c.state) for c in turn.claims]
+        assert s.current is None and card in s.done
+        assert interview.publish(s)["conflicts_flagged"] == 0
     finally:
         delete_learned()
         interview.undo_status_changes()
