@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     keep_alive_s: int = 1800  # seconds a model stays loaded
 
     # --- Ingestion ---
+    whisper_language: str | None = None  # None = detect (de/en); "de" pins German
     whisper_model: str = "small"  # faster-whisper on CPU/int8; "medium" = better, slower
     vision_model: str = "qwen3-vl:4b"  # Ollama vision model for images (pull before use)
 

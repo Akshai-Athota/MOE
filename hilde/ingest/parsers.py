@@ -100,8 +100,15 @@ def _whisper():
 
 
 def transcribe(path: Path, window_s: float = 40.0) -> list[Piece]:
-    """Audio/video -> pieces of ~40 s, anchored with start/end seconds."""
-    segments, _info = _whisper().transcribe(str(path), language="de", vad_filter=True)
+    """Audio/video -> pieces of ~40 s, anchored with start/end seconds.
+
+    The spoken language is detected (German or English), so English memos are not forced
+    into German. Set WHISPER_LANGUAGE=de to pin it."""
+    model, lang = _whisper(), get_settings().whisper_language
+    segments, info = model.transcribe(str(path), language=lang, vad_filter=True)
+    if lang is None and info.language not in ("de", "en"):
+        # short or noisy clips are sometimes detected as e.g. Dutch: fall back to German
+        segments, info = model.transcribe(str(path), language="de", vad_filter=True)
     pieces: list[Piece] = []
     buf, start, end = [], None, 0.0
     for seg in segments:
