@@ -97,9 +97,8 @@ def chitchat(state: State) -> State:
     kind = smalltalk.classify(state["question"])
     if kind == "none":
         return {"lang": lang}
-    first = (state["user"].name or "").split(" ")[0]
-    return {"lang": lang, "result": Answer(
-        question=state["question"], answer=smalltalk.reply(kind, first, lang), abstained=False)}
+    text = smalltalk.reply(kind, lang, wrong_name=smalltalk.addressed_as(state["question"]))
+    return {"lang": lang, "result": Answer(question=state["question"], answer=text, abstained=False)}
 
 
 def route_chitchat(state: State) -> str:
@@ -199,9 +198,8 @@ def key_term_grounded(question: str, sources: list[str]) -> bool:
 
 def about_self(state: State) -> State:
     """Fixed reply when the model answered a question about Hilde with someone else's data."""
-    first = (state["user"].name or "").split(" ")[0]
     return {"result": Answer(question=state["question"], abstained=False,
-                             answer=smalltalk.reply("where_are_you", first, state.get("lang", "de")))}
+                             answer=smalltalk.reply("where_are_you", state.get("lang", "de")))}
 
 
 def verify(state: State) -> State:
