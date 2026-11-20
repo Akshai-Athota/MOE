@@ -11,7 +11,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from hilde import open_questions
+from hilde import interview, open_questions
 from hilde.answer import ask
 from hilde.config import REPO_ROOT, get_settings
 from hilde.ingest import ingest_file
@@ -21,7 +21,7 @@ from hilde.loaders import load_personas, user_from_persona
 from hilde.schemas import Access, Answer, CaptureMeta, Hit, LearnRequest, User
 from hilde.vectorstore import qdrant_status, search
 
-app = FastAPI(title="Q API", version="0.5.0")
+app = FastAPI(title="Q API", version="0.6.0")
 
 # the web app (Vite dev server on :5173) calls the API from the browser
 app.add_middleware(
@@ -133,5 +133,66 @@ def reset_learned_endpoint() -> dict:
     from hilde.vectorstore import delete_learned
 
     removed = delete_learned()
+    restored = interview.undo_status_changes()
     open_questions.PATH.unlink(missing_ok=True)
-    return {"removed": removed}
+    return {"removed": removed, "restored": restored}
+
+
+# ---------------------------------------------------------------- interviewer (B6)
+
+class InterviewStart(BaseModel):
+    user_id: str = Field(description="the person being interviewed (usually a leaver)")
+    open_questions: list[interview.OpenQuestionIn] = Field(
+        default_factory=list, description="colleagues' questions routed to this person (from the app)")
+
+
+class InterviewAnswer(BaseModel):
+    answer: str = Field(min_length=2, description="spoken or typed answer (redacted before storage)")
+
+
+def _session(sid: str) -> interview.Session:
+    try:
+        return interview.load(sid)
+    except FileNotFoundError:
+        raise HTTPException(404, f"unknown interview {sid}") from None
+
+
+@app.post("/interview/start")
+def interview_start(req: InterviewStart) -> dict:
+    """Plan the interview: colleagues' questions, gaps only this person can close, topics where
+    this person is the only source. Returns Q's first question and the (empty) handbook page."""
+    _user(req.user_id)
+    return interview.to_dict(interview.start(req.user_id, req.open_questions))
+
+
+@app.get("/interview/{sid}")
+def interview_get(sid: str) -> dict:
+    return interview.to_dict(_session(sid))
+
+
+@app.post("/interview/{sid}/answer")
+def interview_answer(sid: str, req: InterviewAnswer) -> dict:
+    """Redact, extract handbook statements, compare with existing knowledge, ask the next question."""
+    s = _session(sid)
+    if s.current is None:
+        raise HTTPException(409, "interview finished")
+    turn = interview.answer(s, req.answer)
+    return {"turn": turn.model_dump(), **interview.to_dict(s)}
+
+
+@app.post("/interview/{sid}/focus")
+def interview_focus(sid: str, q: interview.PlannedQuestion) -> dict:
+    """Answer a specific question now (e.g. a colleague's question picked in the app)."""
+    return interview.to_dict(interview.focus(_session(sid), q))
+
+
+@app.post("/interview/{sid}/skip")
+def interview_skip(sid: str) -> dict:
+    return interview.to_dict(interview.skip(_session(sid)))
+
+
+@app.post("/interview/{sid}/publish")
+def interview_publish(sid: str) -> dict:
+    """The person approved the handbook page: index it. Contradictions go to a manager."""
+    s = _session(sid)
+    return {"result": interview.publish(s), **interview.to_dict(s)}

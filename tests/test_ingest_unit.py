@@ -65,3 +65,28 @@ def test_markdown_sections_and_citation(tmp_path):
 def test_redact_catches_asr_mangled_iban():
     text, found = redact("GING AUF DOSKANTO DE 893700 and 400440532013000")
     assert "400440532013000" not in text and "NUMMER" in found
+
+
+def test_redact_names_keeps_colleagues_removes_taxpayers():
+    from hilde.redact import redact
+
+    text, found = redact("Der Fall von Herrn Dieter Konopka ging an Frau Krüger; "
+                         "die Bäckerei Hollmann GmbH auch.")
+    assert "Konopka" not in text and "Hollmann" not in text
+    assert "Frau Krüger" in text
+    assert "PERSON" in found and "UNTERNEHMEN" in found
+
+
+def test_redact_names_with_llm_hints():
+    from hilde.redact import redact_names
+
+    text, _ = redact_names("Dieter Konopka stand in der Zeitung, Wolfgang Reinecke nicht.",
+                           extra=["Dieter Konopka", "Wolfgang Reinecke"])
+    assert "Konopka" not in text and "Wolfgang Reinecke" in text
+
+
+def test_redact_names_leaves_roles_and_nouns():
+    from hilde.redact import redact
+
+    text, found = redact("Frau Vorsteherin zeichnet. Im Fall Rückfragen bitte Frau Schulte fragen.")
+    assert found == [] and "Vorsteherin" in text and "Rückfragen" in text

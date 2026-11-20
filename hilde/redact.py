@@ -47,3 +47,50 @@ def redact(text: str) -> tuple[str, list[str]]:
         text, more = extra(text)
         found += more
     return text, found
+
+
+# ---------------------------------------------------------------- names (C4, lightweight)
+# Taxpayers appear as "Herr/Frau <Name>" or as companies with a legal form (GmbH, AG, KG ...).
+# Colleagues are allowed: every surname and first name from the staff directory is kept.
+
+COMPANY = re.compile(
+    r"\b(?:[A-ZÄÖÜ][\wÄÖÜäöüß&.\-]*\s){1,3}(?:GmbH(?:\s?&\s?Co\.?\s?KG)?|AG|KG|OHG|e\.\s?K\.|UG|GbR|mbH)\b"
+)
+TITLED = re.compile(r"\b(Herrn?|Frau|Familie)\s+((?:[A-ZÄÖÜ][a-zäöüß]+\s){0,2}[A-ZÄÖÜ][a-zäöüß\-]+)")
+# "Frau Vorsteherin", "Herr Kollege": titles and roles, not names
+ROLE_WORDS = {"Vorsteherin", "Vorsteher", "Kollegin", "Kollege", "Kollegen", "Sachgebietsleiterin",
+              "Sachgebietsleiter", "Leiterin", "Leiter", "Präsidentin", "Präsident", "Doktor"}
+
+
+def _staff_names() -> set[str]:
+    from hilde.loaders import load_personas  # local import: avoid a cycle at module load
+
+    names: set[str] = set()
+    for p in load_personas().values():
+        names.update(w for w in p["name"].replace("Dr. ", "").split() if len(w) > 1)
+    return names
+
+
+def redact_names(text: str, extra: list[str] | None = None) -> tuple[str, list[str]]:
+    """Remove taxpayer names/companies; keep colleagues. `extra` = names found by the LLM."""
+    staff = _staff_names()
+    found: list[str] = []
+    text, n = COMPANY.subn("[Unternehmen entfernt]", text)
+    found += ["UNTERNEHMEN"] * n
+
+    def titled(m: re.Match) -> str:
+        if any(w in staff or w in ROLE_WORDS for w in m.group(2).split()):
+            return m.group(0)
+        found.append("PERSON")
+        return f"{m.group(1)} [Steuerpflichtige:r entfernt]"
+
+    text = TITLED.sub(titled, text)
+    for name in sorted({e.strip() for e in (extra or []) if e and e.strip()}, key=len, reverse=True):
+        if any(w in staff for w in name.split()) or len(name) < 3:
+            continue
+        text, n = re.subn(re.escape(name), "[Steuerpflichtige:r entfernt]", text)
+        found += ["PERSON"] * n
+    return text, found
+
+
+register(redact_names)

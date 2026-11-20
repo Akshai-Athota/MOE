@@ -105,6 +105,10 @@ interface Store extends Persisted {
   askQ: (text: string) => void;
   learn: (i: LearnInput) => Fact;
   resolveConflict: (question: string, truth: string) => void;
+  /** live interview: a colleague's question was answered (and indexed by the backend) */
+  resolveOpenQuestion: (id: string) => void;
+  /** live interview: knowledge events for the "Wissen & Verlauf" timeline */
+  addEvents: (ev: Omit<KnowledgeEvent, "id" | "at">[]) => void;
   toggleCheck: (k: string) => void;
   toast: (t: Omit<Toast, "id">) => void;
   reset: () => void;
@@ -256,17 +260,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const resolveOpenQuestion = (id: string) =>
+    setP((s) => ({ ...s, openQuestions: s.openQuestions.map((q) => (q.id === id ? { ...q, resolved: true } : q)) }));
+
+  const addEvents = (ev: Omit<KnowledgeEvent, "id" | "at">[]) =>
+    setP((s) => ({ ...s, events: [...ev.map((e) => ({ ...e, id: crypto.randomUUID(), at: TODAY })), ...s.events] }));
+
   const toggleCheck = (k: string) => setP((s) => ({ ...s, checks: { ...s.checks, [k]: !s.checks[k] } }));
 
   const reset = () => {
     setP(seed());
+    try {
+      for (const k of Object.keys(localStorage)) if (k.startsWith("q-interview-")) localStorage.removeItem(k);
+    } catch {
+      /* ignore */
+    }
     if (backend === "live") resetBackend().catch(() => toast({ title: "Backend-Reset fehlgeschlagen", tone: "amber" }));
     toast({ title: "Demo zurückgesetzt", tone: "brand" });
   };
 
   return (
     <Ctx.Provider
-      value={{ ...p, userIdx, user, view, draft, toasts, engineState, backend, setUserIdx, setView, setDraft, askQ, learn, resolveConflict, toggleCheck, toast, reset }}
+      value={{ ...p, userIdx, user, view, draft, toasts, engineState, backend, setUserIdx, setView, setDraft, askQ, learn, resolveConflict, resolveOpenQuestion, addEvents, toggleCheck, toast, reset }}
     >
       {children}
     </Ctx.Provider>

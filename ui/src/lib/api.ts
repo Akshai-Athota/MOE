@@ -112,6 +112,7 @@ function anchorOf(a: BCitation["anchor"]): string | undefined {
   }
   if (a.paragraph !== undefined) return `Abs. ${a.paragraph}`;
   if (a.mail !== undefined) return `Mail ${a.mail}`;
+  if (a.turn !== undefined) return `Frage ${a.turn}`;
   if (a.page !== undefined) return `S. ${a.page}`;
   if (a.section !== undefined) return String(a.section).slice(0, 28);
   return undefined;
@@ -203,3 +204,65 @@ export async function learnBackend(p: LearnPayload): Promise<void> {
 export async function resetBackend(): Promise<void> {
   await request("/reset-learned", { method: "POST" }, 20_000);
 }
+
+/* ---------------- interviewer (backend: hilde/interview.py) ---------------- */
+export interface IvQuestion {
+  kind: "open_question" | "gap" | "catalogue" | "follow_up";
+  original: string;
+  text: string;
+  ref?: string | null;
+  asked_by?: string | null;
+  gap_id?: string | null;
+  demo_answer?: string | null;
+}
+export interface IvClaim {
+  id: string;
+  section: string;
+  text: string;
+  state: "NEU" | "BESTÄTIGT" | "AKTUALISIERT" | "WIDERSPRUCH";
+  matched_citation?: string | null;
+  matched_text?: string | null;
+  reason?: string | null;
+  turn?: number;
+  published?: boolean;
+}
+export interface IvTurn {
+  n: number;
+  question: IvQuestion;
+  answer: string;
+  redacted: string[];
+  claims: IvClaim[];
+  indexed_now: boolean;
+}
+export interface IvHandbook {
+  name: string;
+  title: string;
+  sections: { name: string; claims: IvClaim[] }[];
+  covered: number;
+  total: number;
+  turns: number;
+  remaining: number;
+  published_at?: string | null;
+  conflicts: number;
+}
+export interface IvSession {
+  id: string;
+  persona: string;
+  current: IvQuestion | null;
+  turns: IvTurn[];
+  handbook: IvHandbook;
+}
+
+const IV_TIMEOUT = 180_000; // extraction + comparison on a local LLM
+const post = <T,>(path: string, body?: unknown, timeout = IV_TIMEOUT) =>
+  request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }, timeout);
+
+export const interviewApi = {
+  get: (sid: string) => request<IvSession>(`/interview/${sid}`, undefined, 20_000),
+  start: (userId: string, openQuestions: { id: string; text: string; asked_by?: string; gap_id?: string }[]) =>
+    post<IvSession>("/interview/start", { user_id: userId, open_questions: openQuestions }, 60_000),
+  answer: (sid: string, answer: string) => post<IvSession & { turn: IvTurn }>(`/interview/${sid}/answer`, { answer }),
+  focus: (sid: string, q: Partial<IvQuestion>) => post<IvSession>(`/interview/${sid}/focus`, { text: "", ...q }, 60_000),
+  skip: (sid: string) => post<IvSession>(`/interview/${sid}/skip`, undefined, 60_000),
+  publish: (sid: string) => post<IvSession & { result: { published: number; conflicts_flagged: number } }>(`/interview/${sid}/publish`),
+};

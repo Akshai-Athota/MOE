@@ -49,13 +49,15 @@ const MEETINGS = [
 export default function OnboardingView() {
   const { user, checks, toggleCheck, setDraft, setView, openQuestions } = useStore();
   const me = personaById(user.personaId)!;
-  const mentor = personaById(me.mentor)!;
+  // while the page animates out after a role switch it renders once more with the new user,
+  // who may have no mentor: fall back instead of crashing the whole app
+  const mentor = personaById(me.mentor) ?? me;
   const team = DATA.personas.filter((p) => p.department === me.department && p.id !== me.id);
   const allItems = STEPS.flatMap((s) => s.items);
   const done = allItems.filter((i) => checks[i.k]).length;
   const [rule, setRule] = useState<Rule>();
   const startIn = daysUntil(me.start_date);
-  const mentorLeft = daysUntil(mentor.leave_date!);
+  const mentorLeft = mentor.leave_date ? daysUntil(mentor.leave_date) : 0;
   const myOpen = openQuestions.filter((q) => q.askedBy === me.id);
 
   const askQ = (q: string) => {

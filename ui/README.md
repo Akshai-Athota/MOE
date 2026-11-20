@@ -46,7 +46,17 @@ cd ui && npm install && npm run dev               # http://localhost:5173
   Planted demo gaps keep their `gapId` (from the local engine) so the interview loop can close them.
 - `learn()` (interview, quiz, document upload) also calls `POST /learn`: the backend redacts and indexes it at once;
   a future `valid_from` is stored as *scheduled* and is not an answer before that day.
-- "Demo zurücksetzen" also calls `POST /reset-learned` (forgets knowledge learned in the app).
+- **Wissensinterview (leaver)**: with the backend live, `LiveInterviewView.tsx` runs the real AI interviewer
+  (`hilde/interview.py`, endpoints `/interview/*`): Q plans the questions (colleagues' open questions → gaps only
+  this person can close → topics where they are the only source; contradictions early), phrases them in the
+  person's interview style, redacts each answer on the server (IBAN, tax numbers, taxpayer names/companies;
+  colleagues are kept), extracts handbook statements and compares them with existing knowledge
+  (NEU / BESTÄTIGT / AKTUALISIERT / WIDERSPRUCH, e.g. "andere Zeit: 13:30 statt 14:00"), and asks a follow-up when
+  a detail is missing. Answers to colleagues' questions are searchable at once; the handbook page is indexed on
+  "Prüfen & freigeben", and a WIDERSPRUCH marks both sources as conflict (Frag Q then shows both).
+  Offline, the scripted demo interview is shown instead. "Demo-Antwort einsprechen" fills in a planted answer.
+- "Demo zurücksetzen" also calls `POST /reset-learned` (forgets knowledge learned in the app, restores sources
+  an interview marked as conflict).
 - Answers from the local LLM take ~10–30 s on a laptop GPU; the chat shows "Q durchsucht die Quellen …".
 - The role filter runs on the server **before** retrieval. The backend only reveals *that* restricted content
   exists and who owns it, never the content.

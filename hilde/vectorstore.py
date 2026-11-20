@@ -193,3 +193,23 @@ def delete_learned() -> int:
     n = get_qdrant().count(s.qdrant_collection, count_filter=flt).count
     get_qdrant().delete(s.qdrant_collection, points_selector=models.FilterSelector(filter=flt))
     return n
+
+
+def dense_search(vec: list[float], flt: models.Filter | None, limit: int = 3,
+                 exclude_status: list[str] | None = None) -> list[tuple[float, dict]]:
+    """Plain cosine search (scores are comparable, unlike the fused hybrid ranks)."""
+    if exclude_status:
+        cond = models.FieldCondition(key="metadata.status", match=models.MatchAny(any=exclude_status))
+        flt = flt.model_copy(deep=True) if flt else models.Filter()
+        flt.must_not = [*(flt.must_not or []), cond]
+    res = get_qdrant().query_points(get_settings().qdrant_collection, query=vec, using=DENSE,
+                                    query_filter=flt, limit=limit, with_payload=True).points
+    return [(p.score, p.payload) for p in res]
+
+
+def set_status_for_chunk(chunk_id: str, status: str) -> None:
+    """Change the status of one chunk (e.g. 'conflict' after an interview contradicted it)."""
+    flt = models.Filter(must=[models.FieldCondition(key="metadata.chunk_id",
+                                                    match=models.MatchValue(value=chunk_id))])
+    get_qdrant().set_payload(get_settings().qdrant_collection, payload={"status": status},
+                             key="metadata", points=flt)

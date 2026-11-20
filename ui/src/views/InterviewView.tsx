@@ -8,6 +8,7 @@ import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
 import { classifyClaim, redact } from "../lib/engine";
 import { useStore } from "../lib/store";
 import { useSpeech } from "../lib/useSpeech";
+import LiveInterviewView from "./LiveInterviewView";
 import type { Persona } from "../lib/types";
 
 type Section = "Prozesse & Freigaben" | "Kommunikation" | "Kontakte & Vertretung" | "Projekte & Fristen" | "Ungeschriebene Regeln" | "Neu erfasst";
@@ -100,7 +101,13 @@ interface Turn {
   live?: boolean;
 }
 
+/** Live backend available -> real AI interview; otherwise the scripted offline demo below. */
 export default function InterviewView() {
+  const { backend } = useStore();
+  return backend === "live" ? <LiveInterviewView /> : <ScriptedInterview />;
+}
+
+function ScriptedInterview() {
   const { user, openQuestions, learn, toast, engineState } = useStore();
   const me = personaById(user.personaId)!;
   const [done, setDone] = useState(0);
