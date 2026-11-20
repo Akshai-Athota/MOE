@@ -76,3 +76,6 @@ textarea:focus-visible, input:focus-visible, select:focus-visible { outline: non
 @keyframes shine { to { transform: translateX(110%); } }
 @keyframes shine-hover { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
 @media (prefers-reduced-motion: reduce) { .card-shine::after, .peeker-blink { animation: none; } }
+.agent-pulse { transform-box: fill-box; transform-origin: center; animation: agent-pulse 1.8s ease-in-out infinite; }
+@keyframes agent-pulse { 0%, 100% { opacity: 0.35; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .agent-pulse { animation: none; } }

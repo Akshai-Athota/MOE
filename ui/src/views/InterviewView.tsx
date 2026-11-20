@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Gift, Lock, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CursorGlow } from "../components/CursorGlow";
-import { MouseBuddy } from "../components/MouseBuddy";
+import { AgentBuddy } from "../components/AgentBuddy";
 import { Button, PageHeader, Spinner, cx } from "../components/ui";
 import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
@@ -170,7 +170,7 @@ export default function InterviewView() {
           </div>
         ) : (
           <>
-          <div className="mb-8"><MouseBuddy /></div>
+          <div className="mb-8"><AgentBuddy /></div>
           <div className="grid w-full grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-5 lg:gap-6">
             {deck.map((c, i) => (
               <DeckCard key={c.card} c={c} index={i} onPick={() => setOpen(c)} />
