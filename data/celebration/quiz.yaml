@@ -1,0 +1,197 @@
+# Farewell celebration ("Abschiedsfeier mit Q"): quiz bank + reward settings. ALL FICTIONAL.
+# The UI's "Celebration" tab generates a quiz from this file (later: from live claims of the leaver).
+#
+# Idea: knowledge capture as a farewell ritual, not a documentation chore.
+#   T-12 weeks  weekly 10-min story interviews  ->  T-2 weeks legacy booklet  ->  retirement day quiz.
+#   funny questions: colleagues guess, the retiree reveals the story (keeps them in the spotlight).
+#   gap questions:   nobody knows -> the retiree answers -> Q records it live as a new claim.
+# Rules: every `funny` answer must come from a fact the leaver owns or knows (validator checks this);
+#        every `gap` question must point to a planted gap whose who_to_ask is the leaver.
+
+settings:
+  modes:
+    party: {audience: colleagues in teams, host: Q (screen + voice), duration_min: 20}
+    solo:  {audience: retiree alone with Q, host: Q (chat or voice), duration_min: 15}
+  mix: {funny: 3, gap: 1}           # after every 3 funny questions, one gap question
+  scoring:
+    teams: true                     # colleagues compete in teams; points only for colleagues
+    retiree_points: false           # the retiree is never scored; they are the expert
+  capture:
+    gap_answers: record_audio       # live answer -> transcript -> claim (status: current)
+    source_label_de: "Abschiedsquiz {leaver_name}, {date}, {time}"
+    requires_confirmation: true     # retiree confirms the captured claim after the quiz
+  ending:
+    legacy_booklet: true            # "Wissen von {name}": PDF handbook generated from the leaver's claims
+    lasting_credit: true            # Q keeps citing the leaver by name in future answers
+
+rewards:
+  principle: Anerkennung zuerst, Geschenk als Zeichen – keine Punkte für die Ruheständler.
+  tax_fact: F106                    # €110 per participant incl. gifts ≤ €60 (R 19.3 Abs. 2 Nr. 3 LStR)
+  max_gift_eur: 60
+  # Suggestions use ONLY interests the person volunteered (persona.interests_consent.allowed_use).
+  suggestions:
+    p05:
+      - {de: "Wanderführer 'Harzer Hexenstieg' + Einkehrgutschein", est_eur: 55, based_on: Wandern im Harz}
+      - {de: "Gutschein Modellbahn-Fachhandel", est_eur: 50, based_on: Modelleisenbahn Spur H0}
+    p11:
+      - {de: "Gutschein Gartencenter", est_eur: 50, based_on: Kleingarten}
+      - {de: "Radkarten-Set Weserradweg + Fahrradtasche", est_eur: 58, based_on: Radfahren auf dem Weserradweg}
+
+leavers:
+  p05: {name: Wolfgang Reinecke, last_day: 2027-01-31, mode: party}
+  p11: {name: Hans-Jürgen Meyer, last_day: 2027-04-30, mode: solo}
+
+questions:
+  # ---------------- p05 Wolfgang Reinecke (party) ----------------
+  - id: QZ01
+    leaver: p05
+    type: funny
+    question_de: "Was ging beim Umzug 1998 verloren und tauchte erst fünf Jahre später im Keller wieder auf?"
+    options: ["Die Kiste mit allen Dienststempeln", "Der Generalschlüssel", "Die Weihnachtsdeko"]
+    answer: 0
+    answer_fact: F098
+    reveal_prompt_de: "Wolfgang, wo genau hast du die Kiste gefunden?"
+  - id: QZ02
+    leaver: p05
+    type: funny
+    question_de: "Wie hieß die legendäre Kaffeemaschine im 1. OG?"
+    options: ["Gisela", "Herta", "Erna"]
+    answer: 1
+    answer_fact: F099
+    reveal_prompt_de: "Warum ausgerechnet Herta?"
+  - id: QZ03
+    leaver: p05
+    type: funny
+    question_de: "Was gibt es traditionell auf der Weihnachtsfeier?"
+    options: ["Kartoffelsalat mit Würstchen", "Raclette", "Grünkohl"]
+    answer: 2
+    answer_fact: F100
+    reveal_prompt_de: "Wolfgang, wer hat den Grünkohl eingeführt?"
+  - id: GZ01
+    leaver: p05
+    type: gap
+    gap_id: Q34
+    question_de: "Wie läuft die Haushaltsanmeldung für das nächste Jahr eigentlich ab?"
+    host_line_de: "Jetzt eine Frage, die nicht einmal ich beantworten kann. Weiß es jemand im Raum? … Wolfgang, übernimmst du?"
+  - id: QZ04
+    leaver: p05
+    type: funny
+    question_de: "Wie oft hat Wolfgang die Weihnachtsfeier organisiert?"
+    options: ["12 Mal", "25 Mal", "39 Mal"]
+    answer: 1
+    answer_fact: F100
+    reveal_prompt_de: "Welche Feier war die chaotischste?"
+  - id: QZ05
+    leaver: p05
+    type: funny
+    question_de: "Welche ungeschriebene Regel gilt für Montagmorgen?"
+    options: ["Keine Termine bei der Vorsteherin vor 10 Uhr", "Keine E-Mails vor 9 Uhr", "Kaffee nur aus der eigenen Tasse"]
+    answer: 0
+    answer_fact: F072
+    reveal_prompt_de: "Wie ist diese Regel entstanden?"
+  - id: QZ06
+    leaver: p05
+    type: funny
+    question_de: "Wie viel kostet die Kaffeekasse im Monat?"
+    options: ["1 €", "3 €", "5 €"]
+    answer: 1
+    answer_fact: F072
+    reveal_prompt_de: "Und wer zahlt nie pünktlich? (Namen bitte nicht nennen!)"
+  - id: GZ02
+    leaver: p05
+    type: gap
+    gap_id: X02
+    question_de: "Wo liegt der Generalschlüssel für das Archiv im Keller?"
+    host_line_de: "Diese Frage steht seit Wochen auf meiner Liste. Wolfgang, das weißt nur du."
+  - id: QZ07
+    leaver: p05
+    type: funny
+    question_de: "Wie heißt der Besprechungsraum 2.20?"
+    options: ["Innerste", "Domhof", "Galgenberg"]
+    answer: 2
+    answer_fact: F104
+    reveal_prompt_de: "Welche Namen haben es damals nicht geschafft?"
+  - id: QZ08
+    leaver: p05
+    type: funny
+    question_de: "Seit wann duzen sich alle im Amt?"
+    options: ["2010", "2019", "2024"]
+    answer: 2
+    answer_fact: F076
+    reveal_prompt_de: "Wolfgang, wie hat sich das am Anfang angefühlt?"
+  - id: QZ09
+    leaver: p05
+    type: funny
+    question_de: "Was änderte sich nach der falsch verschickten E-Mail 2024?"
+    options: ["Externe Empfänger muss man mit zwei Klicks bestätigen", "Externe E-Mails wurden verboten", "Steuerdaten nur noch per Fax"]
+    answer: 0
+    answer_fact: F071
+    reveal_prompt_de: "Was lernen wir daraus für die Neuen?"
+  - id: QZ10
+    leaver: p05
+    type: funny
+    question_de: "Was hat ein Parkplatz im Hof bis Oktober 2026 gekostet?"
+    options: ["Nichts", "5 € im Monat", "10 € im Monat"]
+    answer: 0
+    answer_fact: F077
+    reveal_prompt_de: "Wolfgang, wie lang war deine Warteliste zuletzt?"
+  - id: GZ03
+    leaver: p05
+    type: gap
+    gap_id: G14
+    question_de: "Gibt es hier Ladesäulen für E-Autos – und wenn nicht, warum?"
+    host_line_de: "Die fragen mich ständig alle. Wolfgang, klär uns auf!"
+
+  # ---------------- p11 Hans-Jürgen Meyer (solo) ----------------
+  - id: QZ11
+    leaver: p11
+    type: funny
+    question_de: "Womit wurden Bescheide 1988 nachträglich geändert?"
+    options: ["Mit der Schreibmaschine", "Per Fax", "Mit Lochkarten"]
+    answer: 0
+    answer_fact: F101
+    reveal_prompt_de: "Hans-Jürgen, erinnerst du dich an deine erste Akte?"
+  - id: QZ12
+    leaver: p11
+    type: funny
+    question_de: "Was gilt nach Meyers Freitagsregel?"
+    options: ["Freitags nach 12 Uhr keine Nachzahlungsbescheide", "Freitags keine Telefonate", "Freitags immer Kuchen"]
+    answer: 0
+    answer_fact: F102
+    reveal_prompt_de: "Woher kommt die Regel?"
+  - id: QZ13
+    leaver: p11
+    type: funny
+    question_de: "Wie viele Steuerfälle hat Hans-Jürgen in 38 Jahren ungefähr bearbeitet?"
+    options: ["4.000", "40.000", "400.000"]
+    answer: 1
+    answer_fact: F103
+    reveal_prompt_de: "Welcher Fall ist dir am meisten in Erinnerung geblieben? (ohne Namen)"
+  - id: GZ04
+    leaver: p11
+    type: gap
+    gap_id: X03
+    question_de: "Welche Sonderfälle bei der doppelten Haushaltsführung muss man kennen?"
+    host_line_de: "Das hat noch niemand aufgeschrieben – erzähl es mir, damit Finn es später nachlesen kann."
+  - id: QZ14
+    leaver: p11
+    type: funny
+    question_de: "Was forderst du bei doppelter Haushaltsführung immer an?"
+    options: ["Mietvertrag und Meldebescheinigung", "Kontoauszüge", "Fahrtenbuch"]
+    answer: 0
+    answer_fact: F073
+    reveal_prompt_de: "Und was passiert, wenn man es vergisst?"
+  - id: QZ15
+    leaver: p11
+    type: funny
+    question_de: "Welches Fach muss man beim Drucker im 2. OG nehmen?"
+    options: ["Fach 1", "Fach 2", "Manueller Einzug"]
+    answer: 1
+    answer_fact: F051
+    reveal_prompt_de: "Wie viele Papierstaus hat dich das gekostet?"
+  - id: GZ05
+    leaver: p11
+    type: gap
+    gap_id: X04
+    question_de: "Welche Rentenfälle sollte man als Neuer lieber nicht alleine bearbeiten?"
+    host_line_de: "Letzte Frage, und vielleicht die wichtigste für die Neuen."

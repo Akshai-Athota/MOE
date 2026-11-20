@@ -1,4 +1,4 @@
-# SPEC: Hilde, the memory of Finanzamt Hildesheim
+# SPEC: Q, the memory of Finanzamt Hildesheim
 
 **Read this file before editing anything.** It is the contract between data (A), the AI pipeline (B) and the app (C).
 
@@ -7,7 +7,7 @@
 > It was invented for a hackathon. Do not present it as how the real authority works.
 
 ## 1. The product in one sentence
-Hilde is an AI colleague that never retires. It interviews employees who are leaving, guides new hires through onboarding,
+Q is an AI colleague that never retires. It interviews employees who are leaving, guides new hires through onboarding,
 answers everyday questions from all staff (parking, canteen, leave and so on), and keeps its knowledge current
 (new, same, update, conflict) with a citation for every answer and role-based guardrails.
 
@@ -21,11 +21,13 @@ answers everyday questions from all staff (parking, canteen, leave and so on), a
 | `data/rules/` | A | `rules.yaml`: internal orders (Hausverfügungen), including superseded versions |
 | `data/facts/` | A | `facts.yaml`: **single source of truth**, plus planted cases |
 | `data/schema/` | A | `questions.yaml`: onboarding and general question catalogue |
+| `data/celebration/` | A | `quiz.yaml`: farewell quiz bank (funny + gap questions), reward settings |
 | `generators/` | B (text), C (media) | scripts that read the YAML and write to `data/raw/` |
 | `generators/validate.py` | A creates, B extends | consistency checks; **run before every push** |
 | `data/raw/` | generated | `docs/ audio/ images/ video/`; the output of generators |
 | `data/manifest.jsonl` | C (builder) | one line per generated file |
 | `eval/` | B | `qa.yaml`, derived from `facts.question_ids` + `planted_gaps` |
+| `ui/` | C | React app (see `ui/README.md`); mock engine until B's API exists |
 
 ## 3. IDs
 
@@ -86,6 +88,14 @@ Personas do **not** list their facts. Derive them with `owner` / `also_known_by`
 ### Persona (`data/personas/pNN.yaml`)
 See `data/personas/p05.yaml`. Required keys: `id, name, department, role_de, role_en, grade, status, tenure_years,
 start_date, leave_date, reports_to, deputy, room, phone_ext, email, access_role, speaking_style, voice, blind_spots`.
+Optional for leavers: `motivation, interview_strategy, interests, retirement_plans, interests_consent, celebration_preference`.
+`interests` may only exist with `interests_consent.given: true`, and only the uses in `allowed_use` (gift suggestions) are permitted.
+
+### Farewell quiz (`data/celebration/quiz.yaml`)
+- `funny` questions are multiple choice. Colleagues guess and the retiree tells the story. `answer_fact` must be a fact the leaver owns or knows.
+- `gap` questions point to a `plants.planted_gaps` entry whose `who_to_ask` is the leaver. The live answer is recorded and becomes a new claim
+  with the source "Abschiedsquiz {name}, {date}, {time}".
+- The retiree is never scored. Gifts stay at or below €60, and the €110 per participant limit for the reception applies (fact F106, R 19.3 Abs. 2 Nr. 3 LStR).
 
 ### Rule (`data/rules/rules.yaml` → `rules:`)
 `id, title_de, title_en, issued_by, valid_from, valid_to, supersedes, access, summary_de, clauses[]`.
@@ -104,7 +114,17 @@ start_date, leave_date, reports_to, deputy, room, phone_ext, email, access_role,
 
 ## 6. Planted test cases (do not "fix" these)
 Listed under `plants:` in `facts.yaml`: superseded rules, conflicts between sources, restricted content,
-taxpayer data for redaction, and `planted_gaps` (questions with **no** source, so Hilde must say "I don't know" and name who to ask).
+taxpayer data for redaction, and `planted_gaps` (questions with **no** source, so Q must say "I don't know" and name who to ask).
 
-## 7. Tech defaults (B and C may change, but must say so here)
+## 7. UI (built: `ui/`; the Celebration tab is implemented as "Abschied")
+The app needs these tabs or modes: **Interview** · **Onboarding** · **Ask Q** · **Celebration ("Abschied")** · Admin/Coverage.
+
+**Celebration tab** (required by the jury feedback: win over retiring staff):
+1. Pick a leaver → party or solo mode (taken from `celebration_preference`).
+2. Generate a quiz from `data/celebration/quiz.yaml`, mixed 3 funny : 1 gap. Later, generate new funny questions from the leaver's captured claims.
+3. Party mode: big screen, team scores, answer reveal → a "tell the story" prompt for the retiree.
+4. Gap question → record the retiree's answer → transcribe → claim draft → retiree confirms → indexed with the quiz source label.
+5. End screen: download the legacy booklet ("Wissen von {name}"), gift suggestion from consented interests (≤ €60), and a thank-you.
+
+## 8. Tech defaults (B and C may change, but must say so here)
 Ollama + Qwen2.5/Qwen3 (German) · faster-whisper · Piper TTS (German voices) · bge-m3 + Qdrant · Docling · Presidio · Chainlit.

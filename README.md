@@ -1,4 +1,4 @@
-# MOE: Hilde, the memory of the public administration
+# MOE: Q, the memory of the public administration
 
 Hackathon project: an AI colleague for **Finanzamt Hildesheim**. It interviews employees who are leaving, onboards new hires,
 answers everyday staff questions and keeps its knowledge up to date, with citations and role-based guardrails.
@@ -12,11 +12,18 @@ answers everyday staff questions and keeps its knowledge up to date, with citati
 | `data/company/company.yaml` | the office: departments, building, systems, projects |
 | `data/personas/` | 13 personas (2 leaving: p05 Reinecke, p11 Meyer; 1 new hire: p13 Albers) |
 | `data/rules/rules.yaml` | 10 internal orders, incl. superseded versions |
-| `data/facts/facts.yaml` | 97 facts: the single source of truth, plus planted test cases |
-| `data/schema/questions.yaml` | 57 onboarding questions (from the PDF) + 17 general/public questions |
+| `data/facts/facts.yaml` | 106 facts: the single source of truth, plus planted test cases |
+| `data/schema/questions.yaml` | 57 onboarding questions (from the PDF) + 18 general/public questions |
+| `data/celebration/quiz.yaml` | farewell quiz: 15 funny + 5 gap questions for the two leavers, gift rules |
 | `generators/validate.py` | consistency check; run before every push |
 
 ```bash
 pip install pyyaml
 python3 generators/validate.py --coverage
 ```
+
+## Run the app
+```bash
+cd ui && npm install && npm run dev
+```
+See [`ui/README.md`](ui/README.md) for the views and the 5-minute demo script. The **Abschied** tab hosts the farewell quiz.
