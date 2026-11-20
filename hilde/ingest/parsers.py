@@ -122,7 +122,7 @@ Ist es ein Organigramm, Ablaufplan oder Whiteboard, beschreibe die Struktur: wer
 
 
 def describe_image(path: Path) -> list[Piece]:
-    """Image -> text via a local Ollama vision model (VISION_MODEL, e.g. qwen2.5vl:3b)."""
+    """Image -> text via a local Ollama vision model (VISION_MODEL, e.g. qwen3-vl:4b)."""
     import base64
 
     import httpx
@@ -131,6 +131,7 @@ def describe_image(path: Path) -> list[Piece]:
     r = httpx.post(f"{s.ollama_base_url}/api/generate", timeout=300, json={
         "model": s.vision_model, "prompt": DESCRIBE_IMAGE, "stream": False,
         "images": [base64.b64encode(path.read_bytes()).decode()],
+        "think": False,  # qwen3-vl would otherwise reason at length before describing
         "options": {"temperature": 0}, "keep_alive": 0,  # unload: frees VRAM for the LLM
     })
     if r.status_code == 404:

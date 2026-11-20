@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # --- Ingestion ---
     whisper_model: str = "small"  # faster-whisper on CPU/int8; "medium" = better, slower
-    vision_model: str = "qwen2.5vl:3b"  # Ollama vision model for images (pull before use)
+    vision_model: str = "qwen3-vl:4b"  # Ollama vision model for images (pull before use)
 
     # --- Qdrant ---
     qdrant_url: str = "http://localhost:6333"
