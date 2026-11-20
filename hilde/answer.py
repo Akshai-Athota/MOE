@@ -1,7 +1,8 @@
 """Question answering as a LangGraph:
 
-    retrieve -> generate -> (cite | abstain)
+    chitchat -> (END | retrieve -> generate -> (cite | abstain))
 
+* chitchat: greetings, thanks, "how are you" etc. get a friendly fixed reply (hilde/chitchat.py).
 * retrieve: role-filtered hybrid search + the asker's own directory entry + predecessors
   of hits that replaced older knowledge (for "changed on ..., previously ...").
 * generate: Qwen with structured output decides `answerable` and which sources it used.
@@ -16,6 +17,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, Field
 
+from hilde import chitchat as smalltalk
 from hilde import open_questions
 from hilde.llm import get_llm
 from hilde.loaders import load_company, load_personas
@@ -84,6 +86,19 @@ class State(TypedDict, total=False):
 
 
 # ---------- nodes ----------
+
+def chitchat(state: State) -> State:
+    kind = smalltalk.classify(state["question"])
+    if kind == "none":
+        return {}
+    first = (state["user"].name or "").split(" ")[0]
+    return {"result": Answer(question=state["question"], answer=smalltalk.reply(kind, first),
+                             abstained=False)}
+
+
+def route_chitchat(state: State) -> str:
+    return "done" if "result" in state else "retrieve"
+
 
 def retrieve(state: State) -> State:
     user, question = state["user"], state["question"]
@@ -273,12 +288,14 @@ def abstain(state: State) -> State:
 
 def build_graph():
     g = StateGraph(State)
+    g.add_node("chitchat", chitchat)
     g.add_node("retrieve", retrieve)
     g.add_node("generate", generate)
     g.add_node("verify", verify)
     g.add_node("cite", cite)
     g.add_node("abstain", abstain)
-    g.set_entry_point("retrieve")
+    g.set_entry_point("chitchat")
+    g.add_conditional_edges("chitchat", route_chitchat, {"done": END, "retrieve": "retrieve"})
     g.add_edge("retrieve", "generate")
     g.add_conditional_edges("generate", route_generated, {"verify": "verify", "abstain": "abstain"})
     g.add_conditional_edges("verify", route_verified, {"cite": "cite", "abstain": "abstain"})

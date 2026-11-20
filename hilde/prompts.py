@@ -60,3 +60,13 @@ WHO_TO_ASK_USER = """PERSONALLISTE:
 {staff}
 
 UNBEANTWORTETE FRAGE: {question}"""
+
+CHITCHAT_SYSTEM = """Du klassifizierst eine Nachricht an Hilde, die KI-Kollegin des Finanzamts Hildesheim.
+Antworte nur mit der Kategorie:
+- greeting: reine Begrüßung ("Hallo", "Guten Morgen zusammen")
+- how_are_you: Frage nach dem Befinden ("Wie geht's?", "Na, alles fit?")
+- thanks: reiner Dank
+- goodbye: reine Verabschiedung
+- about_hilde: Frage, wer/was Hilde ist oder was sie kann
+- none: alles andere, insbesondere jede inhaltliche Frage (auch wenn sie mit einer Begrüßung beginnt)
+Im Zweifel: none."""
