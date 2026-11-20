@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Gift, Lock, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
+import { Briefcase, Check, Coffee, Feather, Gift, Landmark, Lightbulb, Lock, MessageCircle, Monitor, Puzzle, Route, Users, Wallet, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CursorGlow } from "../components/CursorGlow";
 import { AgentBuddy } from "../components/AgentBuddy";
@@ -300,6 +300,27 @@ function Fan({ items }: { items: FanItem[] }) {
 }
 
 /* ------------------------------------------------------------------ cards */
+/** Small icon on the card back, so the kind of card shows without a label. */
+const LABEL_ICON: Record<string, typeof Lightbulb> = {
+  Organisation: Users, Abläufe: Route, Projekte: Briefcase, "Haushalt & Beschaffung": Wallet, IT: Monitor,
+  Aufsicht: Landmark, Kommunikation: MessageCircle, Ungeschriebenes: Feather, Alltag: Coffee,
+};
+function cardIcon(c: Card) {
+  if (c.kind === "open_question") return MessageCircle;
+  if (c.kind === "gap") return Puzzle;
+  return LABEL_ICON[c.label] ?? Lightbulb;
+}
+
+function BackIcon({ icon: Icon }: { icon: typeof Lightbulb }) {
+  return (
+    <div className="grid place-items-center">
+      <span className="grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-white/[0.04] text-white/55 transition-colors group-hover:border-white/35 group-hover:text-white/90">
+        <Icon size={20} strokeWidth={1.6} />
+      </span>
+    </div>
+  );
+}
+
 function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => void }) {
   const num = String(c.card).padStart(2, "0");
   return (
@@ -309,7 +330,8 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
       animate={{ filter: "brightness(1) blur(0px)" }}
       transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
       style={{ ["--shine-delay" as string]: `${index * 0.05 + 1.1}s` }}
-            onClick={c.done ? undefined : onPick}
+      onClick={c.done ? undefined : onPick}
+      aria-label={c.done ? `Karte ${num}, beantwortet` : `Karte ${num} ziehen`}
       disabled={c.done}
       className={cx(
         "group relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
@@ -327,12 +349,9 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
       {c.done ? (
         <p className="line-clamp-5 text-[13px] leading-snug text-muted">{c.original}</p>
       ) : (
-        <div className="space-y-1">
-          <div className="h-px w-6 bg-white/25" />
-          <div className="text-[13.5px] font-medium leading-snug">{c.label}</div>
-        </div>
+        <BackIcon icon={cardIcon(c)} />
       )}
-      <span className={cx("text-[11.5px]", c.done ? "text-faint" : "text-white/40 group-hover:text-white/70")}>{c.done ? "Beantwortet" : "Karte ziehen"}</span>
+      {c.done ? <span className="text-[11.5px] text-faint">Beantwortet</span> : <span />}
     </motion.button>
     </div>
   );
