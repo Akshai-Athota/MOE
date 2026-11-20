@@ -52,3 +52,12 @@ def test_key_term_grounding_for_german_compounds():
     assert key_term_grounded("Wie funktioniert das Mitzeichnungsverfahren?",
                              ["Für die Mitzeichnung gilt eine Frist von drei Arbeitstagen."])
     assert key_term_grounded("Wo kann ich parken?", ["irrelevant"])  # no long word -> no check
+
+
+def test_llm_schemas_require_every_field():
+    # optional fields get skipped under constrained decoding (qwen3 left out "sentences")
+    from hilde.answer import Generated, Verdict
+    for model in (Generated, Verdict):
+        schema = model.model_json_schema()
+        assert set(schema["required"]) == set(schema["properties"])
+    assert Generated(answerable=False).sentences == []  # Python default still works

@@ -16,7 +16,7 @@ from typing import TypedDict
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from hilde import chitchat as smalltalk
 from hilde import language, open_questions
@@ -42,7 +42,17 @@ class Sentence(BaseModel):
     sources: list[int] = Field(description="Nummern der QUELLEN, die diesen Satz belegen")
 
 
+def _all_required(schema: dict) -> None:
+    """Mark every field required in the JSON schema sent to the LLM.
+
+    Python defaults stay (code can build Generated(answerable=False)), but with constrained
+    decoding an optional field may simply be skipped: qwen3 returned answerable=true with no
+    sentences, so every answer was dropped."""
+    schema["required"] = list(schema.get("properties", {}))
+
+
 class Generated(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_all_required)
     answerable: bool = Field(description="true nur, wenn die QUELLEN die Frage beantworten")
     sentences: list[Sentence] = Field(
         default_factory=list, description="1-5 Sätze; leer, wenn answerable=false"
@@ -60,6 +70,7 @@ class Generated(BaseModel):
 
 
 class Verdict(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_all_required)
     # field order matters: the model writes the topics first, then judges ("think, then decide")
     question_meaning: str = Field(
         description="Was bedeutet der Fachbegriff der FRAGE genau? Ein Satz (was, wie oft, wofür)."
