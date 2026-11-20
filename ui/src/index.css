@@ -58,3 +58,21 @@ textarea:focus-visible, input:focus-visible, select:focus-visible { outline: non
 .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 
 @keyframes level { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+
+/* peeker blink */
+.peeker-blink { transform-box: fill-box; transform-origin: center; animation: peeker-blink 3.2s 0.8s infinite; }
+@keyframes peeker-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+
+/* shining sheen sweep across card backs */
+.card-shine { overflow: hidden; isolation: isolate; }
+.card-shine::after {
+  content: ""; position: absolute; inset: -20%; pointer-events: none; z-index: 1;
+  background: linear-gradient(115deg, transparent 38%, rgb(255 255 255 / 0.16) 48%, rgb(255 255 255 / 0.32) 50%, rgb(255 255 255 / 0.16) 52%, transparent 62%);
+  transform: translateX(-110%);
+  animation: shine 1.1s ease-out var(--shine-delay, 0s) 1 both;
+}
+.card-reward.card-shine::after { background: linear-gradient(115deg, transparent 38%, rgb(232 180 76 / 0.18) 48%, rgb(246 223 164 / 0.4) 50%, rgb(232 180 76 / 0.18) 52%, transparent 62%); }
+.card-shine:hover::after { animation: shine-hover 0.9s ease-out 1; }
+@keyframes shine { to { transform: translateX(110%); } }
+@keyframes shine-hover { from { transform: translateX(-110%); } to { transform: translateX(110%); } }
+@media (prefers-reduced-motion: reduce) { .card-shine::after, .peeker-blink { animation: none; } }

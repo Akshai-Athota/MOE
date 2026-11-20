@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Gift, Lock, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Peeker } from "../components/Peeker";
 import { Button, PageHeader, Spinner, cx } from "../components/ui";
 import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
@@ -228,16 +229,19 @@ export default function InterviewView() {
 function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => void }) {
   const num = String(c.card).padStart(2, "0");
   return (
+    <div className="relative">
+    {!c.done && <Peeker />}
     <motion.button
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03, duration: 0.25 }}
+      initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
+      transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
+      style={{ ["--shine-delay" as string]: `${index * 0.06 + 0.25}s` }}
       whileHover={c.done ? undefined : { y: -4 }}
       onClick={c.done ? undefined : onPick}
       disabled={c.done}
       className={cx(
-        "group relative flex aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
-        c.done ? "cursor-default border border-line bg-surface" : "card-back text-white shadow-xs hover:shadow-pop",
+        "group relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
+        c.done ? "cursor-default border border-line bg-surface" : "card-back card-shine text-white shadow-xs hover:shadow-pop",
       )}
     >
       <div className="flex items-center justify-between">
@@ -258,19 +262,23 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
       )}
       <span className={cx("text-[11.5px]", c.done ? "text-faint" : "text-white/40 group-hover:text-white/70")}>{c.done ? "Beantwortet" : "Karte ziehen"}</span>
     </motion.button>
+    </div>
   );
 }
 
 function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unlocked: boolean; remaining: number; onOpen: () => void }) {
   return (
+    <div className="relative">
+    <Peeker />
     <motion.button
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03, duration: 0.25 }}
+      initial={{ opacity: 0, y: 12, filter: "brightness(1.8) blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "brightness(1) blur(0px)" }}
+      transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
+      style={{ ["--shine-delay" as string]: `${index * 0.06 + 0.25}s` }}
       whileHover={unlocked ? { y: -4 } : undefined}
       onClick={unlocked ? onOpen : undefined}
       disabled={!unlocked}
-      className={cx("card-reward relative flex aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "opacity-70")}
+      className={cx("card-reward card-shine relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "opacity-70")}
     >
       <span className="text-[12px] tabular-nums text-gold/70">10</span>
       <div className="space-y-2">
@@ -279,6 +287,7 @@ function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unl
       </div>
       <span className="text-[11.5px] text-gold/60">{unlocked ? "Aufdecken" : `Noch ${remaining} Karte${remaining === 1 ? "" : "n"}`}</span>
     </motion.button>
+    </div>
   );
 }
 
