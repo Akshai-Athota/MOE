@@ -18,6 +18,7 @@ def get_llm() -> ChatOllama:
         seed=s.llm_seed,
         num_ctx=s.llm_num_ctx,
         keep_alive=s.keep_alive_s,
+        reasoning=s.llm_reasoning,
     )
 
 
