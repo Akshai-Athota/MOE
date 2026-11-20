@@ -314,7 +314,8 @@ export function classifyClaim(text: string, state: EngineState): { kind: "NEW" |
 
 
 /* ---------------- Story-card interview (demo twin of hilde/interview.py) ---------------- */
-export const DECK_SIZE = 9; // card 10 is the reward card
+export const DECK_MIN = 6;
+export const DECK_MAX = 9; // random number of question cards, always fewer than 10
 
 export interface DeckCard {
   card: number;
@@ -335,7 +336,7 @@ const CARD_LABEL: Record<string, string> = {
 
 /** Same order as the backend: colleagues' questions, gaps only this person can close, then the
  *  main catalogue questions where this person is the only source. At most 9 cards. */
-export function dealDeck(pid: string, openQs: OpenQuestion[]): DeckCard[] {
+export function dealDeck(pid: string, openQs: OpenQuestion[], seed = Date.now()): DeckCard[] {
   const out: Omit<DeckCard, "card">[] = [];
   const gaps = DATA.plants.planted_gaps;
   const demoFor = (gid?: string) => gaps.find((g) => g.id === gid)?.live_demo_answer_de;
@@ -368,7 +369,11 @@ export function dealDeck(pid: string, openQs: OpenQuestion[]): DeckCard[] {
   const t = DATA.plants.redaction_targets.find((x) => x.inject_into === pid);
   const first = out.find((q) => q.kind === "catalogue");
   if (t && first) first.demoAnswer = `${first.demoAnswer} Das erinnert mich an den Fall damals, ${t.context}: ${t.value}.`;
-  return out.slice(0, DECK_SIZE).map((q, i) => ({ ...q, card: i + 1 }));
+  // random deck size (seeded, 6-9), but every gap question gets a card
+  const rnd = ((Math.sin(seed) * 10000) % 1 + 1) % 1;
+  const gapsN = out.filter((q) => q.kind !== "catalogue").length;
+  const n = Math.min(out.length, Math.max(gapsN, DECK_MIN + Math.floor(rnd * (DECK_MAX - DECK_MIN + 1))));
+  return out.slice(0, n).map((q, i) => ({ ...q, card: i + 1 }));
 }
 
 export function phraseCard(c: DeckCard, pid: string): string {

@@ -93,18 +93,27 @@ Optional for leavers: `motivation, interview_strategy, interests, retirement_pla
 `interests` may only exist with `interests_consent.given: true`, and only the uses in `allowed_use` (gift suggestions) are permitted.
 
 ### Story-card interview (`hilde/interview.py`, `ui/src/views/InterviewView.tsx`)
-- The deck has **9 question cards + 1 reward card**. Question cards are only **gap questions** (colleagues' open questions,
-  planted gaps for this person) and **main catalogue questions** where the person is the (only) source. No endless follow-ups.
-- The person picks any card in any order and answers **by audio** (record in the browser, or upload an audio file).
-  The server transcribes it (Whisper), redacts taxpayer data (§ 30 AO) and extracts handbook statements.
-- A statement that **contradicts** documented knowledge is treated as a false memory and **silently ignored**:
-  not shown, not stored, nothing is marked as a conflict.
-- Card 10 unlocks after all question cards are answered and shows **one voucher** from `data/rewards/rewards.yaml`,
-  based on an interest the person volunteered. Gifts stay at or below €60 (fact F106, R 19.3 Abs. 2 Nr. 3 LStR).
+- The deck has a **random number of question cards, 6 to 9** (always fewer than 10). Cards show no topic tags.
+  They hold only **gap questions** (colleagues' open questions, planted gaps) and **main catalogue questions**
+  where the person is the (only) source. No endless follow-ups.
+- Answers by **text or audio** (record or upload). `POST /interview/{sid}/submit` and `/submit-audio` return at once;
+  the next card is drawn immediately. Whisper, redaction (§ 30 AO), extraction and indexing run in the background
+  (`interview.process`); the app polls `GET /interview/{sid}`. Statements are indexed as they come in (no publish step).
+- A statement that **contradicts** documented knowledge is treated as a false memory and **silently ignored**.
+- The **reward is a secret**: no card for it in the deck. When all question cards are answered the game ends and
+  one last card appears with a voucher from `data/rewards/rewards.yaml` (an interest the person volunteered, ≤ €60).
+
+### Answering (`hilde/answer.py`, `hilde/templates.py`)
+- Qwen3 sampling: temperature 0.7, top_p 0.8, top_k 20.
+- "I don't know" is **retried up to 3 times** with a broader search (rephrased query, key terms, closest
+  questionnaire wording, more sources) — but only if the question is about the office (best bge-m3 match
+  ≥ `relevance_min_score`, 0.45). Clearly off-topic questions get "I don't know" at once.
+- **Questionnaire questions** (Q01–Q57, G01–G18) are recognised without a model call; their linked sources come
+  first, the second verification pass is skipped, and the answer is cached until knowledge changes.
 
 ### Knowledge library (`hilde/library.py`)
-Anyone can post a short note or a file ("Der Drucker im 2. OG ist defekt"). It is redacted, indexed at once and cited
-as "Wissensbibliothek · {name} · {date}". Marking a note as done sets its source to `superseded`, so Finn stops repeating it.
+Anyone can post a short note or a file ("Der Drucker im 2. OG ist defekt"). It is listed at once (Enter shares it);
+indexing for Finn runs in the background, and Finn cites it as "Wissensbibliothek · {name} · {date}". Marking a note as done sets its source to `superseded`, so Finn stops repeating it.
 
 ### Rule (`data/rules/rules.yaml` → `rules:`)
 `id, title_de, title_en, issued_by, valid_from, valid_to, supersedes, access, summary_de, clauses[]`.
@@ -135,7 +144,8 @@ Two demo users: **Jonas Albers** (p13, new hire) and **Wolfgang Reinecke** (p05,
 | Frag Finn (chat with sources) | ✓ | ✓ |
 | Wissensbibliothek (library) | ✓ | ✓ |
 
-Design: neutral palette, one deep-green accent `#0F5E54`, Inter, thin borders, no gradients.
+Design: neutral palette, one deep-green accent `#0F5E54`, Inter, thin borders, no gradients. Finn has a small
+animated face (blinks, thinks, listens, smiles); content fades in on scroll.
 
 ## 8. Tech defaults (B and C may change, but must say so here)
 Ollama + Qwen2.5/Qwen3 (German) · faster-whisper · Piper TTS (German voices) · bge-m3 + Qdrant · Docling · Presidio · Chainlit.

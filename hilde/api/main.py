@@ -7,11 +7,13 @@ Docs:         http://localhost:8000/docs
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+import uuid
+
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from hilde import interview, library, open_questions
+from hilde import interview, library, open_questions, templates
 from hilde.answer import ask
 from hilde.config import REPO_ROOT, get_settings
 from hilde.ingest import ingest_file
@@ -111,7 +113,9 @@ def ingest_endpoint(
     meta = CaptureMeta(title=title, persona=user.id, department=user.department,
                        access=access, category=category)
     try:
-        return ingest_file(path, meta)
+        out = ingest_file(path, meta)
+        templates.bump()
+        return out
     except (ValueError, RuntimeError) as exc:
         raise HTTPException(400, str(exc)) from None
 
@@ -136,6 +140,7 @@ def reset_learned_endpoint() -> dict:
     restored = interview.undo_status_changes()
     open_questions.PATH.unlink(missing_ok=True)
     library.clear()
+    templates.bump()
     return {"removed": removed, "restored": restored}
 
 
@@ -194,6 +199,43 @@ def interview_pick(sid: str, req: InterviewPick) -> dict:
         raise HTTPException(409, str(exc)) from None
 
 
+class InterviewSubmit(BaseModel):
+    card: int = Field(ge=1)
+    answer: str = Field(min_length=2, description="typed answer")
+
+
+@app.post("/interview/{sid}/submit")
+def interview_submit(sid: str, req: InterviewSubmit, bg: BackgroundTasks) -> dict:
+    """Typed answer for a card. Returns at once (the card is done, draw the next one); redaction,
+    extraction and indexing run in the background. Poll GET /interview/{sid} for the results."""
+    _session(sid)
+    try:
+        s = interview.submit(sid, req.card)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+    bg.add_task(interview.process, sid, req.card, req.answer, None)
+    return interview.to_dict(s)
+
+
+@app.post("/interview/{sid}/submit-audio")
+def interview_submit_audio(sid: str, bg: BackgroundTasks, card: Annotated[int, Form(ge=1)],
+                           file: Annotated[UploadFile, File(description="recorded or uploaded audio")]) -> dict:
+    """Audio answer for a card. Returns at once; Whisper transcription and everything else run in
+    the background (the audio file is deleted afterwards)."""
+    _session(sid)
+    suffix = Path(file.filename or "answer.webm").suffix.lower() or ".webm"
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    path = UPLOADS / f"interview-{sid}-{card}-{uuid.uuid4().hex[:6]}{suffix}"
+    path.write_bytes(file.file.read())
+    try:
+        s = interview.submit(sid, card)
+    except ValueError as exc:
+        path.unlink(missing_ok=True)
+        raise HTTPException(409, str(exc)) from None
+    bg.add_task(interview.process, sid, card, None, str(path))
+    return interview.to_dict(s)
+
+
 @app.post("/interview/{sid}/answer-audio")
 def interview_answer_audio(sid: str, file: Annotated[UploadFile, File(description="recorded or uploaded audio")]) -> dict:
     """Answer the current card by audio: transcribed (Whisper), then handled like a spoken answer.
@@ -244,10 +286,13 @@ def library_list() -> list[library.Post]:
 
 
 @app.post("/library")
-def library_add(req: library.PostIn) -> library.Post:
-    """Post a note for everyone (e.g. 'Drucker 2. OG defekt'): redacted and searchable at once."""
+def library_add(req: library.PostIn, bg: BackgroundTasks) -> library.Post:
+    """Post a note for everyone (e.g. 'Drucker 2. OG defekt'). Returns at once (redacted);
+    Finn can answer from it a few seconds later (indexed in the background)."""
     _user(req.user_id)
-    return library.add(req)
+    post = library.add(req)
+    bg.add_task(library.index, post.id)
+    return post
 
 
 @app.post("/library/{post_id}/resolve")

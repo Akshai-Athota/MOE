@@ -255,7 +255,13 @@ export interface IvCard {
   ref?: string | null;
   gap_id?: string | null;
   demo_answer?: string | null;
+  /** the question as Finn asks it */
+  text?: string;
   done: boolean;
+  /** answer accepted, still being transcribed / structured in the background */
+  pending?: boolean;
+  /** processing failed: the card can be answered again */
+  failed?: boolean;
 }
 export interface IvReward {
   card: number;
@@ -271,6 +277,7 @@ export interface IvSession {
   handbook: IvHandbook;
   deck: IvCard[];
   reward: IvReward;
+  pending?: number[];
 }
 
 const IV_TIMEOUT = 180_000; // extraction + comparison on a local LLM
@@ -283,6 +290,17 @@ export const interviewApi = {
     post<IvSession>("/interview/start", { user_id: userId, open_questions: openQuestions }, 60_000),
   answer: (sid: string, answer: string) => post<IvSession & { turn: IvTurn }>(`/interview/${sid}/answer`, { answer }),
   pick: (sid: string, card: number) => post<IvSession>(`/interview/${sid}/pick`, { card }, 60_000),
+  /** typed answer: returns at once, processing runs in the background */
+  submit: (sid: string, card: number, answer: string) => post<IvSession>(`/interview/${sid}/submit`, { card, answer }, 20_000),
+  /** audio answer: returns at once, Whisper + processing run in the background */
+  submitAudio: async (sid: string, card: number, audio: Blob, filename = "antwort.webm") => {
+    const fd = new FormData();
+    fd.append("card", String(card));
+    fd.append("file", audio, filename);
+    const r = await fetch(`${BASE}/interview/${sid}/submit-audio`, { method: "POST", body: fd });
+    if (!r.ok) throw new Error(`submit-audio: HTTP ${r.status}`);
+    return (await r.json()) as IvSession;
+  },
   /** audio answer: transcribed by Whisper on the server, then redacted and structured */
   answerAudio: async (sid: string, audio: Blob, filename = "antwort.webm") => {
     const fd = new FormData();

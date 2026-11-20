@@ -1,13 +1,18 @@
 """Question answering as a LangGraph:
 
-    chitchat -> (END | retrieve -> generate -> (cite | abstain))
+    chitchat -> (END | retrieve -> generate -> verify -> (cite | retry -> retrieve ... | abstain))
 
 * chitchat: greetings, thanks, "how are you" etc. get a friendly fixed reply (hilde/chitchat.py).
 * retrieve: role-filtered hybrid search + the asker's own directory entry + predecessors
   of hits that replaced older knowledge (for "changed on ..., previously ...").
 * generate: Qwen with structured output decides `answerable` and which sources it used.
 * cite:     keep only citations the answer really uses; no valid citation -> abstain.
+* retry:    an "I don't know" about an office topic is retried up to 3 times with a broader
+            search (rephrased query, key terms, more sources). Off-topic questions are not retried.
 * abstain:  "I don't know", pick who to ask, store the open question for the next interview.
+
+Questionnaire questions (hilde/templates.py) get their linked sources first, skip the second
+verification pass and are cached until knowledge changes, so they answer fast.
 """
 
 import re
@@ -19,20 +24,22 @@ from langgraph.graph import END, StateGraph
 from pydantic import BaseModel, ConfigDict, Field
 
 from hilde import chitchat as smalltalk
-from hilde import language, open_questions
+from hilde import language, open_questions, templates
+from hilde.config import get_settings
 from hilde.llm import get_llm
 from hilde.loaders import load_company, load_personas
 from hilde.prompts import (
     ANSWER_SYSTEM,
     ANSWER_USER,
     RETRY_EMPTY,
+    RETRY_QUERY_SYSTEM,
     VERIFY_SYSTEM,
     VERIFY_USER,
     WHO_TO_ASK_SYSTEM,
     WHO_TO_ASK_USER,
 )
 from hilde.schemas import Answer, Change, Citation, Contact, Hit, User
-from hilde.vectorstore import get_by_source_id, restricted_probe, search
+from hilde.vectorstore import by_question_id, get_by_source_id, relevance, restricted_probe, search
 
 TOP_K = 8
 
@@ -99,6 +106,10 @@ class State(TypedDict, total=False):
     restricted_owner: str | None  # owner of a better-matching source this role may not see
     result: Answer
     started: float
+    template: dict | None  # matched questionnaire question
+    attempt: int  # retries done after an "I don't know"
+    query: str  # search query (rephrased on retries)
+    relevance: float  # best cosine of the question in the whole knowledge base
 
 
 # ---------- nodes ----------
@@ -118,7 +129,14 @@ def route_chitchat(state: State) -> str:
 
 def retrieve(state: State) -> State:
     user, question = state["user"], state["question"]
-    hits = [h for h in search(question, user, k=TOP_K) if h.source_id != user.id]
+    attempt = state.get("attempt", 0)
+    hits = [h for h in search(state.get("query") or question, user, k=TOP_K + 6 * attempt)
+            if h.source_id != user.id]
+    if tpl := state.get("template"):
+        # questionnaire question: the curated sources for it come first
+        linked = [h for h in by_question_id(tpl["id"], user) if h.status not in ("superseded", "scheduled")]
+        seen = {h.chunk_id for h in linked}
+        hits = (linked + [h for h in hits if h.chunk_id not in seen])[:TOP_K + 6 * attempt]
     me = get_by_source_id(user.id, user)  # resolves "ich/mich" (deputy, mentor, room ...)
     if me:
         hits.insert(0, me)  # always source [1], see prompt rule 6
@@ -192,12 +210,14 @@ def route_generated(state: State) -> str:
     # an answer without at least one sentence backed by a real source is not allowed
     sentences = g.valid_sentences(len(state["hits"]))
     if not g.answerable or not sentences:
-        return "abstain"
+        return "unknown"
     # "Mein Büro ist in Raum 2.04" = the asker's data told as if it were Q's.
     # Only for questions addressed to Q: learned interview answers are legitimately first person.
     if _ADDRESSES_Q.search(state.get("question", "").lower()) and smalltalk.speaks_about_itself(
             [t for t, _ in sentences]):
         return "self"
+    if state.get("template"):
+        return "cite"  # curated sources for a questionnaire question: skip the second pass (fast)
     return "verify"
 
 
@@ -255,7 +275,54 @@ def verify(state: State) -> State:
 
 
 def route_verified(state: State) -> str:
-    return "cite" if state["verified"] else "abstain"
+    return "cite" if state["verified"] else "unknown"
+
+
+def unknown(state: State) -> State:
+    """The model could not answer. Measure once whether the question is about the office at all."""
+    if "relevance" in state or state.get("restricted_owner"):
+        return {}
+    try:
+        return {"relevance": relevance(state["question"])}
+    except Exception:  # noqa: BLE001 - without the score, assume relevant
+        return {"relevance": 1.0}
+
+
+def is_relevant(state: State) -> bool:
+    return state.get("relevance", 1.0) >= get_settings().relevance_min_score
+
+
+def after_unknown(state: State) -> str:
+    """The model could not answer: retry (broader search) up to 3 times, unless the question is
+    off-topic or the answer exists only for other roles."""
+    if state.get("restricted_owner"):
+        return "abstain"
+    if state.get("attempt", 0) >= get_settings().answer_retries or not is_relevant(state):
+        return "abstain"
+    return "retry"
+
+
+_KEY = re.compile(r"[A-Za-zÄÖÜäöüß][\wÄÖÜäöüß-]{3,}")
+
+
+def retry(state: State) -> State:
+    """Broaden the search: 1) rephrase with office vocabulary, 2) key terms only, 3) the closest
+    questionnaire wording. Each attempt also fetches more sources."""
+    attempt = state.get("attempt", 0) + 1
+    q = state["question"]
+    query = q
+    if attempt == 1:
+        try:
+            query = get_llm().invoke([SystemMessage(RETRY_QUERY_SYSTEM), HumanMessage(q)]).content.strip() or q
+        except Exception:  # noqa: BLE001
+            query = q
+    elif attempt == 2:
+        terms = [w for w in _KEY.findall(q) if w.lower() not in templates.STOP]
+        query = " ".join(terms) or q
+    else:
+        best = max(templates.catalogue(), key=lambda c: len(templates.stems(q) & c["_stems"]), default=None)
+        query = f"{q} {best['de']}" if best else q
+    return {"attempt": attempt, "query": query}
 
 
 def cite(state: State) -> State:
@@ -373,7 +440,8 @@ def abstain(state: State) -> State:
         return {"result": Answer(question=question, abstained=True, blocked=True,
                                  restricted_owner=owner, who_to_ask=owner,
                                  answer=t["blocked"].format(name=owner.name, room=owner.room))}
-    pid = _pick_person(question, user.id)
+    # clearly off-topic (nothing in the knowledge base is close): plain "I don't know", fast
+    pid = None if state.get("relevance", 1.0) < get_settings().relevance_min_score else _pick_person(question, user.id)
     if not pid:  # off-topic: nobody to route to, nothing to learn
         return {"result": Answer(question=question, abstained=True, answer=t["off_topic"])}
     p = load_personas()[pid]
@@ -398,13 +466,18 @@ def build_graph():
     g.add_node("cite", cite)
     g.add_node("abstain", abstain)
     g.add_node("self", about_self)
+    g.add_node("retry", retry)
+    g.add_node("unknown", unknown)
     g.set_entry_point("chitchat")
     g.add_conditional_edges("chitchat", route_chitchat, {"done": END, "retrieve": "retrieve"})
     # best match is restricted for this role -> "not released for you", no partial answer
     g.add_conditional_edges("retrieve", lambda s: "abstain" if s.get("restricted_owner") else "generate",
                             {"abstain": "abstain", "generate": "generate"})
-    g.add_conditional_edges("generate", route_generated, {"verify": "verify", "abstain": "abstain", "self": "self"})
-    g.add_conditional_edges("verify", route_verified, {"cite": "cite", "abstain": "abstain"})
+    g.add_conditional_edges("generate", route_generated,
+                            {"verify": "verify", "cite": "cite", "unknown": "unknown", "self": "self"})
+    g.add_conditional_edges("verify", route_verified, {"cite": "cite", "unknown": "unknown"})
+    g.add_conditional_edges("unknown", after_unknown, {"retry": "retry", "abstain": "abstain"})
+    g.add_edge("retry", "retrieve")
     g.add_edge("cite", END)
     g.add_edge("abstain", END)
     g.add_edge("self", END)
@@ -418,7 +491,17 @@ def ask(question: str, user: User) -> Answer:
     global _GRAPH
     _GRAPH = _GRAPH or build_graph()
     t = time.time()
-    out = _GRAPH.invoke({"question": question, "user": user})
+    use_cache = get_settings().template_cache
+    tpl = templates.match(question)
+    lang = language.detect(question)
+    if tpl and use_cache and (hit := templates.get(tpl["id"], user.id, lang)) is not None:
+        cached = hit.model_copy(update={"question": question})
+        cached.seconds = round(time.time() - t, 2)
+        return cached
+    at_version = templates.version()
+    out = _GRAPH.invoke({"question": question, "user": user, "template": tpl, "attempt": 0})
     result: Answer = out["result"]
     result.seconds = round(time.time() - t, 2)
+    if tpl and use_cache and not result.abstained:
+        templates.put(tpl["id"], user.id, lang, result, at_version)
     return result

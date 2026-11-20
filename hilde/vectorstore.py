@@ -116,6 +116,29 @@ def get_by_source_id(source_id: str, user: User) -> Hit | None:
     )
 
 
+def by_question_id(qid: str, user: User, limit: int = 6) -> list[Hit]:
+    """Sources linked to a questionnaire question (facts carry question_ids), role-filtered."""
+    f = build_filter(user)
+    f.must.append(models.FieldCondition(key="metadata.question_ids", match=models.MatchAny(any=[qid])))
+    points, _ = get_qdrant().scroll(get_settings().qdrant_collection, scroll_filter=f, limit=limit,
+                                    with_payload=True)
+    out = []
+    for p in points:
+        md = p.payload["metadata"]
+        out.append(Hit(chunk_id=md["chunk_id"], text=p.payload["page_content"], score=1.0,
+                       source_type=md["source_type"], source_id=md["source_id"], citation=md["citation"],
+                       access=md["access"], status=md["status"], metadata=md))
+    return out
+
+
+def relevance(query: str) -> float:
+    """Best bge-m3 cosine of the question against all current knowledge (no role filter: this
+    only decides whether the question is about the office at all)."""
+    top = _dense_top(get_embeddings().embed_query(query), models.Filter(must_not=[
+        models.FieldCondition(key="metadata.status", match=models.MatchAny(any=["superseded", "scheduled"]))]))
+    return top[0] if top else 0.0
+
+
 def search(query: str, user: User, k: int = 8, include_history: bool = False) -> list[Hit]:
     """Hybrid search (dense + BM25, fused with RRF), restricted to what `user` may see."""
     results = get_store().similarity_search_with_score(

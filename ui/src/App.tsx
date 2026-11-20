@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { BookMarked, Layers, MessageSquare, RotateCcw, Sunrise, type LucideIcon } from "lucide-react";
-import { Avatar, Logo, cx } from "./components/ui";
+import { FinnAvatar } from "./components/motion";
+import { Avatar, cx } from "./components/ui";
 import { DEMO_USERS, personaById } from "./lib/data";
 import { VIEWS_BY_ROLE, useStore, type View } from "./lib/store";
 import AskView from "./views/AskView";
@@ -51,7 +52,7 @@ export default function App() {
     <div className="flex h-full">
       <aside className="hidden w-[248px] shrink-0 flex-col border-r border-line bg-surface lg:flex">
         <div className="flex h-14 items-center gap-2.5 px-5">
-          <Logo />
+          <FinnAvatar size={28} />
           <div className="leading-tight">
             <div className="text-[14px] font-semibold">Finn</div>
             <div className="text-[11.5px] text-muted">Dein Finanzamt-Assistent</div>
@@ -92,7 +93,7 @@ export default function App() {
         {/* mobile header */}
         <div className="flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
           <div className="flex items-center gap-2">
-            <Logo size={26} />
+            <FinnAvatar size={26} />
             <span className="font-semibold">Finn</span>
           </div>
           <MobileUser />
