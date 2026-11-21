@@ -4,10 +4,11 @@ Run locally:  uv run uvicorn hilde.api.main:app --reload
 Docs:         http://localhost:8000/docs
 """
 
+import uuid
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -169,7 +170,8 @@ def interview_start(req: InterviewStart) -> dict:
 
 @app.get("/interview/{sid}")
 def interview_get(sid: str) -> dict:
-    return interview.to_dict(_session(sid))
+    _session(sid)
+    return interview.to_dict(interview.get(sid))
 
 
 @app.post("/interview/{sid}/answer")
@@ -192,6 +194,39 @@ def interview_pick(sid: str, req: InterviewPick) -> dict:
     try:
         return interview.to_dict(interview.pick(_session(sid), req.card))
     except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+
+
+class InterviewSubmit(BaseModel):
+    card: int = Field(ge=1)
+    answer: str = Field(min_length=2, description="typed answer")
+
+
+@app.post("/interview/{sid}/submit")
+def interview_submit(sid: str, req: InterviewSubmit) -> dict:
+    """Typed answer for a card. Returns at once (the card is done, draw the next one); redaction,
+    extraction and indexing run in a background worker. Poll GET /interview/{sid} for the results."""
+    _session(sid)
+    try:
+        return interview.to_dict(interview.submit(sid, req.card, text=req.answer))
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+
+
+@app.post("/interview/{sid}/submit-audio")
+def interview_submit_audio(sid: str, card: Annotated[int, Form(ge=1)],
+                           file: Annotated[UploadFile, File(description="recorded or uploaded audio")]) -> dict:
+    """Audio answer for a card. Returns at once; Whisper transcription and everything else run in
+    the background worker (the audio file is deleted afterwards)."""
+    _session(sid)
+    suffix = Path(file.filename or "answer.webm").suffix.lower() or ".webm"
+    UPLOADS.mkdir(parents=True, exist_ok=True)
+    path = UPLOADS / f"interview-{sid}-{card}-{uuid.uuid4().hex[:6]}{suffix}"
+    path.write_bytes(file.file.read())
+    try:
+        return interview.to_dict(interview.submit(sid, card, audio_path=str(path)))
+    except ValueError as exc:
+        path.unlink(missing_ok=True)
         raise HTTPException(409, str(exc)) from None
 
 
@@ -239,16 +274,21 @@ def interview_publish(sid: str) -> dict:
 # ---------------------------------------------------------------- knowledge library
 
 @app.get("/library")
-def library_list() -> list[library.Post]:
-    """Everything colleagues posted, newest first."""
+def library_list(bg: BackgroundTasks) -> list[library.Post]:
+    """Everything colleagues posted, newest first. Posts whose indexing did not finish are retried."""
+    for pid in library.unindexed():
+        bg.add_task(library.index, pid)
     return library.list_posts()
 
 
 @app.post("/library")
-def library_add(req: library.PostIn) -> library.Post:
-    """Post a note for everyone (e.g. 'Drucker 2. OG defekt'): redacted and searchable at once."""
+def library_add(req: library.PostIn, bg: BackgroundTasks) -> library.Post:
+    """Post a note for everyone (e.g. 'Drucker 2. OG defekt'). Stored and listed at once (redacted);
+    Finn can answer from it a few seconds later (indexed in the background, retried on errors)."""
     _user(req.user_id)
-    return library.add(req)
+    post = library.add(req)
+    bg.add_task(library.index, post.id)
+    return post
 
 
 @app.post("/library/{post_id}/resolve")

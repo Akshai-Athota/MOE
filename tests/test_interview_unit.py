@@ -3,7 +3,7 @@
 import pytest
 
 from hilde import interview
-from hilde.interview import DECK_SIZE, Claim, OpenQuestionIn, Session, deal, details, phrase, plan, relation
+from hilde.interview import DECK_SIZE, Claim, OpenQuestionIn, Session, Turn, deal, details, phrase, plan, relation
 
 
 def test_plan_order_open_questions_then_gaps_then_catalogue():
@@ -114,3 +114,110 @@ def test_false_statements_are_ignored_and_no_follow_up(monkeypatch):
     assert learned == ["Krüger sammelt den Bedarf bis 15. März."]  # the false part is never stored
     assert s.current is None and 1 in s.done  # no follow-up; the person picks the next card
     assert all(isinstance(c, Claim) for c in turn.claims)
+
+
+class _SyncExecutor:
+    """Runs the background job only when the test says so."""
+    def __init__(self):
+        self.jobs = []
+
+    def submit(self, fn, *args):
+        self.jobs.append((fn, args))
+
+    def run(self):
+        while self.jobs:
+            fn, args = self.jobs.pop(0)
+            fn(*args)
+
+
+def _bg(tmp_path, monkeypatch, sid):
+    monkeypatch.setattr(interview, "DIR", tmp_path)
+    ex = _SyncExecutor()
+    monkeypatch.setattr(interview, "_executor", ex)
+    s = _session()
+    s.id = sid
+    interview.save(s)
+    return ex
+
+
+def _fake_extract(pid, q, text, n, strict=False):
+    return Turn(n=n, question=q, answer=text, claims=[Claim(id=f"{q.card}.1", section="Sonstiges", text=text)],
+                at="2026-11-20T10:00:00")
+
+
+def test_submit_is_instant_and_processing_stores_and_indexes(tmp_path, monkeypatch):
+    ex = _bg(tmp_path, monkeypatch, "bg")
+    monkeypatch.setattr(interview, "extract_turn", _fake_extract)
+    indexed = []
+    monkeypatch.setattr(interview, "index_documents", lambda docs: indexed.extend(docs))
+
+    after = interview.submit("bg", 2, text="Die Mitzeichnungsfrist beträgt drei Arbeitstage.")
+    assert 2 in after.done and after.pending == [2] and not after.turns  # nothing to wait for
+    ex.run()
+    s = interview.load("bg")
+    assert s.pending == [] and len(s.turns) == 1 and s.turns[0].question.card == 2
+    assert s.published_claims == ["2.1"] and indexed[0].metadata["chunk_id"] == "interview-bg-2.1"
+
+
+def test_failed_processing_saves_nothing_and_the_card_can_be_answered_again(tmp_path, monkeypatch):
+    ex = _bg(tmp_path, monkeypatch, "bg2")
+    monkeypatch.setattr(interview, "extract_turn", _fake_extract)
+
+    def down(docs):
+        raise RuntimeError("qdrant down")
+
+    monkeypatch.setattr(interview, "index_documents", down)
+    interview.submit("bg2", 3, text="Der Schlüssel liegt im Sekretariat.")
+    ex.run()
+    s = interview.load("bg2")
+    assert 3 not in s.done and s.failed == [3] and s.pending == [] and s.turns == []  # no half-stored answer
+
+    monkeypatch.setattr(interview, "index_documents", lambda docs: None)
+    assert 3 in interview.submit("bg2", 3, text="Der Schlüssel liegt im Sekretariat.").done
+    ex.run()
+    s = interview.load("bg2")
+    assert s.failed == [] and [t.question.card for t in s.turns] == [3]
+
+
+def test_empty_answer_fails_and_double_submit_is_refused(tmp_path, monkeypatch):
+    ex = _bg(tmp_path, monkeypatch, "bg3")
+    interview.submit("bg3", 1, text="")
+    with pytest.raises(ValueError):
+        interview.submit("bg3", 1, text="noch einmal")  # still queued
+    ex.run()
+    assert interview.load("bg3").failed == [1]
+
+
+def test_extraction_errors_are_retried_not_silently_dropped(monkeypatch):
+    monkeypatch.setattr(interview.time, "sleep", lambda s: None)
+    calls = []
+
+    class Boom:
+        def with_structured_output(self, *a, **k):
+            return self
+
+        def invoke(self, msgs):
+            calls.append(1)
+            raise TimeoutError("model busy")
+
+    monkeypatch.setattr(interview, "get_llm", lambda: Boom())
+    q = _session().deck[1]
+    with pytest.raises(TimeoutError):
+        interview.extract_turn("p05", q, "Antwort", n=2, strict=True)
+    assert len(calls) == interview.EXTRACT_TRIES
+
+
+def test_pending_answers_without_a_job_become_answerable_after_a_restart(tmp_path, monkeypatch):
+    _bg(tmp_path, monkeypatch, "bg4")
+    interview.submit("bg4", 4, text="Antwort vor dem Neustart")
+    interview._running.clear()  # the server restarted: the queued job is gone
+    s = interview.get("bg4")
+    assert s.pending == [] and s.failed == [4] and 4 not in s.done
+
+
+def test_save_is_atomic(tmp_path, monkeypatch):
+    monkeypatch.setattr(interview, "DIR", tmp_path)
+    s = _session()
+    interview.save(s)
+    interview.save(s)
+    assert [p.name for p in tmp_path.iterdir()] == ["t.json"]  # no temp files left behind

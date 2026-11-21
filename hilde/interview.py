@@ -5,20 +5,32 @@
                only source. Card 10 is the reward card (a voucher from the person's own interests);
                it unlocks once all question cards are answered. No endless follow-ups.
     pick    -> the person picks any card; Finn phrases its question for them
-    answer  -> (audio is transcribed first) redact (IBAN, tax numbers, taxpayer names)
+    submit  -> the person answers a card by text or audio. The answer is accepted at once (the card
+               is done, the next card can be drawn) and queued for one background worker:
+    process -> (audio is transcribed first) redact (IBAN, tax numbers, taxpayer names)
                -> extract handbook statements (LLM) -> compare each with existing knowledge:
                NEU / BESTÄTIGT / AKTUALISIERT. A statement that CONTRADICTS documented knowledge is
                treated as a false memory and silently ignored (never shown, never stored).
-    publish -> after the person approved the handbook page: index the statements; an update keeps
-               the history
+               -> the statements are indexed, then the turn is saved. If any step fails, nothing is
+               saved and the card becomes answerable again ("failed"), so no answer is half-stored.
+    answer  -> the old synchronous path (kept for the API and tests)
+    publish -> index everything not yet indexed (answers from submit are indexed as they come in)
 
-Sessions are JSON files in var/interviews/ (runtime data, git-ignored).
+Sessions are JSON files in var/interviews/ (runtime data, git-ignored). Writes are atomic and
+serialised per session, so a background job and a request never overwrite each other.
 """
 
 import json
+import logging
+import os
 import re
+import threading
+import time
 import uuid
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
+from pathlib import Path
 from datetime import date, datetime
 from typing import Literal
 
@@ -106,6 +118,9 @@ class Session(BaseModel):
     published_claims: list[str] = []
     deck: list[PlannedQuestion] = []
     done: list[int] = Field(default_factory=list, description="answered card numbers")
+    asked: dict[int, PlannedQuestion] = Field(default_factory=dict, description="card -> question as asked")
+    pending: list[int] = Field(default_factory=list, description="cards whose answer is still being processed")
+    failed: list[int] = Field(default_factory=list, description="cards whose answer could not be processed")
 
 
 class OpenQuestionIn(BaseModel):
@@ -121,9 +136,26 @@ def _path(sid: str):
     return DIR / f"{sid}.json"
 
 
+log = logging.getLogger(__name__)
+_locks: dict[str, threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+
+@contextmanager
+def locked(sid: str):
+    """Serialise read-modify-write of one session file (answers are processed in a worker thread)."""
+    with _locks_guard:
+        lock = _locks.setdefault(sid, threading.Lock())
+    with lock:
+        yield
+
+
 def save(s: Session) -> None:
+    """Atomic write: a reader never sees a half-written file (that used to fail requests at random)."""
     DIR.mkdir(parents=True, exist_ok=True)
-    _path(s.id).write_text(s.model_dump_json(indent=1), encoding="utf-8")
+    tmp = DIR / f".{s.id}.{uuid.uuid4().hex[:6]}.tmp"
+    tmp.write_text(s.model_dump_json(indent=1), encoding="utf-8")
+    os.replace(tmp, _path(s.id))
 
 
 def load(sid: str) -> Session:
@@ -248,8 +280,17 @@ def start(pid: str, open_qs: list[OpenQuestionIn], use_llm: bool = True) -> Sess
     """Deal the deck. Nothing is asked until the person picks a card."""
     s = Session(id=uuid.uuid4().hex[:10], persona=pid, created=datetime.now().isoformat(timespec="seconds"),
                 deck=deal(pid, open_qs))
+    _phrase_all(s)
     save(s)
     return s
+
+
+def _phrase_all(s: Session) -> bool:
+    """Phrase every card once (template wording, no model call) so responses need no re-phrasing."""
+    missing = [q for q in s.deck if q.card and q.card not in s.asked]
+    for q in missing:
+        _asked(s, q.card)
+    return bool(missing)
 
 
 def pick(s: Session, card: int, use_llm: bool = True) -> Session:
@@ -260,6 +301,7 @@ def pick(s: Session, card: int, use_llm: bool = True) -> Session:
     if card in s.done:
         raise ValueError(f"card {card} already answered")
     s.current = phrase(q.model_copy(), s.persona, use_llm)
+    s.asked[card] = s.current
     save(s)
     return s
 
@@ -375,22 +417,48 @@ def _compare(claims: list[Claim], pid: str) -> None:
 
 
 def answer(s: Session, text: str) -> Turn:
+    """Answer the current question synchronously (old API; the app uses submit/process)."""
     if s.current is None:
         raise ValueError("interview finished")
+    turn = extract_turn(s.persona, s.current, text, n=len(s.turns) + 1)
+    s.turns.append(turn)
+    if s.current.card and s.current.card not in s.done:
+        s.done.append(s.current.card)
+    s.current = None  # the person picks the next card; no endless follow-ups
+    save(s)
+    return turn
+
+
+EXTRACT_TRIES = 3
+
+
+def _extract(p: dict, staff: str, q: PlannedQuestion, text: str, strict: bool) -> Extracted:
+    """LLM extraction. strict: retry, then raise (the background path must not silently drop an
+    answer when the model is busy or times out); otherwise fall back to no statements."""
+    msgs = [SystemMessage(EXTRACT_SYSTEM.format(name=p["name"], staff=staff)),
+            # backslash paths break the model's JSON; it sees a look-alike, we turn it back below
+            HumanMessage(f"FRAGE: {q.text}\n\nANTWORT: {text}".replace(BS, BS_SAFE))]
+    for attempt in range(EXTRACT_TRIES if strict else 1):
+        try:
+            return get_llm().with_structured_output(Extracted, method="json_schema").invoke(msgs)
+        except Exception:  # noqa: BLE001
+            if strict and attempt == EXTRACT_TRIES - 1:
+                raise
+            if strict:
+                time.sleep(1.5 * (attempt + 1))
+    return Extracted(claims=[], taxpayer_names=[], follow_up="")
+
+
+def extract_turn(pid: str, q: PlannedQuestion, text: str, n: int, strict: bool = False) -> Turn:
+    """Redact, extract, compare; for colleagues' questions also learn the answer. No session lock
+    needed (slow: LLM + search)."""
     people = load_personas()
-    p = people[s.persona]
+    p = people[pid]
     staff = ", ".join(x["name"] for x in people.values())
-    q = s.current
+    key = q.card or n
 
     # 1) extract on the raw text (local model, nothing stored), 2) redact everything we keep
-    try:
-        ex: Extracted = get_llm().with_structured_output(Extracted, method="json_schema").invoke([
-            SystemMessage(EXTRACT_SYSTEM.format(name=p["name"], staff=staff)),
-            # backslash paths break the model's JSON; it sees a look-alike, we turn it back below
-            HumanMessage(f"FRAGE: {q.text}\n\nANTWORT: {text}".replace(BS, BS_SAFE)),
-        ])
-    except Exception:  # noqa: BLE001
-        ex = Extracted(claims=[], taxpayer_names=[], follow_up="")
+    ex = _extract(p, staff, q, text, strict)
     clean, found = redact(text)
     clean, more = redact_names(clean, ex.taxpayer_names)
     claims = []
@@ -399,14 +467,14 @@ def answer(s: Session, text: str) -> Turn:
         ctext, hidden2 = redact_names(ctext, ex.taxpayer_names)
         if hidden or hidden2:
             continue  # a statement about a tax case is not handbook knowledge
-        claims.append(Claim(id=f"{len(s.turns) + 1}.{i + 1}", section=c.section, text=ctext))
-    _compare(claims, s.persona)
+        claims.append(Claim(id=f"{key}.{i + 1}", section=c.section, text=ctext))
+    _compare(claims, pid)
     # A statement that contradicts documented knowledge is treated as a false memory:
     # dropped silently (not shown, not stored, nothing marked as conflict).
     kept = [c for c in claims if c.state != "WIDERSPRUCH"]
     ignored = len(claims) - len(kept)
 
-    turn = Turn(n=len(s.turns) + 1, question=q, answer=clean, redacted=found + more, claims=kept,
+    turn = Turn(n=n, question=q, answer=clean, redacted=found + more, claims=kept,
                 at=datetime.now().isoformat(timespec="seconds"), ignored=ignored)
 
     # a colleague is waiting: the answer is searchable at once (the handbook follows on publish).
@@ -414,17 +482,117 @@ def answer(s: Session, text: str) -> Turn:
     if q.kind in ("open_question", "gap"):
         text_to_learn = clean if not ignored else " ".join(c.text for c in kept)
         if text_to_learn.strip():
-            learn(LearnRequest(text=text_to_learn, user_id=s.persona, via="interview", category="general",
+            learn(LearnRequest(text=text_to_learn, user_id=pid, via="interview", category="general",
                                label=f"Interview {_first(p['name'])[0]}. {p['name'].split()[-1]} · live",
                                question=q.original))
             turn.indexed_now = True
-
-    s.turns.append(turn)
-    if q.card and q.card not in s.done:
-        s.done.append(q.card)
-    s.current = None  # the person picks the next card; no endless follow-ups
-    save(s)
     return turn
+
+
+# ---------------------------------------------------------------- instant answers (background)
+
+_running: set[tuple[str, int]] = set()  # answers queued or being processed in THIS server process
+_running_guard = threading.Lock()
+# one worker: answers are processed in order and the local LLM is not flooded by parallel jobs
+_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="interview")
+
+
+def _asked(s: Session, card: int) -> PlannedQuestion:
+    q = s.asked.get(card)
+    if q is None:
+        base = next((x for x in s.deck if x.card == card), None)
+        if base is None:
+            raise ValueError(f"no card {card}")
+        q = phrase(base.model_copy(), s.persona, use_llm=False)  # instant, no model call
+        s.asked[card] = q
+    return q
+
+
+def submit(sid: str, card: int, text: str | None = None, audio_path: str | None = None) -> Session:
+    """Accept an answer at once: the card counts as answered, processing is queued."""
+    with locked(sid):
+        s = load(sid)
+        _asked(s, card)
+        if card in s.pending:
+            raise ValueError(f"card {card} is still being processed")
+        if card in s.done and card not in s.failed:
+            raise ValueError(f"card {card} already answered")
+        s.failed = [c for c in s.failed if c != card]
+        s.done = [*[c for c in s.done if c != card], card]
+        s.pending = [*s.pending, card]
+        s.current = None
+        save(s)
+        with _running_guard:
+            _running.add((sid, card))
+    _executor.submit(process, sid, card, text, audio_path)
+    return s
+
+
+def _fail(sid: str, card: int) -> None:
+    with locked(sid):
+        s = load(sid)
+        s.pending = [c for c in s.pending if c != card]
+        s.done = [c for c in s.done if c != card]
+        if card not in s.failed:
+            s.failed.append(card)
+        save(s)
+
+
+def process(sid: str, card: int, text: str | None = None, audio_path: str | None = None) -> None:
+    """Worker job: transcribe (audio), extract, index, then save the turn. Never raises.
+    Everything is stored only after indexing succeeded; on any error the card is marked failed."""
+    try:
+        if audio_path:
+            from hilde.ingest import parsers  # Whisper is only loaded when audio arrives
+            text = " ".join(t for _sp, t, _a in parsers.transcribe(Path(audio_path))).strip()
+        if not text or len(text.strip()) < 2:
+            raise ValueError("no answer recognised")
+        with locked(sid):
+            snap = load(sid)
+        q = snap.asked.get(card) or _asked(snap, card)
+        turn = extract_turn(snap.persona, q, text, n=card, strict=True)
+        docs = _turn_docs(snap, turn)
+        if docs:
+            index_documents(docs)  # chunk ids are stable, so a retry overwrites instead of duplicating
+        with locked(sid):
+            s = load(sid)
+            s.turns = [*[t for t in s.turns if t.question.card != card], turn]
+            if docs:
+                s.published_claims += [c.id for c in turn.claims if c.id not in s.published_claims]
+            s.pending = [c for c in s.pending if c != card]
+            s.failed = [c for c in s.failed if c != card]
+            if docs:
+                s.published_at = datetime.now().isoformat(timespec="seconds")
+            save(s)
+    except Exception:  # noqa: BLE001 - the card becomes answerable again
+        log.exception("interview %s card %s: answer could not be processed", sid, card)
+        try:
+            _fail(sid, card)
+        except Exception:  # noqa: BLE001
+            log.exception("interview %s card %s: could not mark as failed", sid, card)
+    finally:
+        if audio_path:
+            Path(audio_path).unlink(missing_ok=True)  # the audio itself is not kept
+        with _running_guard:
+            _running.discard((sid, card))
+
+
+def get(sid: str) -> Session:
+    """Load a session. Answers that were pending when the server stopped have no job any more:
+    they are marked failed so the person can answer them again instead of waiting forever."""
+    with locked(sid):
+        s = load(sid)
+        changed = _phrase_all(s)  # sessions from before this change
+        with _running_guard:
+            stale = [c for c in s.pending if (sid, c) not in _running]
+        if stale:
+            s.pending = [c for c in s.pending if c not in stale]
+            s.done = [c for c in s.done if c not in stale]
+            s.failed = [*s.failed, *[c for c in stale if c not in s.failed]]
+            changed = True
+        if changed:
+            save(s)
+        return s
 
 
 # ---------------------------------------------------------------- handbook + publish
@@ -467,8 +635,32 @@ def undo_status_changes() -> int:
     return len(rows)
 
 
+def _claim_doc(s: Session, p: dict, t: Turn, c: Claim, day: str, status: str) -> Document:
+    return Document(page_content=f"{c.section}: {c.text}", metadata={
+        "chunk_id": f"interview-{s.id}-{c.id}", "source_type": "segment",
+        "source_id": f"interview-{s.id}", "title": f"Übergabe-Interview {p['name']}",
+        "category": SECTION_CATEGORY.get(c.section, "general"), "department": p["department"],
+        "access": "internal", "status": status, "valid_from": date.today().isoformat(),
+        "valid_to": None,
+        "supersedes": c.matched_source if c.state == "AKTUALISIERT" else None,
+        "modality": "interview", "learned_via": "interview", "speaker": p["name"],
+        "anchor": {"turn": t.n}, "source_file": None, "owner": s.persona,
+        "owner_name": p["name"], "question_ids": [], "fact_ids": [],
+        "citation": f"Übergabe-Interview {p['name']} · {day} · Frage {t.n}",
+    })
+
+
+def _turn_docs(s: Session, t: Turn) -> list[Document]:
+    """Documents for one answer's statements (contradictions were already dropped)."""
+    if t.indexed_now:
+        return []  # already searchable as the raw answer (learn)
+    p = load_personas()[s.persona]
+    day = date.today().strftime("%d.%m.%Y")
+    return [_claim_doc(s, p, t, c, day, "current") for c in t.claims]
+
+
 def publish(s: Session) -> dict:
-    """Index approved statements. Contradictions mark both sides "conflict" for a manager."""
+    """Index statements not indexed yet. Contradictions mark both sides "conflict" for a manager."""
     p = load_personas()[s.persona]
     day = date.today().strftime("%d.%m.%Y")
     docs, conflicts = [], 0
@@ -483,18 +675,7 @@ def publish(s: Session) -> dict:
                 set_status_for_chunk(c.matched_chunk, "conflict")
                 _log_status_change(c.matched_chunk, c.matched_status or "current")
                 conflicts += 1
-            docs.append(Document(page_content=f"{c.section}: {c.text}", metadata={
-                "chunk_id": f"interview-{s.id}-{c.id}", "source_type": "segment",
-                "source_id": f"interview-{s.id}", "title": f"Übergabe-Interview {p['name']}",
-                "category": SECTION_CATEGORY.get(c.section, "general"), "department": p["department"],
-                "access": "internal", "status": status, "valid_from": date.today().isoformat(),
-                "valid_to": None,
-                "supersedes": c.matched_source if c.state == "AKTUALISIERT" else None,
-                "modality": "interview", "learned_via": "interview", "speaker": p["name"],
-                "anchor": {"turn": t.n}, "source_file": None, "owner": s.persona,
-                "owner_name": p["name"], "question_ids": [], "fact_ids": [],
-                "citation": f"Übergabe-Interview {p['name']} · {day} · Frage {t.n}",
-            }))
+            docs.append(_claim_doc(s, p, t, c, day, status))
             s.published_claims.append(c.id)
     if docs:
         index_documents(docs)
@@ -518,8 +699,11 @@ def deck(s: Session) -> list[dict]:
             label = "Wissenslücke"
         else:
             label = CARD_LABEL.get(catalogue.get(q.ref or "", {}).get("category", ""), "Wissen")
+        asked = s.asked.get(q.card or 0)
         out.append({"card": q.card, "kind": q.kind, "label": label, "original": q.original,
+                    "text": asked.text if asked else phrase(q.model_copy(), s.persona, use_llm=False).text,
                     "ref": q.ref, "gap_id": q.gap_id, "asked_by": q.asked_by, "done": q.card in s.done,
+                    "pending": q.card in s.pending, "failed": q.card in s.failed,
                     "demo_answer": q.demo_answer})
     return out
 
@@ -544,7 +728,7 @@ def reward(s: Session) -> dict:
 def to_dict(s: Session) -> dict:
     return {"id": s.id, "persona": s.persona, "current": s.current.model_dump() if s.current else None,
             "turns": [t.model_dump() for t in s.turns], "handbook": handbook(s),
-            "deck": deck(s), "reward": reward(s)}
+            "deck": deck(s), "reward": reward(s), "pending": s.pending}
 
 
 def dump(obj) -> str:  # for debugging in a shell

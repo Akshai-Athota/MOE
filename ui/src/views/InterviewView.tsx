@@ -23,6 +23,8 @@ interface Card {
   done: boolean;
   pending?: boolean;
   failed?: boolean;
+  /** typed answer kept on this device until the server has it, so a failed send is not lost */
+  draft?: string;
   askedBy?: string;
   ref?: string;
   gapId?: string;
@@ -61,6 +63,23 @@ const fromSession = (s: IvSession): Pick<Saved, "deck" | "notes" | "voucher"> =>
   voucher: s.reward?.voucher ?? null,
 });
 
+/** Apply a server session, but keep cards whose submit is still on its way: a poll that left the
+ * server before the submit arrived would otherwise flip them back to "not answered". Drafts of
+ * failed answers stay on the device so the person does not have to type them again. */
+const merge = (cur: Saved, s: IvSession, inflight: Set<number>): Saved => {
+  const next = fromSession(s);
+  const old = new Map(cur.deck.map((c) => [c.card, c]));
+  return {
+    ...cur,
+    ...next,
+    deck: next.deck.map((c) => {
+      const o = old.get(c.card);
+      if (o && inflight.has(c.card)) return o;
+      return o?.draft && !(c.done && !c.pending) ? { ...c, draft: o.draft } : c;
+    }),
+  };
+};
+
 const dedupe = (notes: Note[]) => {
   const seen = new Set<string>();
   return notes.filter((n) => {
@@ -84,6 +103,7 @@ export default function InterviewView() {
   const [busy, setBusy] = useState(false);
   const stRef = useRef<Saved | null>(null);
   stRef.current = st;
+  const inflight = useRef(new Set<number>());
 
   const persist = useCallback(
     (next: Saved | ((s: Saved) => Saved)) =>
@@ -99,6 +119,16 @@ export default function InterviewView() {
     [key],
   );
 
+  const startLive = () => {
+    const mine = openQuestions.filter((q) => q.routedTo === me.id && !q.resolved);
+    setBusy(true);
+    interviewApi
+      .start(me.id, mine.map((q) => ({ id: q.id, text: q.text, asked_by: q.askedBy, gap_id: q.gapId })))
+      .then((s) => persist({ mode: "live", sid: s.id, ...fromSession(s) }))
+      .catch(() => toast({ title: "Interview konnte nicht starten" }))
+      .finally(() => setBusy(false));
+  };
+
   // deal (backend when connected, otherwise the in-browser twin)
   useEffect(() => {
     if (backend === "checking") return;
@@ -111,18 +141,19 @@ export default function InterviewView() {
     const mode = backend === "live" ? "live" : "demo";
     if (saved && saved.mode === mode && saved.deck?.[0]?.text) {
       setSt(saved);
-      if (mode === "live" && saved.sid) interviewApi.get(saved.sid).then((s) => persist((c) => ({ ...c, ...fromSession(s) }))).catch(() => undefined);
+      if (mode === "live" && saved.sid)
+        interviewApi
+          .get(saved.sid)
+          .then((s) => persist((c) => merge(c, s, inflight.current)))
+          .catch((e: Error) => {
+            // the server no longer knows this interview (data reset): answers would go nowhere
+            if (/HTTP 404/.test(String(e?.message))) startLive();
+          });
       return;
     }
-    const mine = openQuestions.filter((q) => q.routedTo === me.id && !q.resolved);
-    if (mode === "live") {
-      setBusy(true);
-      interviewApi
-        .start(me.id, mine.map((q) => ({ id: q.id, text: q.text, asked_by: q.askedBy, gap_id: q.gapId })))
-        .then((s) => persist({ mode, sid: s.id, ...fromSession(s) }))
-        .catch(() => toast({ title: "Interview konnte nicht starten" }))
-        .finally(() => setBusy(false));
-    } else {
+    if (mode === "live") startLive();
+    else {
+      const mine = openQuestions.filter((q) => q.routedTo === me.id && !q.resolved);
       const deck = dealDeck(me.id, mine).map((c) => ({
         card: c.card,
         kind: c.kind,
@@ -140,6 +171,17 @@ export default function InterviewView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backend, me.id]);
 
+  // a card that failed in the background: tell the person once (its text is kept as a draft)
+  const failedKey = (st?.deck ?? []).filter((c) => c.failed).map((c) => c.card).join(",");
+  const lastFailed = useRef("");
+  useEffect(() => {
+    const prev = new Set(lastFailed.current.split(",").filter(Boolean));
+    const fresh = failedKey.split(",").filter((x) => x && !prev.has(x));
+    lastFailed.current = failedKey;
+    if (fresh.length) toast({ title: "Antwort nicht verarbeitet", body: `Karte ${fresh.join(", ")} bitte noch einmal beantworten.` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failedKey]);
+
   // live: while answers are processed in the background, refresh quietly
   const anyPending = !!st?.deck.some((c) => c.pending);
   useEffect(() => {
@@ -147,7 +189,7 @@ export default function InterviewView() {
     const t = setInterval(() => {
       interviewApi
         .get(st.sid!)
-        .then((s) => persist((c) => ({ ...c, ...fromSession(s) })))
+        .then((s) => persist((c) => merge(c, s, inflight.current)))
         .catch(() => undefined);
     }, 2500);
     return () => clearInterval(t);
@@ -167,19 +209,25 @@ export default function InterviewView() {
   const submit = (c: Card, a: Answer) => {
     const s = stRef.current;
     if (!s) return;
-    persist((cur) => ({ ...cur, deck: cur.deck.map((x) => (x.card === c.card ? { ...x, done: true, pending: true, failed: false } : x)) }));
-    closeColleagueQuestion(c);
+    persist((cur) => ({ ...cur, deck: cur.deck.map((x) => (x.card === c.card ? { ...x, done: true, pending: true, failed: false, draft: a.text ?? x.draft } : x)) }));
 
     if (s.mode === "live" && s.sid) {
+      inflight.current.add(c.card);
       const call = a.audio ? interviewApi.submitAudio(s.sid, c.card, a.audio, a.filename) : interviewApi.submit(s.sid, c.card, a.text!);
       call
-        .then((r) => persist((cur) => ({ ...cur, ...fromSession(r) })))
+        .then((r) => {
+          inflight.current.delete(c.card);
+          closeColleagueQuestion(c); // only once the server really has the answer
+          persist((cur) => merge(cur, r, inflight.current));
+        })
         .catch(() => {
+          inflight.current.delete(c.card);
           persist((cur) => ({ ...cur, deck: cur.deck.map((x) => (x.card === c.card ? { ...x, done: false, pending: false, failed: true } : x)) }));
-          toast({ title: "Antwort nicht angekommen", body: `Karte ${c.card} bitte noch einmal.` });
+          toast({ title: "Antwort nicht angekommen", body: `Karte ${c.card} bitte noch einmal – dein Text ist noch da.` });
         });
       return;
     }
+    closeColleagueQuestion(c);
     // demo mode: the browser's own transcript, typed text, or the prepared answer for uploads
     const raw = (a.text ?? a.spoken ?? "").trim() || c.demoAnswer || "";
     setTimeout(() => {
@@ -431,7 +479,7 @@ function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => 
 
 /* ------------------------------------------------------------------ dialog */
 function CardDialog({ card, total, left, live, onClose, onSubmit }: { card: Card; total: number; left: number; live: boolean; onClose: () => void; onSubmit: (a: Answer) => void }) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState(card.draft ?? "");
   const rec = useRecorder();
   const spoken = useRef("");
   const speech = useSpeech((t) => (spoken.current = t));
