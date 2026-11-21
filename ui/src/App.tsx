@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BookMarked, Infinity as InfinityIcon, Layers, MessageSquare, RotateCcw, Sunrise, type LucideIcon } from "lucide-react";
+import { BookMarked, Infinity as InfinityIcon, Layers, MessageSquare, RotateCcw, Settings, Sunrise, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar, Logo, cx } from "./components/ui";
 import { DEMO_USERS, personaById } from "./lib/data";
 import { VIEWS_BY_ROLE, useStore, type View } from "./lib/store";
@@ -83,9 +84,7 @@ export default function App() {
               <span className={cx("h-1.5 w-1.5 rounded-full", backend === "live" ? "bg-accent" : backend === "checking" ? "bg-line-strong" : "bg-gold")} />
               {backend === "live" ? "Verbunden" : backend === "checking" ? "Verbinde …" : "Demo-Modus"}
             </span>
-            <button onClick={reset} className="flex items-center gap-1 hover:text-ink" title="Demo zurücksetzen">
-              <RotateCcw size={11} /> Zurücksetzen
-            </button>
+            <SettingsMenu onReset={reset} placement="up" />
           </div>
         </div>
       </aside>
@@ -97,7 +96,10 @@ export default function App() {
             <Logo size={26} />
             <span className="font-semibold">Finn</span>
           </div>
-          <MobileUser />
+          <div className="flex items-center gap-1">
+            <MobileUser />
+            <SettingsMenu onReset={reset} placement="down" />
+          </div>
         </div>
         <div className="scroll-thin min-h-0 flex-1 overflow-y-auto pb-16 lg:pb-0">
           <AnimatePresence mode="wait">
@@ -143,5 +145,80 @@ function MobileUser() {
       <Avatar p={me} size={22} />
       {me.name.split(" ")[0]}
     </button>
+  );
+}
+
+/** Settings gear: the demo reset lives here, out of sight during a presentation, with a confirm step. */
+function SettingsMenu({ onReset, placement }: { onReset: () => void; placement: "up" | "down" }) {
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !ref.current?.contains(e.target as Node)) {
+        setOpen(false);
+        setConfirm(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => {
+          setOpen((o) => !o);
+          setConfirm(false);
+        }}
+        className={cx("flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-subtle hover:text-ink", open ? "bg-subtle text-ink" : "text-faint")}
+        title="Einstellungen"
+        aria-label="Einstellungen"
+        aria-expanded={open}
+      >
+        <Settings size={14} />
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className={cx(
+            "absolute right-0 z-50 w-56 rounded-[10px] border border-line bg-surface p-1.5 text-[12.5px] shadow-pop",
+            placement === "up" ? "bottom-full mb-2" : "top-full mt-2",
+          )}
+        >
+          <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium uppercase tracking-wide text-faint">Einstellungen</div>
+          {!confirm ? (
+            <button role="menuitem" onClick={() => setConfirm(true)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ink hover:bg-subtle">
+              <RotateCcw size={13} /> Demo zurücksetzen
+            </button>
+          ) : (
+            <div className="space-y-2 px-2 py-1.5">
+              <p className="text-muted">Alle Chats, gelernten Inhalte und offenen Fragen werden zurückgesetzt.</p>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    onReset();
+                    setOpen(false);
+                    setConfirm(false);
+                  }}
+                  className="flex-1 rounded-md bg-ink px-2 py-1 font-medium text-white"
+                >
+                  Zurücksetzen
+                </button>
+                <button onClick={() => setConfirm(false)} className="flex-1 rounded-md border border-line px-2 py-1 text-ink hover:bg-subtle">
+                  Abbrechen
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
