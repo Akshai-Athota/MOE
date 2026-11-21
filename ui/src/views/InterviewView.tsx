@@ -23,6 +23,8 @@ interface Card {
   ref?: string;
   gapId?: string;
   demoAnswer?: string;
+  /** the question as Finn asks it (phrased by the backend when the deck is dealt) */
+  text?: string;
 }
 interface Note {
   card: number;
@@ -39,7 +41,7 @@ interface Saved {
 }
 
 const fromSession = (s: IvSession): Pick<Saved, "deck" | "notes" | "voucher"> => ({
-  deck: s.deck.map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: c.done, askedBy: c.asked_by ?? undefined, ref: c.ref ?? undefined, gapId: c.gap_id ?? undefined, demoAnswer: c.demo_answer ?? undefined })),
+  deck: s.deck.map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: c.done, askedBy: c.asked_by ?? undefined, ref: c.ref ?? undefined, gapId: c.gap_id ?? undefined, demoAnswer: c.demo_answer ?? undefined, text: c.text })),
   notes: s.turns.flatMap((t) => t.claims.map((c) => ({ card: t.question.card ?? 0, section: c.section, text: c.text }))),
   voucher: s.reward?.voucher ?? null,
 });
@@ -112,7 +114,7 @@ export default function InterviewView() {
   const unlocked = deck.length > 0 && doneCount === deck.length;
   const voucher: Voucher | undefined = st?.voucher ?? (unlocked ? DATA.rewards.vouchers[me.id]?.[0] : undefined);
 
-  const onAnswered = (card: Card, notes: Note[], session?: IvSession) => {
+  const onAnswered = (card: Card, notes: Note[], session?: IvSession, advance = false) => {
     if (!st) return;
     const next: Saved = session
       ? { ...st, ...fromSession(session) }
@@ -122,7 +124,36 @@ export default function InterviewView() {
     const oq = openQuestions.find((q) => !q.resolved && ((card.ref && q.id === card.ref) || (card.gapId && q.gapId === card.gapId)));
     if (oq) resolveOpenQuestion(oq.id);
     if (next.deck.every((c) => c.done)) setTimeout(() => toast({ title: "Alle Karten beantwortet", body: "Die letzte Karte ist jetzt offen." }), 400);
+    if (advance) setOpen(next.deck.find((c) => !c.done && c.card !== card.card) ?? null);
   };
+
+  // answers are processed in the background: refresh the deck until nothing is pending
+  const pendingN = useRef(0);
+  useEffect(() => {
+    if (st?.mode !== "live" || !st.sid) return;
+    const sid = st.sid;
+    const t = setInterval(() => {
+      interviewApi
+        .get(sid)
+        .then((s) => {
+          const pending = s.pending?.length ?? 0;
+          if (pending === 0 && pendingN.current === 0) return;
+          pendingN.current = pending;
+          setSt((cur) => {
+            if (!cur || cur.sid !== sid) return cur;
+            const next = { ...cur, ...fromSession(s) };
+            try {
+              localStorage.setItem(key, JSON.stringify(next));
+            } catch {
+              /* ignore */
+            }
+            return next;
+          });
+        })
+        .catch(() => undefined);
+    }, 4000);
+    return () => clearInterval(t);
+  }, [st?.mode, st?.sid, key]);
 
   const publish = async () => {
     if (!st) return;
@@ -400,7 +431,7 @@ function Overlay({ children, onClose }: { children: React.ReactNode; onClose: ()
 
 type Phase = "asking" | "record" | "sending" | "done";
 
-function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: Card; saved: Saved; onClose: () => void; onAnswered: (c: Card, n: Note[], s?: IvSession) => void; learnOffline: (text: string) => void }) {
+function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: Card; saved: Saved; onClose: () => void; onAnswered: (c: Card, n: Note[], s?: IvSession, advance?: boolean) => void; learnOffline: (text: string) => void }) {
   const { user, engineState } = useStore();
   const [question, setQuestion] = useState("");
   const [phase, setPhase] = useState<Phase>("asking");
@@ -413,13 +444,12 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
   const live = saved.mode === "live" && !!saved.sid;
 
   useEffect(() => {
-    if (live)
-      interviewApi
-        .pick(saved.sid!, card.card)
-        .then((s) => setQuestion(s.current?.text || card.original))
-        .catch(() => setQuestion(card.original))
-        .finally(() => setPhase("record"));
-    else {
+    if (live) {
+      // the deck already carries Finn's wording: show it at once, tell the backend in passing
+      setQuestion(card.text || phraseCard({ ...card, openQuestionId: card.ref }, user.personaId));
+      setPhase("record");
+      interviewApi.pick(saved.sid!, card.card).catch(() => undefined);
+    } else {
       setQuestion(phraseCard({ ...card, openQuestionId: card.ref }, user.personaId));
       setPhase("record");
     }
@@ -441,14 +471,11 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
     setPhase("sending");
     if (live) {
       try {
-        await interviewApi.pick(saved.sid!, card.card).catch(() => undefined);
-        const s = await interviewApi.answerAudio(saved.sid!, audio, filename);
-        const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
-        setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
-        onAnswered(card, notes, s);
-        setPhase("done");
+        // returns at once; Whisper, redaction and indexing run in the background
+        const s = await interviewApi.submitAudio(saved.sid!, card.card, audio, filename);
+        onAnswered(card, [], s, true);
       } catch {
-        setErr("Ich konnte die Aufnahme nicht verstehen. Versuch es bitte noch einmal.");
+        setErr("Die Aufnahme konnte nicht gesendet werden. Versuch es bitte noch einmal.");
         setPhase("record");
         rec.reset();
       }
@@ -481,13 +508,9 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
     setPhase("sending");
     if (live) {
       try {
-        // the card must be the session's current one (pick may have failed or timed out)
-        await interviewApi.pick(saved.sid!, card.card).catch(() => undefined);
-        const s = await interviewApi.answer(saved.sid!, text);
-        const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
-        setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
-        onAnswered(card, notes, s);
-        setPhase("done");
+        // returns at once; redaction, extraction and indexing run in the background
+        const s = await interviewApi.submit(saved.sid!, card.card, text);
+        onAnswered(card, [], s, true);
       } catch (e) {
         setErr(`Die Antwort konnte nicht gespeichert werden (${e instanceof Error ? e.message : "Fehler"}). Bitte noch einmal senden.`);
         setPhase("record");

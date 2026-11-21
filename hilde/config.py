@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # below this bge-m3 cosine (best match in the whole knowledge base) a question is off-topic.
     relevance_min_score: float = 0.45
     answer_retries: int = 3
+    # second LLM pass that re-checks each answer (~10 s on a 6 GB GPU); the cheap key-term
+    # guard always runs. Off for the live demo: answers in one LLM call.
+    verify_llm: bool = False
     # onboarding questions from the hackathon questionnaire: cached answers, curated sources first
     template_cache: bool = True
 

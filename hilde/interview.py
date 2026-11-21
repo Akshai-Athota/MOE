@@ -192,6 +192,7 @@ def plan(pid: str, open_qs: list[OpenQuestionIn]) -> list[PlannedQuestion]:
     # knowledge map: how much of each catalogue question rests on this person alone
     weight: Counter = Counter()
     mine: dict[str, list[dict]] = {}
+    at_risk: set[str] = set()
     for f in facts:
         holders = [f["owner"], *(f.get("also_known_by") or [])]
         if pid not in holders or f.get("status") == "superseded" or f.get("access") == "restricted":
@@ -201,9 +202,11 @@ def plan(pid: str, open_qs: list[OpenQuestionIn]) -> list[PlannedQuestion]:
             # sources contradict each other: clarify before the person leaves
             weight[qid] += 6 if f.get("status") == "conflict" else (1 if others else 3)
             mine.setdefault(qid, []).append(f)
+            if f.get("status") == "conflict" or not others:
+                at_risk.add(qid)  # knowledge leaves with this person, or the sources disagree
     for qid, _w in weight.most_common():
-        if qid in gap_ids or qid not in catalogue:
-            continue
+        if qid in gap_ids or qid not in catalogue or qid not in at_risk:
+            continue  # colleagues know it too: not a gap, do not spend a card on it
         demo = "Also: " + " Und: ".join(f["de"] for f in mine[qid][:2])
         out.append(PlannedQuestion(kind="catalogue", original=catalogue[qid]["de"], ref=qid,
                                    demo_answer=demo))

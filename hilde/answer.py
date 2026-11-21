@@ -267,6 +267,8 @@ def verify(state: State) -> State:
             key_term_grounded(state["question"], cited)
             or key_term_grounded(state.get("original", state["question"]), cited)):
         return {"verified": False, "contradiction": False}
+    if not get_settings().verify_llm:
+        return {"verified": True, "contradiction": any(hits[n - 1].status == "conflict" for n in used)}
     try:
         v: Verdict = get_llm().with_structured_output(Verdict, method="json_schema").invoke([
             SystemMessage(VERIFY_SYSTEM),
