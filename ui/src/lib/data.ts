@@ -31,10 +31,12 @@ export const CATEGORIES: Record<string, { de: string; color: string }> = {
   public: { de: "Öffentlich", color: "#17132B" },
 };
 
-/** The two demo users. */
+/** Demo users: one per role, so the pitch can show how retrieval changes with the role. */
 export const DEMO_USERS: { personaId: string; role: Role; label: string }[] = [
   { personaId: "p13", role: "new_hire", label: "Neu im Amt" },
   { personaId: "p05", role: "leaver", label: "Geht in den Ruhestand" },
+  { personaId: "p03", role: "employee", label: "Mitarbeiterin · Einspruch" },
+  { personaId: "p01", role: "manager", label: "Amtsleitung · Führungskraft" },
 ];
 
 export const ROLE_LABEL: Record<Role, string> = {

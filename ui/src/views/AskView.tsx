@@ -2,7 +2,7 @@ import { ArrowUp, Lock, Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SourceLink, SourceSheet } from "../components/Sources";
 import { Avatar, Logo, cx } from "../components/ui";
-import { fmtDate, personaById } from "../lib/data";
+import { firstName, fmtDate, personaById } from "../lib/data";
 import { useStore } from "../lib/store";
 import type { Answer, ChatMessage, Citation, Fact, Role } from "../lib/types";
 import { useSpeech } from "../lib/useSpeech";
@@ -10,8 +10,8 @@ import { useSpeech } from "../lib/useSpeech";
 const SUGGESTIONS: Record<Role, string[]> = {
   new_hire: ["Wer zeichnet meine Bescheide in den ersten Monaten?", "Funktioniert der Drucker im 2. OG?", "Wie läuft die Haushaltsanmeldung?", "Wie ist das Budget aufgeteilt?"],
   leaver: ["Wer vertritt mich?", "Was darf ein Abschiedsgeschenk kosten?", "Wo kann ich parken?"],
-  employee: ["Wo kann ich parken?", "Gibt es ein Jobticket?"],
-  manager: ["Wie ist das Budget aufgeteilt?"],
+  employee: ["Wo kann ich parken?", "Gibt es ein Jobticket?", "Wann geht die E-Akte live?", "Wie ist das Budget aufgeteilt?"],
+  manager: ["Wie ist das Budget aufgeteilt?", "Wie steht die Dienstvereinbarung KI?", "Wer übernimmt die Geschäftsstelle nach Herrn Reinecke?", "Wie viele Stellen fehlen im Arbeitnehmerbereich?"],
 };
 
 function AnswerExtras({ a, onCite }: { a: Answer; onCite: (f: Fact, c: Citation) => void }) {
@@ -118,7 +118,7 @@ export default function AskView() {
       <div className="flex-1 space-y-6 pb-6 pt-10">
         {msgs.length === 0 ? (
           <div className="pt-[12vh]">
-            <h1 className="text-[24px] font-semibold tracking-[-0.01em]">Hallo {me.name.split(" ")[0]}, was möchtest du wissen?</h1>
+            <h1 className="text-[24px] font-semibold tracking-[-0.01em]">Hallo {firstName(me)}, was möchtest du wissen?</h1>
             <p className="mt-1.5 text-[14px] text-muted">Finn antwortet aus geprüften Quellen und sagt dir, wenn er etwas nicht weiß.</p>
             <div className="mt-8 divide-y divide-line border-y border-line">
               {SUGGESTIONS[user.role].map((s) => (
