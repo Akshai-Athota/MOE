@@ -102,6 +102,8 @@ class Answer(BaseModel):
     blocked: bool = Field(default=False, description="the answer exists but is not released for this role")
     restricted_owner: Contact | None = Field(
         default=None, description="whom to ask for content this role may not see")
+    interpreted_as: str | None = Field(
+        default=None, description="the cleaned-up question Finn actually answered (typos/grammar fixed)")
     seconds: float = 0.0
 
 

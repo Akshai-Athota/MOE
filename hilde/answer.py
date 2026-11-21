@@ -31,6 +31,7 @@ from hilde.prompts import (
     WHO_TO_ASK_SYSTEM,
     WHO_TO_ASK_USER,
 )
+from hilde.rewrite import rewrite
 from hilde.schemas import Answer, Change, Citation, Contact, Hit, User
 from hilde.vectorstore import get_by_source_id, restricted_probe, search
 
@@ -88,7 +89,8 @@ class PickedPerson(BaseModel):
 
 
 class State(TypedDict, total=False):
-    question: str
+    question: str  # after normalize(): the cleaned-up question every later step uses
+    original: str  # exactly what the user typed
     user: User
     lang: language.Lang  # language of the question; every reply uses it
     hits: list[Hit]
@@ -102,6 +104,15 @@ class State(TypedDict, total=False):
 
 
 # ---------- nodes ----------
+
+def normalize(state: State) -> State:
+    """LLM rewrite into one clean question (typos, grammar). Clear cases skip the extra call:
+    small talk and "who am I" are recognised by patterns already."""
+    q = state["question"]
+    if profile.is_identity_question(q) or smalltalk.classify(q, use_llm=False) != "none":
+        return {"original": q}
+    return {"original": q, "question": rewrite(q)}
+
 
 def chitchat(state: State) -> State:
     lang = language.detect(state["question"])
@@ -230,8 +241,11 @@ def verify(state: State) -> State:
     sentences = g.valid_sentences(len(hits))
     used = sorted({n for _, nums in sentences for n in nums})
     # German-compound check: only meaningful when the question is German like the sources
-    if state.get("lang", "de") == "de" and not key_term_grounded(
-            state["question"], [hits[n - 1].text for n in used]):
+    cited = [hits[n - 1].text for n in used]
+    # the user's own words OR the cleaned-up question may carry the key term (rewrites can coin words)
+    if state.get("lang", "de") == "de" and not (
+            key_term_grounded(state["question"], cited)
+            or key_term_grounded(state.get("original", state["question"]), cited)):
         return {"verified": False, "contradiction": False}
     try:
         v: Verdict = get_llm().with_structured_output(Verdict, method="json_schema").invoke([
@@ -393,6 +407,7 @@ def abstain(state: State) -> State:
 
 def build_graph():
     g = StateGraph(State)
+    g.add_node("normalize", normalize)
     g.add_node("chitchat", chitchat)
     g.add_node("retrieve", retrieve)
     g.add_node("generate", generate)
@@ -400,7 +415,8 @@ def build_graph():
     g.add_node("cite", cite)
     g.add_node("abstain", abstain)
     g.add_node("self", about_self)
-    g.set_entry_point("chitchat")
+    g.set_entry_point("normalize")
+    g.add_edge("normalize", "chitchat")
     g.add_conditional_edges("chitchat", route_chitchat, {"done": END, "retrieve": "retrieve"})
     # best match is restricted for this role -> "not released for you", no partial answer
     g.add_conditional_edges("retrieve", lambda s: "abstain" if s.get("restricted_owner") else "generate",
@@ -422,5 +438,8 @@ def ask(question: str, user: User) -> Answer:
     t = time.time()
     out = _GRAPH.invoke({"question": question, "user": user})
     result: Answer = out["result"]
+    result.question = question
+    if out["question"] != question:
+        result.interpreted_as = out["question"]  # shown in the UI: "verstanden als ..."
     result.seconds = round(time.time() - t, 2)
     return result
