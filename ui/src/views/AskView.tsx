@@ -1,7 +1,9 @@
 import { ArrowUp, Lock, Mic, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { SourceLink, SourceSheet } from "../components/Sources";
-import { Avatar, Logo, cx } from "../components/ui";
+import { motion } from "framer-motion";
+import { FinnAvatar, Reveal } from "../components/motion";
+import { Avatar, cx } from "../components/ui";
 import { firstName, fmtDate, personaById } from "../lib/data";
 import { useStore } from "../lib/store";
 import type { Answer, ChatMessage, Citation, Fact, Role } from "../lib/types";
@@ -61,28 +63,24 @@ function AnswerExtras({ a, onCite }: { a: Answer; onCite: (f: Fact, c: Citation)
 function Message({ m, onCite }: { m: ChatMessage; onCite: (f: Fact, c: Citation) => void }) {
   if (m.from === "user")
     return (
-      <div className="flex justify-end">
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="flex justify-end">
         <div className="max-w-[80%] rounded-[12px] bg-subtle px-3.5 py-2.5 text-[14px] leading-relaxed">{m.text}</div>
-      </div>
+      </motion.div>
     );
   return (
-    <div className="flex gap-3">
-      <Logo size={24} />
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }} className="flex gap-3">
+      <FinnAvatar size={24} mood={m.pending ? "thinking" : "idle"} />
       <div className="min-w-0 flex-1 pt-0.5">
         {m.pending ? (
-          <span className="inline-flex gap-1 py-2">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="h-1.5 w-1.5 animate-pulse rounded-full bg-faint" style={{ animationDelay: `${i * 0.15}s` }} />
-            ))}
-          </span>
+          <span className="inline-block py-1 text-[13px] text-faint">Finn denkt nach …</span>
         ) : (
-          <>
+          <motion.div initial={{ opacity: 0, filter: "blur(4px)" }} animate={{ opacity: 1, filter: "blur(0px)" }} transition={{ duration: 0.45 }}>
             <p className="text-[14px] leading-relaxed text-ink">{m.text}</p>
             {m.answer && <AnswerExtras a={m.answer} onCite={onCite} />}
-          </>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -118,13 +116,22 @@ export default function AskView() {
       <div className="flex-1 space-y-6 pb-6 pt-10">
         {msgs.length === 0 ? (
           <div className="pt-[12vh]">
-            <h1 className="text-[24px] font-semibold tracking-[-0.01em]">Hallo {firstName(me)}, was möchtest du wissen?</h1>
-            <p className="mt-1.5 text-[14px] text-muted">Finn antwortet aus geprüften Quellen und sagt dir, wenn er etwas nicht weiß.</p>
+            <Reveal>
+              <FinnAvatar size={40} />
+            </Reveal>
+            <Reveal delay={0.06}>
+              <h1 className="mt-5 text-[24px] font-semibold tracking-[-0.01em]">Hallo {firstName(me)}, was möchtest du wissen?</h1>
+            </Reveal>
+            <Reveal delay={0.12}>
+              <p className="mt-1.5 text-[14px] text-muted">Finn antwortet aus geprüften Quellen und sagt dir, wenn er etwas nicht weiß.</p>
+            </Reveal>
             <div className="mt-8 divide-y divide-line border-y border-line">
-              {SUGGESTIONS[user.role].map((s) => (
-                <button key={s} onClick={() => send(s)} className="block w-full py-3 text-left text-[14px] text-ink-2 transition-colors hover:text-accent">
-                  {s}
-                </button>
+              {SUGGESTIONS[user.role].map((s, i) => (
+                <Reveal key={s} delay={0.18 + i * 0.05}>
+                  <button onClick={() => send(s)} className="block w-full py-3 text-left text-[14px] text-ink-2 transition-colors hover:text-accent">
+                    {s}
+                  </button>
+                </Reveal>
               ))}
             </div>
           </div>

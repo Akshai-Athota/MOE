@@ -44,7 +44,7 @@ def rewrite(question: str) -> str:
     """Clean version of `question`; falls back to the original if the model fails or drifts."""
     q = question.strip()
     try:
-        out: Rewritten = get_llm().with_structured_output(Rewritten, method="json_schema").invoke(
+        out: Rewritten = get_llm().model_copy(update={"temperature": 0.0}).with_structured_output(Rewritten, method="json_schema").invoke(
             [SystemMessage(REWRITE_SYSTEM), HumanMessage(q)])
         clean = out.question.strip().strip('"„“').strip()
     except Exception:  # noqa: BLE001 - never block a question because cleaning failed

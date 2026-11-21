@@ -3,7 +3,7 @@
 import pytest
 
 from hilde import interview
-from hilde.interview import DECK_SIZE, Claim, OpenQuestionIn, Session, deal, details, phrase, plan, relation
+from hilde.interview import Claim, OpenQuestionIn, Session, Turn, deal, details, phrase, plan, relation
 
 
 def test_plan_order_open_questions_then_gaps_then_catalogue():
@@ -51,16 +51,20 @@ def test_dates_are_not_times():
 def _session(pid="p05"):
     return Session(id="t", persona=pid, created="2026-11-20T10:00:00",
                    deck=deal(pid, [OpenQuestionIn(id="oq-1", text="Wie läuft die Haushaltsanmeldung?",
-                                                  asked_by="p13", gap_id="Q34")]))
+                                                  asked_by="p13", gap_id="Q34")], seed=1))
 
 
-def test_deck_has_at_most_nine_numbered_gap_and_main_cards():
-    s = _session()
-    assert 1 <= len(s.deck) <= DECK_SIZE
-    assert [q.card for q in s.deck] == list(range(1, len(s.deck) + 1))
-    assert {q.kind for q in s.deck} <= {"open_question", "gap", "catalogue"}
-    kinds = [q.kind for q in s.deck]
-    assert kinds[0] == "open_question" and "catalogue" in kinds  # gaps first, then main questions
+def test_deck_has_6_to_9_numbered_gap_and_main_cards():
+    sizes = set()
+    for seed in range(12):
+        deck = deal("p05", [OpenQuestionIn(id="oq-1", text="Wie läuft die Haushaltsanmeldung?",
+                                           asked_by="p13", gap_id="Q34")], seed=seed)
+        assert 6 <= len(deck) <= 9  # random, always fewer than 10
+        assert [q.card for q in deck] == list(range(1, len(deck) + 1))
+        assert {q.kind for q in deck} <= {"open_question", "gap", "catalogue"}
+        assert deck[0].kind == "open_question" and "catalogue" in [q.kind for q in deck]
+        sizes.add(len(deck))
+    assert len(sizes) > 1  # the number really varies
 
 
 def test_reward_card_unlocks_only_after_all_cards(monkeypatch):
@@ -114,3 +118,34 @@ def test_false_statements_are_ignored_and_no_follow_up(monkeypatch):
     assert learned == ["Krüger sammelt den Bedarf bis 15. März."]  # the false part is never stored
     assert s.current is None and 1 in s.done  # no follow-up; the person picks the next card
     assert all(isinstance(c, Claim) for c in turn.claims)
+
+
+def test_submit_is_instant_and_processing_runs_later(tmp_path, monkeypatch):
+    """The card is done the moment the answer is submitted; the result arrives in the background."""
+    monkeypatch.setattr(interview, "DIR", tmp_path)
+    s = _session()
+    s.id = "bg"
+    interview.save(s)
+    monkeypatch.setattr(interview, "extract_turn", lambda pid, q, text, n: Turn(
+        n=n, question=q, answer=text, claims=[Claim(id=f"{q.card}.1", section="Sonstiges", text=text)],
+        at="2026-11-20T10:00:00"))
+    monkeypatch.setattr(interview, "publish_turn", lambda s, t: len(t.claims))
+
+    after = interview.submit("bg", 2)
+    assert 2 in after.done and after.pending == [2] and not after.turns
+    interview.process("bg", 2, text="Die Mitzeichnungsfrist beträgt drei Arbeitstage.")
+    s = interview.load("bg")
+    assert s.pending == [] and len(s.turns) == 1 and s.turns[0].question.card == 2
+    assert s.published_claims == ["2.1"]  # indexed automatically, no publish button
+
+
+def test_failed_processing_puts_the_card_back(tmp_path, monkeypatch):
+    monkeypatch.setattr(interview, "DIR", tmp_path)
+    s = _session()
+    s.id = "bg2"
+    interview.save(s)
+    interview.submit("bg2", 3)
+    interview.process("bg2", 3, text="")  # nothing recognised
+    s = interview.load("bg2")
+    assert 3 not in s.done and s.failed == [3] and s.pending == []
+    assert 3 in interview.submit("bg2", 3).done  # can be answered again

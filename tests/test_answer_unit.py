@@ -19,11 +19,12 @@ def test_sentences_without_valid_source_are_dropped():
     assert g.valid_sentences(3) == [("belegt", [2])]
 
 
-def test_route_abstains_without_valid_sentences():
+def test_route_goes_to_unknown_without_valid_sentences():
+    """No valid answer -> 'unknown' (which retries up to 3x or abstains, see test_answer_retry_unit)."""
     hits = [_hit("F1")]
-    assert route_generated({"hits": hits, "generated": Generated(answerable=False)}) == "abstain"
+    assert route_generated({"hits": hits, "generated": Generated(answerable=False)}) == "unknown"
     no_src = Generated(answerable=True, sentences=[Sentence(text="x", sources=[])])
-    assert route_generated({"hits": hits, "generated": no_src}) == "abstain"
+    assert route_generated({"hits": hits, "generated": no_src}) == "unknown"
     ok = Generated(answerable=True, sentences=[Sentence(text="x", sources=[1])])
     assert route_generated({"hits": hits, "generated": ok}) == "verify"
 

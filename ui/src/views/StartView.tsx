@@ -1,5 +1,6 @@
 import { Check, ChevronRight } from "lucide-react";
 import { useState } from "react";
+import { Reveal } from "../components/motion";
 import { Avatar, Button, PageHeader, SectionLabel, Sheet, cx } from "../components/ui";
 import { daysUntil, fmtDate, personaById, ruleById } from "../lib/data";
 import { useStore } from "../lib/store";
@@ -63,8 +64,8 @@ export default function StartView() {
         <section>
           <SectionLabel right={<span className="text-[12px] tabular-nums text-muted">{done} von {all.length}</span>}>Deine ersten 30 Tage</SectionLabel>
           <div className="divide-y divide-line border-y border-line">
-            {STEPS.map((s) => (
-              <div key={s.when} className="grid gap-2 py-3.5 sm:grid-cols-[110px_1fr]">
+            {STEPS.map((s, idx) => (
+              <Reveal key={s.when} delay={idx * 0.05} className="grid gap-2 py-3.5 sm:grid-cols-[110px_1fr]">
                 <div className="pt-0.5 text-[13px] text-muted">{s.when}</div>
                 <div className="space-y-2">
                   {s.items.map((i) => (
@@ -76,11 +77,11 @@ export default function StartView() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
 
-          <div className="mt-12">
+          <Reveal className="mt-12">
             <SectionLabel>Pflichtlektüre</SectionLabel>
             <div className="divide-y divide-line border-y border-line">
               {READING.map((id) => {
@@ -95,10 +96,10 @@ export default function StartView() {
                 );
               })}
             </div>
-          </div>
+          </Reveal>
 
           {mine.length > 0 && (
-            <div className="mt-12">
+            <Reveal className="mt-12">
               <SectionLabel>Deine Fragen an Kolleg:innen</SectionLabel>
               <div className="divide-y divide-line border-y border-line">
                 {mine.map((q) => (
@@ -115,12 +116,12 @@ export default function StartView() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Reveal>
           )}
         </section>
 
         <aside className="space-y-12">
-          <div>
+          <Reveal delay={0.1}>
             <SectionLabel>Ansprechpersonen</SectionLabel>
             <div className="space-y-3.5">
               {people.map(({ p, role }) =>
@@ -137,8 +138,8 @@ export default function StartView() {
                 ) : null,
               )}
             </div>
-          </div>
-          <div>
+          </Reveal>
+          <Reveal delay={0.16}>
             <SectionLabel>Jede Woche</SectionLabel>
             <div className="space-y-3">
               {MEETINGS.map((m) => (
@@ -151,7 +152,7 @@ export default function StartView() {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
         </aside>
       </div>
 

@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 from langchain_core.documents import Document
 
-from hilde import open_questions
+from hilde import open_questions, templates
 from hilde.loaders import load_personas
 from hilde.redact import redact
 from hilde.schemas import LearnRequest
@@ -60,6 +60,7 @@ def learn(req: LearnRequest) -> dict:
     index_documents([doc])
     if req.supersedes and not scheduled:
         set_status_for(req.supersedes, "superseded")
+    templates.bump()  # cached questionnaire answers may be outdated now
     closed = open_questions.resolve(req.question) if req.question else 0
     return {"capture_id": cid, "status": doc.metadata["status"], "valid_from": valid_from,
             "redacted": removed, "open_questions_closed": closed}

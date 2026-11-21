@@ -24,13 +24,24 @@ class Settings(BaseSettings):
     llm_reasoning: bool = False
     embed_model: str = "bge-m3"
     embed_dim: int = 1024  # bge-m3 dense vector size
-    llm_temperature: float = 0.0
-    llm_seed: int = 42  # with temperature 0 -> repeatable answers for demo and tests
+    # Qwen3 recommended sampling for non-thinking mode
+    llm_temperature: float = 0.7
+    llm_top_p: float = 0.8
+    llm_top_k: int = 20
+    llm_seed: int = 42  # fixed seed keeps answers fairly stable for the demo
     llm_num_ctx: int = 8192
     # 6 GB GPUs cannot hold the LLM and bge-m3 together -> Ollama swaps them on every
     # question (~20 s). Running the embedder on CPU keeps the LLM resident on the GPU.
     embed_on_cpu: bool = True
     keep_alive_s: int = 1800  # seconds a model stays loaded
+
+    # --- Answering ---
+    # "I don't know" is retried with a broader search, but only for questions about the office:
+    # below this bge-m3 cosine (best match in the whole knowledge base) a question is off-topic.
+    relevance_min_score: float = 0.45
+    answer_retries: int = 3
+    # onboarding questions from the hackathon questionnaire: cached answers, curated sources first
+    template_cache: bool = True
 
     # --- Ingestion ---
     whisper_model: str = "small"  # faster-whisper on CPU/int8; "medium" = better, slower

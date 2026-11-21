@@ -6,7 +6,7 @@ import { AgentBuddy } from "../components/AgentBuddy";
 import { Button, PageHeader, Spinner, cx } from "../components/ui";
 import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
-import { DECK_SIZE, dealDeck, phraseCard, processAnswer } from "../lib/engine";
+import { DECK_MAX as DECK_SIZE, dealDeck, phraseCard, processAnswer } from "../lib/engine";
 import { INTERVIEW_KEY, useStore } from "../lib/store";
 import type { Voucher } from "../lib/types";
 import { mmss, useRecorder } from "../lib/useRecorder";
@@ -441,6 +441,7 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
     setPhase("sending");
     if (live) {
       try {
+        await interviewApi.pick(saved.sid!, card.card).catch(() => undefined);
         const s = await interviewApi.answerAudio(saved.sid!, audio, filename);
         const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
         setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
@@ -463,6 +464,37 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
       return;
     }
     const r = processAnswer(raw, engineState);
+    const notes = r.statements.map((s) => ({ card: card.card, section: s.section, text: s.text }));
+    if ((card.kind === "open_question" || card.kind === "gap") && (notes.length || !r.ignored)) {
+      learnOffline(r.ignored ? notes.map((n) => n.text).join(" ") : r.clean);
+    }
+    setResult({ notes, transcript: r.clean, redacted: r.redacted });
+    onAnswered(card, notes);
+    setPhase("done");
+  };
+
+  const [typed, setTyped] = useState("");
+  const submitText = async () => {
+    const text = typed.trim();
+    if (text.length < 2) return;
+    setErr("");
+    setPhase("sending");
+    if (live) {
+      try {
+        // the card must be the session's current one (pick may have failed or timed out)
+        await interviewApi.pick(saved.sid!, card.card).catch(() => undefined);
+        const s = await interviewApi.answer(saved.sid!, text);
+        const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
+        setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
+        onAnswered(card, notes, s);
+        setPhase("done");
+      } catch (e) {
+        setErr(`Die Antwort konnte nicht gespeichert werden (${e instanceof Error ? e.message : "Fehler"}). Bitte noch einmal senden.`);
+        setPhase("record");
+      }
+      return;
+    }
+    const r = processAnswer(text, engineState);
     const notes = r.statements.map((s) => ({ card: card.card, section: s.section, text: s.text }));
     if ((card.kind === "open_question" || card.kind === "gap") && (notes.length || !r.ignored)) {
       learnOffline(r.ignored ? notes.map((n) => n.text).join(" ") : r.clean);
@@ -526,6 +558,29 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
                   </div>
                 </div>
               )}
+              {rec.state !== "recording" && rec.state !== "recorded" && (
+                <div className="mt-5">
+                  <div className="mb-1.5 text-[12px] text-faint">oder Antwort tippen</div>
+                  <textarea
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        submitText();
+                      }
+                    }}
+                    rows={3}
+                    placeholder="Deine Antwort …"
+                    className="w-full resize-none rounded-[10px] border border-line bg-surface px-3 py-2 text-[14px] outline-none focus:border-ink/40"
+                  />
+                  <div className="mt-2 flex justify-end">
+                    <Button size="sm" disabled={typed.trim().length < 2} onClick={submitText}>
+                      Antwort senden
+                    </Button>
+                  </div>
+                </div>
+              )}
               {(err || rec.error) && <p className="mt-4 text-[12.5px] text-danger">{err || rec.error}</p>}
               <input
                 ref={fileRef}
@@ -560,6 +615,7 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
                       </li>
                     ))}
                   </ul>
+                  {live && <p className="mt-3 text-[12.5px] text-accent">Gespeichert – Finn kann ab sofort daraus antworten.</p>}
                 </>
               ) : (
                 <p className="text-[13.5px] text-muted">Danke! Für diese Karte gab es nichts Neues fürs Handbuch.</p>

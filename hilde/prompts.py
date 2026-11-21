@@ -38,6 +38,10 @@ QUELLEN:
 
 FRAGE: {question}"""
 
+RETRY_QUERY_SYSTEM = """Formuliere die Frage einer Kollegin oder eines Kollegen im Finanzamt Hildesheim als kurze
+Suchanfrage um: Fachbegriffe der Verwaltung (z. B. Mitzeichnung, Hausverfügung, Vertretungsplan, Beschaffung),
+Synonyme und den Kern der Frage, höchstens 15 Wörter. Gib nur die Suchanfrage aus."""
+
 RETRY_EMPTY = """Du hast answerable=true gesetzt, aber keine Sätze geliefert.
 Fülle jetzt "sentences" (jeder Satz mit seinen Quellennummern) oder setze answerable=false."""
 

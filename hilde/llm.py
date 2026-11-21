@@ -15,6 +15,8 @@ def get_llm() -> ChatOllama:
         base_url=s.ollama_base_url,
         model=s.llm_model,
         temperature=s.llm_temperature,
+        top_p=s.llm_top_p,
+        top_k=s.llm_top_k,
         seed=s.llm_seed,
         num_ctx=s.llm_num_ctx,
         keep_alive=s.keep_alive_s,
