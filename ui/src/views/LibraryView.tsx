@@ -1,6 +1,8 @@
-import { Check, Paperclip, Search, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowUp, Check, Paperclip, Search, X } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
-import { Avatar, Button, PageHeader, Spinner, cx } from "../components/ui";
+import { Reveal } from "../components/motion";
+import { Avatar, PageHeader, Spinner, cx } from "../components/ui";
 import { DATA, TODAY, personaById } from "../lib/data";
 import { useStore } from "../lib/store";
 
@@ -28,7 +30,8 @@ export default function LibraryView() {
   const [text, setText] = useState("");
   const [topic, setTopic] = useState("general");
   const [file, setFile] = useState<File>();
-  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(0); // bumps on every share -> composer animation
+  const [fresh, setFresh] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<string>("all");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -42,30 +45,53 @@ export default function LibraryView() {
   );
   const used = useMemo(() => Object.keys(TOPICS).filter((t) => libraryPosts.some((p) => p.category === t)), [libraryPosts]);
 
-  const share = async () => {
+  /** Never blocks: the post appears at once, the server is updated in the background. */
+  const share = () => {
     if (!text.trim() && !file) return;
-    setBusy(true);
-    try {
-      await addPost(text, topic, file);
-      setText("");
-      setFile(undefined);
-      toast({ title: "Geteilt", body: "Finn kennt den Eintrag ab sofort." });
-    } catch {
-      toast({ title: "Konnte nicht geteilt werden" });
-    } finally {
-      setBusy(false);
-    }
+    const t = text;
+    setText("");
+    setFile(undefined);
+    setFilter("all");
+    setQ("");
+    setSent((n) => n + 1);
+    setFresh(t.trim().slice(0, 40));
+    addPost(t, topic, file).catch(() => toast({ title: "Konnte nicht geteilt werden" }));
+    setTimeout(() => setFresh(null), 1600);
   };
 
   return (
     <div className="pb-16">
       <PageHeader title="Wissensbibliothek" sub="Was alle wissen sollten – vom defekten Drucker bis zum neuen Ablauf. Finn kennt jeden Eintrag." />
 
-      <div className="max-w-[760px] px-6 pt-8 lg:px-10">
-        <div className="rounded-[12px] border border-line bg-surface shadow-xs focus-within:border-line-strong">
+      <Reveal className="max-w-[760px] px-6 pt-8 lg:px-10">
+        <motion.div
+          key={sent}
+          initial={sent ? { scale: 0.985, boxShadow: "0 0 0 4px rgb(15 94 84 / 0.18)" } : false}
+          animate={{ scale: 1, boxShadow: "0 0 0 0px rgb(15 94 84 / 0)" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="relative rounded-[12px] border border-line bg-surface shadow-xs focus-within:border-line-strong"
+        >
+          <AnimatePresence>
+            {fresh !== null && (
+              <motion.span
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="pointer-events-none absolute right-4 top-3.5 flex items-center gap-1.5 text-[12.5px] font-medium text-accent"
+              >
+                <Check size={13} strokeWidth={2.6} /> Geteilt
+              </motion.span>
+            )}
+          </AnimatePresence>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                share();
+              }
+            }}
             rows={3}
             placeholder="Was sollten deine Kolleg:innen wissen? Zum Beispiel: Der Drucker im 2. OG ist defekt."
             className="block w-full resize-none bg-transparent px-4 pt-3.5 text-[14px] leading-relaxed outline-none placeholder:text-faint"
@@ -92,11 +118,17 @@ export default function LibraryView() {
               </button>
             )}
             <input ref={fileRef} type="file" className="hidden" accept=".pdf,.docx,.md,.txt,image/*,audio/*" onChange={(e) => setFile(e.target.files?.[0])} />
-            <Button className="ml-auto" size="sm" onClick={share} disabled={busy || (!text.trim() && !file)}>
-              {busy ? <Spinner /> : "Teilen"}
-            </Button>
+            <span className="ml-auto hidden text-[11.5px] text-faint sm:block">Enter zum Teilen</span>
+            <button
+              onClick={share}
+              disabled={!text.trim() && !file}
+              className="grid h-8 w-8 place-items-center rounded-[8px] bg-ink text-white transition-opacity disabled:opacity-25 sm:ml-0"
+              aria-label="Teilen"
+            >
+              <ArrowUp size={15} />
+            </button>
           </div>
-        </div>
+        </motion.div>
 
         <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 border-b border-line">
           {["all", ...used].map((t) => (
@@ -114,16 +146,30 @@ export default function LibraryView() {
           <p className="py-12 text-center text-[13.5px] text-muted">{libraryPosts.length ? "Keine Treffer." : "Noch keine Einträge. Teile den ersten!"}</p>
         ) : (
           <ul className="divide-y divide-line">
+            <AnimatePresence initial={false}>
             {posts.map((p) => {
               const author = personaById(p.user_id) ?? DATA.personas[0];
               return (
-                <li key={p.id} className="group flex gap-3 py-5">
+                <motion.li
+                  key={p.id}
+                  layout
+                  initial={{ opacity: 0, y: -14, filter: "blur(6px)", backgroundColor: "rgb(229 239 237 / 1)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)", backgroundColor: "rgb(229 239 237 / 0)" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1], backgroundColor: { duration: 1.6 } }}
+                  className="group -mx-3 flex gap-3 rounded-[10px] px-3 py-5"
+                >
                   <Avatar p={author} size={30} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-muted">
                       <span className="font-medium text-ink">{p.author}</span>
                       <span>{TOPICS[p.category] ?? "Alltag"}</span>
                       <span className="text-faint">{when(p.created)}</span>
+                      {p.sending && (
+                        <span className="flex items-center gap-1.5 text-faint">
+                          <Spinner className="!h-3 !w-3" /> wird geteilt
+                        </span>
+                      )}
                       {p.resolved && (
                         <span className="flex items-center gap-1 text-accent">
                           <Check size={12} /> Erledigt
@@ -132,17 +178,18 @@ export default function LibraryView() {
                     </div>
                     <p className={cx("mt-1 whitespace-pre-line text-[14px] leading-relaxed", p.resolved ? "text-faint line-through decoration-faint/50" : "text-ink-2")}>{p.text}</p>
                   </div>
-                  {!p.resolved && (
+                  {!p.resolved && !p.sending && (
                     <button onClick={() => resolvePost(p.id)} className="h-8 shrink-0 self-start rounded-[8px] px-2.5 text-[12.5px] text-muted opacity-0 transition-opacity hover:bg-subtle hover:text-ink group-hover:opacity-100 max-lg:opacity-100">
                       Erledigt
                     </button>
                   )}
-                </li>
+                </motion.li>
               );
             })}
+            </AnimatePresence>
           </ul>
         )}
-      </div>
+      </Reveal>
     </div>
   );
 }

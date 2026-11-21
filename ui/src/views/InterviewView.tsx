@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Briefcase, Check, Coffee, Feather, Gift, Landmark, Lightbulb, Lock, MessageCircle, Monitor, Puzzle, Route, Users, Wallet, Mic, Pause, Play, RotateCcw, Square, Upload, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CursorGlow } from "../components/CursorGlow";
+import { ArrowUp, Briefcase, Check, Coffee, Feather, Gift, Landmark, Lightbulb, MessageCircle, Mic, Monitor, Pause, Play, Puzzle, RotateCcw, Route, Square, Upload, Users, Wallet, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AgentBuddy } from "../components/AgentBuddy";
+import { CursorGlow } from "../components/CursorGlow";
+import { FinnAvatar, Reveal } from "../components/motion";
 import { Button, PageHeader, Spinner, cx } from "../components/ui";
 import { interviewApi, type IvSession } from "../lib/api";
 import { DATA, daysUntil, fmtDate, personaById } from "../lib/data";
-import { DECK_SIZE, dealDeck, phraseCard, processAnswer } from "../lib/engine";
+import { dealDeck, phraseCard, processAnswer } from "../lib/engine";
 import { INTERVIEW_KEY, useStore } from "../lib/store";
 import type { Voucher } from "../lib/types";
 import { mmss, useRecorder } from "../lib/useRecorder";
@@ -16,9 +17,12 @@ import { useSpeech } from "../lib/useSpeech";
 interface Card {
   card: number;
   kind: "open_question" | "gap" | "catalogue";
-  label: string;
+  label?: string;
   original: string;
+  text: string;
   done: boolean;
+  pending?: boolean;
+  failed?: boolean;
   askedBy?: string;
   ref?: string;
   gapId?: string;
@@ -34,12 +38,25 @@ interface Saved {
   sid?: string;
   deck: Card[];
   notes: Note[];
-  published: boolean;
   voucher?: Voucher | null;
+  revealed?: boolean;
 }
 
 const fromSession = (s: IvSession): Pick<Saved, "deck" | "notes" | "voucher"> => ({
-  deck: s.deck.map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: c.done, askedBy: c.asked_by ?? undefined, ref: c.ref ?? undefined, gapId: c.gap_id ?? undefined, demoAnswer: c.demo_answer ?? undefined })),
+  deck: s.deck.map((c) => ({
+    card: c.card,
+    kind: c.kind,
+    label: c.label,
+    original: c.original,
+    text: c.text || c.original,
+    done: c.done,
+    pending: c.pending,
+    failed: c.failed,
+    askedBy: c.asked_by ?? undefined,
+    ref: c.ref ?? undefined,
+    gapId: c.gap_id ?? undefined,
+    demoAnswer: c.demo_answer ?? undefined,
+  })),
   notes: s.turns.flatMap((t) => t.claims.map((c) => ({ card: t.question.card ?? 0, section: c.section, text: c.text }))),
   voucher: s.reward?.voucher ?? null,
 });
@@ -54,26 +71,35 @@ const dedupe = (notes: Note[]) => {
   });
 };
 
+type Answer = { text?: string; audio?: Blob; filename?: string; spoken?: string };
+
 /* ------------------------------------------------------------------ view */
 export default function InterviewView() {
-  const { user, backend, openQuestions, resolveOpenQuestion, learn, toast } = useStore();
+  const { user, backend, openQuestions, resolveOpenQuestion, learn, engineState, toast } = useStore();
   const me = personaById(user.personaId)!;
+  const first = me.name.split(" ")[0];
   const key = INTERVIEW_KEY + me.id;
   const [st, setSt] = useState<Saved | null>(null);
-  const [open, setOpen] = useState<Card | null>(null);
-  const [rewardOpen, setRewardOpen] = useState(false);
+  const [open, setOpen] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const stRef = useRef<Saved | null>(null);
+  stRef.current = st;
 
-  const persist = (s: Saved) => {
-    setSt(s);
-    try {
-      localStorage.setItem(key, JSON.stringify(s));
-    } catch {
-      /* ignore */
-    }
-  };
+  const persist = useCallback(
+    (next: Saved | ((s: Saved) => Saved)) =>
+      setSt((cur) => {
+        const v = typeof next === "function" ? (cur ? next(cur) : cur) : next;
+        try {
+          if (v) localStorage.setItem(key, JSON.stringify(v));
+        } catch {
+          /* ignore */
+        }
+        return v;
+      }),
+    [key],
+  );
 
-  // load or deal the deck (backend when connected, otherwise the in-browser twin)
+  // deal (backend when connected, otherwise the in-browser twin)
   useEffect(() => {
     if (backend === "checking") return;
     let saved: Saved | null = null;
@@ -83,13 +109,9 @@ export default function InterviewView() {
       /* ignore */
     }
     const mode = backend === "live" ? "live" : "demo";
-    if (saved && saved.mode === mode) {
-      if (mode === "live" && saved.sid)
-        interviewApi
-          .get(saved.sid)
-          .then((s) => persist({ ...saved!, ...fromSession(s) }))
-          .catch(() => setSt(saved));
-      else setSt(saved);
+    if (saved && saved.mode === mode && saved.deck?.[0]?.text) {
+      setSt(saved);
+      if (mode === "live" && saved.sid) interviewApi.get(saved.sid).then((s) => persist((c) => ({ ...c, ...fromSession(s) }))).catch(() => undefined);
       return;
     }
     const mine = openQuestions.filter((q) => q.routedTo === me.id && !q.resolved);
@@ -97,45 +119,85 @@ export default function InterviewView() {
       setBusy(true);
       interviewApi
         .start(me.id, mine.map((q) => ({ id: q.id, text: q.text, asked_by: q.askedBy, gap_id: q.gapId })))
-        .then((s) => persist({ mode, sid: s.id, published: false, ...fromSession(s) }))
+        .then((s) => persist({ mode, sid: s.id, ...fromSession(s) }))
         .catch(() => toast({ title: "Interview konnte nicht starten" }))
         .finally(() => setBusy(false));
     } else {
-      const deck = dealDeck(me.id, mine).map((c) => ({ card: c.card, kind: c.kind, label: c.label, original: c.original, done: false, askedBy: c.askedBy, ref: c.openQuestionId ?? c.ref, gapId: c.gapId, demoAnswer: c.demoAnswer }));
-      persist({ mode, deck, notes: [], published: false });
+      const deck = dealDeck(me.id, mine).map((c) => ({
+        card: c.card,
+        kind: c.kind,
+        label: c.label,
+        original: c.original,
+        text: phraseCard({ ...c, openQuestionId: c.openQuestionId }, me.id),
+        done: false,
+        askedBy: c.askedBy,
+        ref: c.openQuestionId ?? c.ref,
+        gapId: c.gapId,
+        demoAnswer: c.demoAnswer,
+      }));
+      persist({ mode, deck, notes: [] });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [backend, me.id]);
 
+  // live: while answers are processed in the background, refresh quietly
+  const anyPending = !!st?.deck.some((c) => c.pending);
+  useEffect(() => {
+    if (st?.mode !== "live" || !st.sid || !anyPending) return;
+    const t = setInterval(() => {
+      interviewApi
+        .get(st.sid!)
+        .then((s) => persist((c) => ({ ...c, ...fromSession(s) })))
+        .catch(() => undefined);
+    }, 2500);
+    return () => clearInterval(t);
+  }, [st?.mode, st?.sid, anyPending, persist]);
+
   const deck = st?.deck ?? [];
   const doneCount = deck.filter((c) => c.done).length;
-  const unlocked = deck.length > 0 && doneCount === deck.length;
-  const voucher: Voucher | undefined = st?.voucher ?? (unlocked ? DATA.rewards.vouchers[me.id]?.[0] : undefined);
+  const finished = deck.length > 0 && doneCount === deck.length;
+  const remaining = deck.filter((c) => !c.done);
 
-  const onAnswered = (card: Card, notes: Note[], session?: IvSession) => {
-    if (!st) return;
-    const next: Saved = session
-      ? { ...st, ...fromSession(session) }
-      : { ...st, deck: st.deck.map((c) => (c.card === card.card ? { ...c, done: true } : c)), notes: dedupe([...st.notes, ...notes]) };
-    persist(next);
-    // a colleague was waiting for this answer
-    const oq = openQuestions.find((q) => !q.resolved && ((card.ref && q.id === card.ref) || (card.gapId && q.gapId === card.gapId)));
+  const closeColleagueQuestion = (c: Card) => {
+    const oq = openQuestions.find((q) => !q.resolved && ((c.ref && q.id === c.ref) || (c.gapId && q.gapId === c.gapId)));
     if (oq) resolveOpenQuestion(oq.id);
-    if (next.deck.every((c) => c.done)) setTimeout(() => toast({ title: "Alle Karten beantwortet", body: "Die letzte Karte ist jetzt offen." }), 400);
   };
 
-  const publish = async () => {
-    if (!st) return;
-    if (st.mode === "live" && st.sid) {
-      try {
-        const s = await interviewApi.publish(st.sid);
-        persist({ ...st, ...fromSession(s), published: true });
-      } catch {
-        toast({ title: "Freigabe fehlgeschlagen" });
-        return;
-      }
-    } else persist({ ...st, published: true });
-    toast({ title: "Handbuch freigegeben", body: "Ab sofort in „Frag Finn“ durchsuchbar." });
+  /** Accept the answer at once; transcription / structuring happen in the background. */
+  const submit = (c: Card, a: Answer) => {
+    const s = stRef.current;
+    if (!s) return;
+    persist((cur) => ({ ...cur, deck: cur.deck.map((x) => (x.card === c.card ? { ...x, done: true, pending: true, failed: false } : x)) }));
+    closeColleagueQuestion(c);
+
+    if (s.mode === "live" && s.sid) {
+      const call = a.audio ? interviewApi.submitAudio(s.sid, c.card, a.audio, a.filename) : interviewApi.submit(s.sid, c.card, a.text!);
+      call
+        .then((r) => persist((cur) => ({ ...cur, ...fromSession(r) })))
+        .catch(() => {
+          persist((cur) => ({ ...cur, deck: cur.deck.map((x) => (x.card === c.card ? { ...x, done: false, pending: false, failed: true } : x)) }));
+          toast({ title: "Antwort nicht angekommen", body: `Karte ${c.card} bitte noch einmal.` });
+        });
+      return;
+    }
+    // demo mode: the browser's own transcript, typed text, or the prepared answer for uploads
+    const raw = (a.text ?? a.spoken ?? "").trim() || c.demoAnswer || "";
+    setTimeout(() => {
+      const r = processAnswer(raw, engineState);
+      const notes = r.statements.map((x) => ({ card: c.card, section: x.section, text: x.text }));
+      if ((c.kind === "open_question" || c.kind === "gap") && (notes.length || !r.ignored) && r.clean.trim())
+        learn({ text: r.ignored ? notes.map((n) => n.text).join(" ") : r.clean, owner: me.id, via: "interview", label: `Interview ${first[0]}. ${me.name.split(" ").slice(-1)[0]}`, gapId: c.gapId, topic: c.original.replace("?", "") });
+      persist((cur) => ({
+        ...cur,
+        deck: cur.deck.map((x) => (x.card === c.card ? { ...x, pending: false } : x)),
+        notes: dedupe([...cur.notes, ...notes]),
+      }));
+    }, 1400 + Math.random() * 1600);
+  };
+
+  const drawNext = (after?: number) => {
+    const left = (stRef.current?.deck ?? []).filter((c) => !c.done && c.card !== after);
+    setOpen(left.length ? left[Math.floor(Math.random() * left.length)].card : null);
   };
 
   const sections = useMemo(() => {
@@ -143,19 +205,22 @@ export default function InterviewView() {
     for (const n of dedupe(st?.notes ?? [])) m.set(n.section, [...(m.get(n.section) ?? []), n]);
     return [...m.entries()];
   }, [st?.notes]);
+  const pendingCount = deck.filter((c) => c.pending).length;
+  const voucher: Voucher | undefined = st?.voucher ?? (finished ? DATA.rewards.vouchers[me.id]?.[0] : undefined);
+  const openCard = deck.find((c) => c.card === open);
 
   return (
     <div className="pb-16">
       <PageHeader
         title="Wissensinterview"
-        sub={`Zieh eine Karte und erzähl. Finn hört zu und schreibt mit. Noch ${daysUntil(me.leave_date!)} Tage bis ${fmtDate(me.leave_date)}.`}
+        sub={finished ? `Alle Karten beantwortet. Danke, ${first}.` : `Zieh eine Karte und erzähl – per Sprache oder Text. Noch ${daysUntil(me.leave_date!)} Tage bis ${fmtDate(me.leave_date)}.`}
         right={
           <div className="flex items-center gap-3 text-[13px] text-muted">
             <span className="tabular-nums">
-              <span className="font-medium text-ink">{doneCount}</span> / {deck.length || DECK_SIZE}
+              <span className="font-medium text-ink">{doneCount}</span> / {deck.length || "–"}
             </span>
             <span className="h-1 w-28 overflow-hidden rounded-full bg-subtle">
-              <span className="block h-full rounded-full bg-accent transition-all" style={{ width: `${(doneCount / Math.max(1, deck.length)) * 100}%` }} />
+              <motion.span className="block h-full rounded-full bg-accent" animate={{ width: `${(doneCount / Math.max(1, deck.length)) * 100}%` }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} />
             </span>
           </div>
         }
@@ -165,51 +230,54 @@ export default function InterviewView() {
         <CursorGlow />
         <div className="relative z-10 mx-auto max-w-[1040px]">
         {busy || !st ? (
-          <div className="flex items-center gap-2 text-[13px] text-muted">
-            <Spinner /> Finn mischt die Karten …
+          <div className="flex items-center gap-3 text-[13px] text-muted">
+            <FinnAvatar mood="thinking" size={26} /> Finn mischt die Karten …
           </div>
+        ) : finished ? (
+          <Finale name={first} years={me.tenure_years} voucher={voucher} revealed={!!st.revealed} onReveal={() => persist((c) => ({ ...c, revealed: true }))} pending={pendingCount} />
         ) : (
           <>
-          <div className="mb-8"><AgentBuddy /></div>
-          <Fan
-            items={[
-              ...deck.map((c, i) => ({ key: `c${c.card}`, pickable: !c.done, node: <DeckCard c={c} index={i} onPick={() => setOpen(c)} /> })),
-              { key: "reward", pickable: unlocked, node: <RewardCard index={DECK_SIZE} unlocked={unlocked} remaining={deck.length - doneCount} onOpen={() => setRewardOpen(true)} /> },
-            ]}
-          />
-          <p className="mt-6 text-center text-[13px] text-muted">
-            {doneCount === 0
-              ? "Fahr über die Karten und zieh eine. Jede Geschichte, die du erzählst, bleibt dem Team erhalten."
-              : unlocked
-                ? "Alle Karten erzählt. Die letzte Karte ist für dich."
+            <div className="mb-8">
+              <AgentBuddy />
+            </div>
+            <Fan items={deck.map((c, i) => ({ key: `c${c.card}`, pickable: !c.done, node: <DeckCard c={c} index={i} onPick={() => setOpen(c.card)} /> }))} />
+            <p className="mt-6 text-center text-[13px] text-muted">
+              {doneCount === 0
+                ? "Fahr über die Karten und zieh eine. Jede Geschichte, die du erzählst, bleibt dem Team erhalten."
                 : `${doneCount} erzählt, noch ${deck.length - doneCount}. Welche ziehst du als Nächstes?`}
-          </p>
+            </p>
           </>
         )}
 
-        {sections.length > 0 && (
+        {(sections.length > 0 || pendingCount > 0) && (
           <section className="mt-14">
-            <div className="flex items-end justify-between gap-4 border-b border-line pb-3">
-              <div>
-                <h2 className="text-[15px] font-semibold">Dein Übergabe-Handbuch</h2>
-                <p className="mt-0.5 text-[13px] text-muted">{dedupe(st?.notes ?? []).length} Einträge aus deinen Antworten</p>
+            <Reveal>
+              <div className="flex items-end justify-between gap-4 border-b border-line pb-3">
+                <div>
+                  <h2 className="text-[15px] font-semibold">Dein Übergabe-Handbuch</h2>
+                  <p className="mt-0.5 text-[13px] text-muted">Wird automatisch in „Frag Finn“ übernommen.</p>
+                </div>
+                {pendingCount > 0 && (
+                  <span className="flex items-center gap-2 text-[12.5px] text-muted">
+                    <Spinner /> {pendingCount} Antwort{pendingCount > 1 ? "en" : ""} in Arbeit
+                  </span>
+                )}
               </div>
-              <Button variant={st?.published ? "secondary" : "primary"} size="sm" disabled={st?.published} onClick={publish} icon={st?.published ? <Check size={14} /> : undefined}>
-                {st?.published ? "Freigegeben" : "Handbuch freigeben"}
-              </Button>
-            </div>
+            </Reveal>
             <div className="divide-y divide-line">
-              {sections.map(([name, notes]) => (
-                <div key={name} className="grid gap-2 py-4 sm:grid-cols-[200px_1fr]">
+              {sections.map(([name, notes], i) => (
+                <Reveal key={name} delay={i * 0.05} className="grid gap-2 py-4 sm:grid-cols-[200px_1fr]">
                   <div className="text-[13px] text-muted">{name}</div>
                   <ul className="space-y-1.5">
-                    {notes.map((n, i) => (
-                      <li key={i} className="text-[14px] leading-relaxed text-ink-2">
-                        {n.text}
-                      </li>
-                    ))}
+                    <AnimatePresence initial={false}>
+                      {notes.map((n) => (
+                        <motion.li key={n.text} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="text-[14px] leading-relaxed text-ink-2">
+                          {n.text}
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
                   </ul>
-                </div>
+                </Reveal>
               ))}
             </div>
           </section>
@@ -217,20 +285,21 @@ export default function InterviewView() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {open && st && (
+      <AnimatePresence mode="wait">
+        {openCard && (
           <CardDialog
-            key={open.card}
-            card={open}
-            saved={st}
+            key={openCard.card}
+            card={openCard}
+            total={deck.length}
+            left={remaining.length}
+            live={st?.mode === "live"}
             onClose={() => setOpen(null)}
-            onAnswered={onAnswered}
-            learnOffline={(text) =>
-              learn({ text, owner: me.id, via: "interview", label: `Interview ${me.name.split(" ")[0][0]}. ${me.name.split(" ").slice(-1)[0]}`, gapId: open.gapId, topic: open.original.replace("?", "") })
-            }
+            onSubmit={(a) => {
+              submit(openCard, a);
+              drawNext(openCard.card);
+            }}
           />
         )}
-        {rewardOpen && <RewardDialog name={me.name.split(" ")[0]} years={me.tenure_years} voucher={voucher} onClose={() => setRewardOpen(false)} />}
       </AnimatePresence>
     </div>
   );
@@ -239,7 +308,6 @@ export default function InterviewView() {
 /* ------------------------------------------------------------------ fan */
 type FanItem = { key: string; pickable: boolean; node: React.ReactNode };
 
-/** Cards start as a messy pile, then spread into a fan around a pivot below the deck. Hovering lifts a card out. */
 function Fan({ items }: { items: FanItem[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(900);
@@ -308,7 +376,7 @@ const LABEL_ICON: Record<string, typeof Lightbulb> = {
 function cardIcon(c: Card) {
   if (c.kind === "open_question") return MessageCircle;
   if (c.kind === "gap") return Puzzle;
-  return LABEL_ICON[c.label] ?? Lightbulb;
+  return LABEL_ICON[c.label ?? ""] ?? Lightbulb;
 }
 
 function BackIcon({ icon: Icon }: { icon: typeof Lightbulb }) {
@@ -322,109 +390,54 @@ function BackIcon({ icon: Icon }: { icon: typeof Lightbulb }) {
 }
 
 function DeckCard({ c, index, onPick }: { c: Card; index: number; onPick: () => void }) {
-  const num = String(c.card).padStart(2, "0");
+  const face = c.done;
   return (
-    <div className="relative">
     <motion.button
       initial={{ filter: "brightness(1.8) blur(3px)" }}
       animate={{ filter: "brightness(1) blur(0px)" }}
       transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
       style={{ ["--shine-delay" as string]: `${index * 0.05 + 1.1}s` }}
-      onClick={c.done ? undefined : onPick}
-      aria-label={c.done ? `Karte ${num}, beantwortet` : `Karte ${num} ziehen`}
-      disabled={c.done}
+      whileTap={face ? undefined : { scale: 0.97 }}
+      onClick={face ? undefined : onPick}
+      disabled={face}
       className={cx(
-        "group relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left transition-shadow",
-        c.done ? "cursor-default border border-line bg-surface shadow-xs" : "card-back card-shine text-white shadow-[0_6px_18px_rgb(0_0_0/0.25)] hover:shadow-pop",
+        "group relative block aspect-[3/4] w-full rounded-[14px] text-left transition-shadow",
+        face ? "cursor-default border border-line bg-surface p-4 shadow-xs" : "card-back card-shine shadow-[0_6px_18px_rgb(0_0_0/0.25)] hover:shadow-pop",
       )}
+      aria-label={face ? `Karte ${c.card}: beantwortet` : `Karte ${c.card} ziehen`}
     >
-      <div className="flex items-center justify-between">
-        <span className={cx("text-[12px] tabular-nums", c.done ? "text-faint" : "text-white/45")}>{num}</span>
-        {c.done && (
-          <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-white">
-            <Check size={12} strokeWidth={3} />
+      {face ? (
+        <div className="flex h-full flex-col justify-between">
+          <span className="flex justify-end">
+            {c.pending ? (
+              <Spinner className="text-faint" />
+            ) : (
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-accent text-white">
+                <Check size={12} strokeWidth={3} />
+              </span>
+            )}
           </span>
-        )}
-      </div>
-      {c.done ? (
-        <p className="line-clamp-5 text-[13px] leading-snug text-muted">{c.original}</p>
+          <p className="line-clamp-5 text-[13px] leading-snug text-muted">{c.original}</p>
+        </div>
       ) : (
-        <BackIcon icon={cardIcon(c)} />
+        <span className="absolute inset-3 grid place-items-center rounded-[10px] border border-white/10">
+          <BackIcon icon={cardIcon(c)} />
+          {c.failed && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-gold" title="Bitte noch einmal" />}
+        </span>
       )}
-      {c.done ? <span className="text-[11.5px] text-faint">Beantwortet</span> : <span />}
     </motion.button>
-    </div>
-  );
-}
-
-function RewardCard({ index, unlocked, remaining, onOpen }: { index: number; unlocked: boolean; remaining: number; onOpen: () => void }) {
-  return (
-    <div className="relative">
-    <motion.button
-      initial={{ filter: "brightness(1.8) blur(3px)" }}
-      animate={{ filter: "brightness(1) blur(0px)" }}
-      transition={{ delay: index * 0.06, duration: 0.6, ease: "easeOut" }}
-      style={{ ["--shine-delay" as string]: `${index * 0.05 + 1.1}s` }}
-            onClick={unlocked ? onOpen : undefined}
-      disabled={!unlocked}
-      className={cx("card-reward card-shine relative z-10 flex w-full aspect-[3/4] flex-col justify-between rounded-[14px] p-4 text-left", unlocked ? "ring-1 ring-gold shadow-pop" : "shadow-[0_6px_18px_rgb(0_0_0/0.25)]")}
-    >
-      <span className="text-[12px] tabular-nums text-gold/70">10</span>
-      <div className="space-y-2">
-        {unlocked ? <Gift size={20} className="text-gold" /> : <Lock size={18} className="text-gold/60" />}
-        <div className="text-[13.5px] font-medium leading-snug text-gold">{unlocked ? "Für dich" : "Letzte Karte"}</div>
-      </div>
-      <span className="text-[11.5px] text-gold/60">{unlocked ? "Aufdecken" : `Noch ${remaining} Karte${remaining === 1 ? "" : "n"}`}</span>
-    </motion.button>
-    </div>
   );
 }
 
 /* ------------------------------------------------------------------ dialog */
-function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <motion.div className="fixed inset-0 z-50 grid place-items-center bg-ink/30 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{ perspective: 1200 }}>
-      <motion.div
-        initial={{ rotateY: -70, opacity: 0, scale: 0.96 }}
-        animate={{ rotateY: 0, opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.97 }}
-        transition={{ type: "spring", stiffness: 220, damping: 24 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[520px]"
-      >
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-type Phase = "asking" | "record" | "sending" | "done";
-
-function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: Card; saved: Saved; onClose: () => void; onAnswered: (c: Card, n: Note[], s?: IvSession) => void; learnOffline: (text: string) => void }) {
-  const { user, engineState } = useStore();
-  const [question, setQuestion] = useState("");
-  const [phase, setPhase] = useState<Phase>("asking");
-  const [result, setResult] = useState<{ notes: Note[]; transcript: string; redacted: number } | null>(null);
-  const [err, setErr] = useState("");
+function CardDialog({ card, total, left, live, onClose, onSubmit }: { card: Card; total: number; left: number; live: boolean; onClose: () => void; onSubmit: (a: Answer) => void }) {
+  const [text, setText] = useState("");
   const rec = useRecorder();
   const spoken = useRef("");
   const speech = useSpeech((t) => (spoken.current = t));
   const fileRef = useRef<HTMLInputElement>(null);
-  const live = saved.mode === "live" && !!saved.sid;
-
-  useEffect(() => {
-    if (live)
-      interviewApi
-        .pick(saved.sid!, card.card)
-        .then((s) => setQuestion(s.current?.text || card.original))
-        .catch(() => setQuestion(card.original))
-        .finally(() => setPhase("record"));
-    else {
-      setQuestion(phraseCard({ ...card, openQuestionId: card.ref }, user.personaId));
-      setPhase("record");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const asker = card.askedBy ? personaById(card.askedBy) : undefined;
+  const recording = rec.state === "recording";
 
   const startRec = async () => {
     spoken.current = "";
@@ -435,160 +448,100 @@ function CardDialog({ card, saved, onClose, onAnswered, learnOffline }: { card: 
     rec.stop();
     speech.stop();
   };
-
-  const submit = async (audio: Blob, filename?: string) => {
-    setErr("");
-    setPhase("sending");
-    if (live) {
-      try {
-        const s = await interviewApi.answerAudio(saved.sid!, audio, filename);
-        const notes = s.turn.claims.map((c) => ({ card: card.card, section: c.section, text: c.text }));
-        setResult({ notes, transcript: s.turn.answer, redacted: s.turn.redacted.length });
-        onAnswered(card, notes, s);
-        setPhase("done");
-      } catch {
-        setErr("Ich konnte die Aufnahme nicht verstehen. Versuch es bitte noch einmal.");
-        setPhase("record");
-        rec.reset();
-      }
-      return;
-    }
-    // demo mode: browser speech recognition, or the presenter's prepared answer for uploads
-    await new Promise((r) => setTimeout(r, 900));
-    const raw = (filename ? "" : spoken.current.trim()) || card.demoAnswer || spoken.current.trim();
-    if (!raw) {
-      setErr("Ich habe nichts gehört. Versuch es bitte noch einmal.");
-      setPhase("record");
-      rec.reset();
-      return;
-    }
-    const r = processAnswer(raw, engineState);
-    const notes = r.statements.map((s) => ({ card: card.card, section: s.section, text: s.text }));
-    if ((card.kind === "open_question" || card.kind === "gap") && (notes.length || !r.ignored)) {
-      learnOffline(r.ignored ? notes.map((n) => n.text).join(" ") : r.clean);
-    }
-    setResult({ notes, transcript: r.clean, redacted: r.redacted });
-    onAnswered(card, notes);
-    setPhase("done");
-  };
-
-  const asker = card.askedBy ? personaById(card.askedBy) : undefined;
+  const sendText = () => text.trim().length > 1 && onSubmit({ text: text.trim() });
 
   return (
-    <Overlay onClose={phase === "sending" ? () => undefined : onClose}>
-      <div className="overflow-hidden rounded-[16px] bg-surface shadow-pop">
+    <motion.div className="fixed inset-0 z-50 grid place-items-center bg-ink/30 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} style={{ perspective: 1400 }}>
+      <motion.div
+        initial={{ rotateY: -70, opacity: 0, y: 16 }}
+        animate={{ rotateY: 0, opacity: 1, y: 0, transition: { type: "spring", stiffness: 320, damping: 28 } }}
+        exit={{ rotateY: 70, opacity: 0, y: -8, transition: { duration: 0.14, ease: "easeIn" } }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-[540px] overflow-hidden rounded-[16px] bg-surface shadow-pop"
+      >
         <div className="flex items-center justify-between border-b border-line px-6 py-3.5 text-[12.5px] text-muted">
-          <span>
-            Karte {String(card.card).padStart(2, "0")} · {card.label}
-            {asker && ` · von ${asker.name}`}
+          <span className="flex items-center gap-2.5">
+            <FinnAvatar size={22} mood={recording ? "listening" : "idle"} />
+            Karte {total - left + 1} von {total}
+            {asker && <span className="text-faint">· gefragt von {asker.name}</span>}
           </span>
-          {phase !== "sending" && (
-            <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-md hover:bg-subtle" aria-label="Schließen">
-              <X size={15} />
-            </button>
-          )}
+          <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-md hover:bg-subtle" aria-label="Schließen">
+            <X size={15} />
+          </button>
         </div>
 
         <div className="px-6 pb-6 pt-5">
-          {phase === "asking" ? (
-            <div className="flex items-center gap-2 py-6 text-[13px] text-muted">
-              <Spinner /> Finn formuliert die Frage …
-            </div>
-          ) : (
-            <h3 className="text-[19px] font-semibold leading-snug tracking-[-0.01em]">{question}</h3>
-          )}
+          <h3 className="text-[19px] font-semibold leading-snug tracking-[-0.01em]">{card.text}</h3>
 
-          {phase === "record" && (
-            <div className="mt-7">
-              {rec.state === "recorded" && rec.blob ? (
-                <Recorded blob={rec.blob} seconds={rec.seconds} onRetry={rec.reset} onSend={() => submit(rec.blob!)} />
-              ) : (
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={rec.state === "recording" ? stopRec : startRec}
-                    className={cx("grid h-14 w-14 shrink-0 place-items-center rounded-full text-white transition-colors", rec.state === "recording" ? "bg-danger" : "bg-ink hover:bg-ink-2")}
-                    aria-label={rec.state === "recording" ? "Aufnahme beenden" : "Aufnahme starten"}
-                  >
-                    {rec.state === "recording" ? <Square size={16} fill="currentColor" /> : <Mic size={20} />}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    {rec.state === "recording" ? (
-                      <div className="flex items-center gap-3">
-                        <span className="text-[14px] font-medium tabular-nums">{mmss(rec.seconds)}</span>
-                        <Level level={rec.level} />
-                      </div>
-                    ) : (
-                      <div className="text-[14px] font-medium">Antwort aufnehmen</div>
-                    )}
-                    <button onClick={() => fileRef.current?.click()} className="mt-1 flex items-center gap-1 text-[12.5px] text-muted hover:text-ink" disabled={rec.state === "recording"}>
-                      <Upload size={12} /> oder Audiodatei hochladen
-                    </button>
-                  </div>
-                </div>
-              )}
-              {(err || rec.error) && <p className="mt-4 text-[12.5px] text-danger">{err || rec.error}</p>}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) submit(f, f.name);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-          )}
-
-          {phase === "sending" && (
-            <div className="mt-7 flex items-center gap-2 text-[13px] text-muted">
-              <Spinner /> Finn hört zu und schreibt mit …
-            </div>
-          )}
-
-          {phase === "done" && result && (
-            <div className="mt-6">
-              {result.notes.length > 0 ? (
-                <>
-                  <div className="mb-2 text-[12px] font-medium uppercase tracking-[0.06em] text-faint">Notiert fürs Handbuch</div>
-                  <ul className="space-y-2">
-                    {result.notes.map((n, i) => (
-                      <li key={i} className="flex gap-2.5 text-[14px] leading-relaxed">
-                        <Check size={15} className="mt-[3px] shrink-0 text-accent" />
-                        {n.text}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p className="text-[13.5px] text-muted">Danke! Für diese Karte gab es nichts Neues fürs Handbuch.</p>
-              )}
-              <details className="mt-5 text-[12.5px] text-muted">
-                <summary className="cursor-pointer select-none hover:text-ink">
-                  Transkript{result.redacted > 0 && ` · ${result.redacted} Steuerdetail${result.redacted > 1 ? "s" : ""} geschwärzt`}
-                </summary>
-                <p className="mt-2 leading-relaxed text-ink-2">
-                  {result.transcript.split(/(\[[^\]]+\])/).map((x, i) =>
-                    /^\[[^\]]+\]$/.test(x) ? <span key={i} className="mx-0.5 inline-block h-[1.05em] w-16 translate-y-[2px] rounded-sm bg-ink" title="Geschwärzt (§ 30 AO)" /> : <span key={i}>{x}</span>,
-                  )}
-                </p>
-              </details>
-              <div className="mt-6 flex justify-end">
-                <Button onClick={onClose}>Fertig</Button>
+          <div className="mt-6">
+            {rec.state === "recorded" && rec.blob ? (
+              <Recorded blob={rec.blob} seconds={rec.seconds} onRetry={rec.reset} onSend={() => onSubmit({ audio: rec.blob!, spoken: spoken.current })} />
+            ) : recording ? (
+              <div className="flex items-center gap-4 rounded-[12px] border border-line p-3">
+                <button onClick={stopRec} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-danger text-white" aria-label="Aufnahme beenden">
+                  <Square size={14} fill="currentColor" />
+                </button>
+                <span className="text-[14px] font-medium tabular-nums">{mmss(rec.seconds)}</span>
+                <Level level={rec.level} />
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="rounded-[12px] border border-line focus-within:border-line-strong">
+                <textarea
+                  autoFocus
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendText();
+                    }
+                  }}
+                  rows={3}
+                  placeholder="Schreib deine Antwort … oder nimm sie auf."
+                  className="block w-full resize-none bg-transparent px-3.5 pt-3 text-[14px] leading-relaxed outline-none placeholder:text-faint"
+                />
+                <div className="flex items-center gap-1 px-2 pb-2">
+                  <button onClick={startRec} className="flex h-8 items-center gap-1.5 rounded-[8px] px-2 text-[13px] text-muted hover:bg-subtle hover:text-ink" aria-label="Aufnahme starten">
+                    <Mic size={15} /> Aufnehmen
+                  </button>
+                  <button onClick={() => fileRef.current?.click()} className="flex h-8 items-center gap-1.5 rounded-[8px] px-2 text-[13px] text-muted hover:bg-subtle hover:text-ink">
+                    <Upload size={14} /> Audiodatei
+                  </button>
+                  <button
+                    onClick={sendText}
+                    disabled={text.trim().length < 2}
+                    className="ml-auto grid h-8 w-8 place-items-center rounded-[8px] bg-ink text-white transition-opacity disabled:opacity-25"
+                    aria-label="Antwort senden"
+                  >
+                    <ArrowUp size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+            {rec.error && <p className="mt-3 text-[12.5px] text-danger">{rec.error}</p>}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) onSubmit({ audio: f, filename: f.name });
+                e.target.value = "";
+              }}
+            />
+          </div>
+          <p className="mt-4 text-[12px] text-faint">Nach dem Senden geht es sofort mit der nächsten Karte weiter. Finn sortiert deine Antwort im Hintergrund.</p>
         </div>
-      </div>
-    </Overlay>
+      </motion.div>
+    </motion.div>
   );
 }
 
 function Level({ level }: { level: number }) {
   return (
-    <span className="flex h-6 items-center gap-[3px]">
-      {Array.from({ length: 18 }).map((_, i) => {
+    <span className="flex h-6 flex-1 items-center gap-[3px]">
+      {Array.from({ length: 24 }).map((_, i) => {
         const h = Math.max(0.15, Math.min(1, level * (0.6 + ((i * 7) % 5) / 5)));
         return <span key={i} className="w-[3px] rounded-full bg-ink/70 transition-[height] duration-75" style={{ height: `${h * 100}%` }} />;
       })}
@@ -624,39 +577,72 @@ function Recorded({ blob, seconds, onRetry, onSend }: { blob: Blob; seconds: num
         Neu
       </Button>
       <Button size="sm" onClick={onSend}>
-        Antwort senden
+        Senden
       </Button>
     </div>
   );
 }
 
-function RewardDialog({ name, years, voucher, onClose }: { name: string; years: number; voucher?: Voucher; onClose: () => void }) {
+/* ------------------------------------------------------------------ finale: the secret card */
+function Finale({ name, years, voucher, revealed, onReveal, pending }: { name: string; years: number; voucher?: Voucher; revealed: boolean; onReveal: () => void; pending: number }) {
+  const [flipped, setFlipped] = useState(revealed);
   return (
-    <Overlay onClose={onClose}>
-      <div className="card-reward overflow-hidden rounded-[18px] p-8 text-white shadow-pop">
-        <div className="flex items-center justify-between text-[12px] text-gold/70">
-          <span>Karte 10</span>
-          <button onClick={onClose} className="grid h-7 w-7 place-items-center rounded-md text-gold/70 hover:bg-white/5" aria-label="Schließen">
-            <X size={15} />
-          </button>
+    <div className="flex flex-col items-center py-6 text-center">
+      <Reveal>
+        <FinnAvatar size={44} mood="happy" />
+      </Reveal>
+      <Reveal delay={0.08}>
+        <h2 className="mt-4 text-[22px] font-semibold tracking-[-0.01em]">Geschafft, {name}.</h2>
+      </Reveal>
+      <Reveal delay={0.14}>
+        <p className="mt-1 text-[13.5px] text-muted">
+          {years} Jahre Wissen – jetzt bleibt es im Amt.{pending > 0 && ` Finn sortiert noch ${pending} Antwort${pending > 1 ? "en" : ""}.`}
+        </p>
+      </Reveal>
+
+      <Reveal delay={0.22} className="mt-10">
+        <div style={{ perspective: 1400 }}>
+          <motion.button
+            onClick={() => {
+              setFlipped(true);
+              onReveal();
+            }}
+            disabled={flipped}
+            animate={{ rotateY: flipped ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 120, damping: 18 }}
+            whileHover={flipped ? undefined : { y: -6 }}
+            className="preserve-3d relative h-[340px] w-[260px] text-left"
+            aria-label="Letzte Karte aufdecken"
+          >
+            {/* back */}
+            <span className="card-reward backface-hidden absolute inset-0 grid place-items-center rounded-[16px] shadow-pop ring-1 ring-gold/60">
+              <span className="text-center">
+                <Gift size={26} className="mx-auto text-gold" />
+                <span className="mt-3 block text-[13px] text-gold/80">Eine Karte gibt es noch</span>
+                <span className="mt-1 block text-[12px] text-gold/50">Aufdecken</span>
+              </span>
+            </span>
+            {/* front */}
+            <span className="card-reward backface-hidden absolute inset-0 flex flex-col justify-between rounded-[16px] p-6 text-white shadow-pop ring-1 ring-gold/60" style={{ transform: "rotateY(180deg)" }}>
+              <span className="text-[11.5px] uppercase tracking-[0.1em] text-gold/80">Für dich</span>
+              {voucher ? (
+                <span>
+                  <span className="block text-[19px] font-semibold leading-snug text-gold">{voucher.title_de}</span>
+                  <span className="mt-2 block text-[13px] leading-relaxed text-white/70">{voucher.detail_de}</span>
+                </span>
+              ) : (
+                <span className="text-[14px] text-white/70">Dein Team überrascht dich bei der Verabschiedung.</span>
+              )}
+              {voucher && (
+                <span className="flex items-end justify-between gap-3 text-[12px] text-white/50">
+                  <span>Weil du gern: {voucher.based_on}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums">ca. {voucher.est_eur} €</span>
+                </span>
+              )}
+            </span>
+          </motion.button>
         </div>
-        <Gift size={26} className="mt-8 text-gold" />
-        <h3 className="mt-4 text-[24px] font-semibold tracking-[-0.01em]">Danke, {name}.</h3>
-        <p className="mt-1.5 text-[14px] text-white/60">{years} Jahre Wissen – und jetzt bleibt es im Amt.</p>
-        {voucher ? (
-          <div className="mt-8 rounded-[12px] border border-gold/30 p-5">
-            <div className="text-[12px] uppercase tracking-[0.08em] text-gold/80">Gutschein</div>
-            <div className="mt-1.5 text-[18px] font-semibold text-gold">{voucher.title_de}</div>
-            <div className="mt-1 text-[13.5px] leading-relaxed text-white/70">{voucher.detail_de}</div>
-            <div className="mt-4 flex items-center justify-between text-[12.5px] text-white/50">
-              <span>Weil du gern: {voucher.based_on}</span>
-              <span className="tabular-nums">ca. {voucher.est_eur} €</span>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-8 text-[13.5px] text-white/60">Dein Team überrascht dich bei der Verabschiedung.</p>
-        )}
-      </div>
-    </Overlay>
+      </Reveal>
+    </div>
   );
 }

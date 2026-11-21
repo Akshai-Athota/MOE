@@ -131,6 +131,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [backend, setBackend] = useState<BackendMode>("checking");
   const [livePosts, setLivePosts] = useState<LibraryPost[]>([]);
+  const [sendingPosts, setSendingPosts] = useState<LibraryPost[]>([]);
   const user = DEMO_USERS[userIdx];
 
   useEffect(() => {
@@ -236,14 +237,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const resolveOpenQuestion = (id: string) =>
     setP((s) => ({ ...s, openQuestions: s.openQuestions.map((q) => (q.id === id ? { ...q, resolved: true } : q)) }));
 
+  /** Optimistic: the post is listed at once; the server call runs in the background. */
   const addPost = async (text: string, category: string, file?: File) => {
     const me = personaById(user.personaId)!;
-    if (backend === "live") {
-      if (file) await libraryApi.upload(me.id, file, category);
-      if (text.trim()) await libraryApi.add(me.id, text.trim(), category);
-      refreshLibrary();
-      return;
-    }
     const body = [text.trim(), file ? `Anhang: ${file.name}` : ""].filter(Boolean).join("\n");
     const post: LibraryPost = {
       id: crypto.randomUUID(),
@@ -254,7 +250,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       created: new Date().toISOString().slice(0, 19),
       text: redactedString(body),
     };
-    setP((s) => ({ ...s, posts: [post, ...s.posts], learned: [...s.learned, libraryFact(post)] }));
+    if (backend !== "live") {
+      setP((s) => ({ ...s, posts: [post, ...s.posts], learned: [...s.learned, libraryFact(post)] }));
+      return;
+    }
+    const temp = { ...post, sending: true };
+    setSendingPosts((x) => [temp, ...x]);
+    const drop = () => setSendingPosts((x) => x.filter((y) => y.id !== temp.id));
+    Promise.all([file ? libraryApi.upload(me.id, file, category) : null, text.trim() ? libraryApi.add(me.id, text.trim(), category) : null])
+      .then(async () => {
+        const fresh = await libraryApi.list().catch(() => null);
+        if (fresh) setLivePosts(fresh);
+        drop();
+      })
+      .catch(() => {
+        drop();
+        toast({ title: "Konnte nicht geteilt werden", body: "Bitte noch einmal versuchen." });
+      });
   };
 
   const resolvePost = async (id: string) => {
@@ -286,7 +298,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toast({ title: "Demo zurückgesetzt" });
   };
 
-  const libraryPosts = backend === "live" ? livePosts : p.posts;
+  const libraryPosts = backend === "live" ? [...sendingPosts, ...livePosts] : p.posts;
 
   return (
     <Ctx.Provider

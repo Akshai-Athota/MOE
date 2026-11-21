@@ -172,4 +172,6 @@ export interface LibraryPost {
   resolved?: boolean;
   /** offline: the learned fact that holds this post */
   factId?: string;
+  /** shown at once, still on its way to the server */
+  sending?: boolean;
 }
