@@ -4,13 +4,13 @@ import { askBackend, checkBackend, learnBackend, libraryApi, resetBackend, type 
 import { ask as engineAsk, guessCategory, redactedString, type EngineState } from "./engine";
 import type { Answer, ChatMessage, Fact, LibraryPost, OpenQuestion, Role } from "./types";
 
-export type View = "start" | "ask" | "interview" | "library";
+export type View = "start" | "ask" | "interview" | "library" | "avatar";
 
 export const VIEWS_BY_ROLE: Record<Role, View[]> = {
-  new_hire: ["start", "ask", "library"],
-  leaver: ["interview", "ask", "library"],
-  employee: ["ask", "library"],
-  manager: ["ask", "library"],
+  new_hire: ["start", "ask", "library", "avatar"],
+  leaver: ["interview", "ask", "library", "avatar"],
+  employee: ["ask", "library", "avatar"],
+  manager: ["ask", "library", "avatar"],
 };
 
 interface Toast {

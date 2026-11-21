@@ -9,9 +9,10 @@ from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from hilde import interview, library, open_questions
+from hilde import avatar, interview, library, open_questions
 from hilde.answer import ask
 from hilde.config import REPO_ROOT, get_settings
 from hilde.ingest import ingest_file
@@ -257,3 +258,76 @@ def library_resolve(post_id: str) -> library.Post:
         return library.resolve(post_id)
     except KeyError:
         raise HTTPException(404, f"unknown post {post_id}") from None
+
+
+# ---------------------------------------------------------------- avatars ("remembered forever")
+
+def _avatar_call(f, *args):
+    try:
+        return f(*args)
+    except avatar.AvatarError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@app.get("/avatar/status")
+def avatar_status() -> dict:
+    return avatar.status()
+
+
+@app.get("/avatar")
+def avatar_list() -> list[dict]:
+    return avatar.list_all()
+
+
+@app.post("/avatar")
+def avatar_create(
+    name: Annotated[str, Form(description="shown as 'KI-Avatar von <name>'")],
+    consent: Annotated[bool, Form(description="explicit consent of the person; required")],
+    photo: Annotated[UploadFile, File(description="front-facing photo (jpg/png)")],
+    voice: Annotated[UploadFile, File(description="10-60 s of clear speech (webm/mp3/wav/m4a)")],
+    persona_id: Annotated[str | None, Form()] = None,
+) -> dict:
+    """Create a labelled AI avatar from a photo and a voice sample (stored locally only)."""
+    return _avatar_call(
+        avatar.create, name, persona_id, photo.file.read(), Path(photo.filename or "p.jpg").suffix,
+        voice.file.read(), Path(voice.filename or "v.webm").suffix, consent)
+
+
+@app.get("/avatar/{aid}/photo")
+def avatar_photo(aid: str) -> FileResponse:
+    return FileResponse(_avatar_call(avatar.photo_path, aid))
+
+
+class SpeakRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+    lang: str = "de"
+
+
+@app.post("/avatar/{aid}/speak")
+def avatar_speak(aid: str, req: SpeakRequest) -> FileResponse:
+    """The text in the avatar's cloned voice (WAV)."""
+    if not avatar.status()["voice"]:
+        raise HTTPException(503, "voice stack not installed: uv sync --extra avatar")
+    return FileResponse(_avatar_call(avatar.speak, aid, req.text, req.lang), media_type="audio/wav")
+
+
+class AvatarAsk(BaseModel):
+    question: str = Field(min_length=2)
+    user_id: str
+
+
+@app.post("/avatar/{aid}/ask")
+def avatar_ask(aid: str, req: AvatarAsk) -> dict:
+    """Finn finds the answer in the sources (role filter as always); the avatar speaks it."""
+    meta = _avatar_call(avatar.get, aid)
+    a = ask(req.question, _user(req.user_id))
+    lang = "en" if a.answer and a.answer[:40].isascii() and " the " in f" {a.answer.lower()} " else "de"
+    return {"avatar": meta, "answer": a.model_dump(), "audio": f"/avatar/{aid}/speak", "lang": lang}
+
+
+@app.delete("/avatar/{aid}")
+def avatar_delete(aid: str) -> dict:
+    """Consent withdrawn: photo, voice sample and all generated audio are deleted."""
+    _avatar_call(avatar.get, aid)
+    avatar.delete(aid)
+    return {"deleted": aid}

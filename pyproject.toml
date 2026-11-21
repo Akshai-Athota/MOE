@@ -34,3 +34,23 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
+
+# Voice-clone avatar (optional, large: PyTorch + XTTS-v2). Install with: uv sync --extra avatar
+# XTTS-v2 model licence (CPML) allows non-commercial use only -> fine for the hackathon demo.
+[project.optional-dependencies]
+avatar = [
+    "coqui-tts>=0.27.0",
+    "six>=1.17.0",
+    "torch>=2.4",
+    "torchaudio>=2.4",
+]
+
+# PyPI only has CPU builds of PyTorch for Windows: take CUDA builds from the PyTorch index
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
+torchaudio = { index = "pytorch-cu124" }

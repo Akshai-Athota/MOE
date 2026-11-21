@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { BookMarked, Layers, MessageSquare, RotateCcw, Sunrise, type LucideIcon } from "lucide-react";
+import { BookMarked, Infinity as InfinityIcon, Layers, MessageSquare, RotateCcw, Sunrise, type LucideIcon } from "lucide-react";
 import { Avatar, Logo, cx } from "./components/ui";
 import { DEMO_USERS, personaById } from "./lib/data";
 import { VIEWS_BY_ROLE, useStore, type View } from "./lib/store";
 import AskView from "./views/AskView";
+import AvatarView from "./views/AvatarView";
 import InterviewView from "./views/InterviewView";
 import LibraryView from "./views/LibraryView";
 import StartView from "./views/StartView";
@@ -13,6 +14,7 @@ const NAV: Record<View, { label: string; icon: LucideIcon; comp: () => React.JSX
   interview: { label: "Wissensinterview", icon: Layers, comp: InterviewView },
   ask: { label: "Frag Finn", icon: MessageSquare, comp: AskView },
   library: { label: "Wissensbibliothek", icon: BookMarked, comp: LibraryView },
+  avatar: { label: "Für immer dabei", icon: InfinityIcon, comp: AvatarView },
 };
 
 function UserSwitch() {
