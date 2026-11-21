@@ -12,8 +12,10 @@ from hilde.schemas import Answer, Citation, User
 
 _IDENTITY = re.compile(
     r"^(?:"
-    r"wie (?:heiße|heisse|heiß|heiss) ich|wer bin ich|(?:was|wie) (?:ist|lautet) mein (?:voller |ganzer )?name"
-    r"|what(?:'s| is|s) my (?:full )?name|who am i|tell me my name"
+    # tolerant of typical slips: "meine name", "was is mein name", "wie heisst ich"
+    r"wie (?:heiße|heisse|heiß|heiss|heißt|heisst) ich|wer bin ich"
+    r"|(?:was|wie) (?:ist|is|lautet) (?:denn )?mein(?:e|en|em)? (?:voller |ganzer |vollständiger )?namen?"
+    r"|what(?:'s| is|s)? my (?:full )?name|who am i|who i am|tell me my name"
     r")(?: eigentlich| nochmal| again)?$"
 )
 
